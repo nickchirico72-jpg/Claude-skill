@@ -636,7 +636,7 @@ function disegnaIndicatori() {
           </tr></thead>
           <tbody>
             ${settori.map((s) => `<tr>
-              <td>${s.settore}${s.pilota ? '<span class="chip-pilota">pilota</span>' : ""}</td>
+              <td>${esc(s.settore)}${s.fuoriElenco ? " (non più in elenco)" : ""}${s.pilota ? '<span class="chip-pilota">pilota</span>' : ""}</td>
               <td class="num">${s.contatti}</td>
               <td class="num">${s.contratti}</td>
               <td class="num">${s.contatti ? formattaPercentuale(s.conversione) : "–"}</td>
@@ -660,7 +660,7 @@ function disegnaIndicatori() {
           </tr></thead>
           <tbody>
             ${risultatiPerCanale(tutte).map((r) => `<tr>
-              <td>${r.fonte}</td>
+              <td>${esc(r.fonte)}${r.fuoriElenco ? " (non più in elenco)" : ""}</td>
               <td class="num">${r.contatti}</td>
               <td class="num">${r.contratti}</td>
               <td class="num">${r.contatti ? formattaPercentuale(r.conversione) : "–"}</td>
@@ -865,12 +865,15 @@ function apriModificaOpportunita(id) {
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
         <button class="pulsante primario" type="submit">Salva le modifiche</button>`)}
     </form>`, { larga: true });
-  aggiornaAnteprima(document.getElementById("modulo-opportunita"));
+  const modulo = document.getElementById("modulo-opportunita");
+  ricordaValori(modulo);
+  aggiornaAnteprima(modulo);
 }
 
 // Copia dell'opportunità con i valori scritti nel modulo (i campi disabilitati restano quelli salvati)
 function leggiModificaOpportunita(modulo) {
   const o = trova(modulo.dataset.id);
+  if (!o) return null; // eliminata in un'altra scheda
   const d = new FormData(modulo);
   const servizio = d.has("servizio") ? d.get("servizio") : o.servizio;
   const tariffa = Number(d.get("tariffa"));
@@ -886,10 +889,16 @@ function leggiModificaOpportunita(modulo) {
   };
 }
 
-// Salva le correzioni e scrive una sola riga di cronologia con i campi cambiati
+// Salva solo i campi cambiati in questo modulo e scrive una sola riga di cronologia con le correzioni
 function salvaModificaOpportunita(modulo) {
   const o = trova(modulo.dataset.id);
-  const n = leggiModificaOpportunita(modulo);
+  if (!o) return datoNonPiuPresente("Questa opportunità è stata eliminata in un'altra scheda: modifiche non salvate");
+  const letto = leggiModificaOpportunita(modulo);
+  const cambiati = campiCambiati(modulo);
+  // Campo del modulo → dato dell'opportunità; i campi non toccati restano come sono salvati ora
+  const n = { ...o };
+  Object.entries({ servizio: "servizio", comune: "comune", ore: "ore", tariffa: "tariffa", referente: "referenteId", note: "note" })
+    .forEach(([campo, chiave]) => { if (cambiati.has(campo)) n[chiave] = letto[chiave]; });
   if (n.ore <= 0) return segnalaCampo(modulo.ore, "Inserisci le ore al mese");
   const numero = (x) => Number(x).toLocaleString("it-IT");
   const nomeRef = (id) => (trovaReferente(id) || { nome: "nessuno" }).nome;
@@ -898,11 +907,11 @@ function salvaModificaOpportunita(modulo) {
   if (n.comune !== o.comune) cambi.push("sede di lavoro " + o.comune + " → " + n.comune);
   if (n.ore !== o.ore) cambi.push("ore al mese " + o.ore + " → " + n.ore);
   if (tariffaOraria(n) !== tariffaOraria(o)) cambi.push("tariffa " + numero(tariffaOraria(o)) + " → " + numero(tariffaOraria(n)) + " €/ora");
-  if (n.referenteId !== (o.referenteId || null)) cambi.push("referente " + nomeRef(o.referenteId) + " → " + nomeRef(n.referenteId));
-  if (n.note !== (o.note || "")) cambi.push("note aggiornate");
+  if ((n.referenteId || null) !== (o.referenteId || null)) cambi.push("referente " + nomeRef(o.referenteId) + " → " + nomeRef(n.referenteId));
+  if ((n.note || "") !== (o.note || "")) cambi.push("note aggiornate");
   if (!cambi.length) return chiudiFinestra(); // nulla da salvare
   applica(() => {
-    Object.assign(o, { servizio: n.servizio, comune: n.comune, ore: n.ore, tariffa: n.tariffa, referenteId: n.referenteId, note: n.note });
+    Object.assign(o, { servizio: n.servizio, comune: n.comune, ore: n.ore, tariffa: n.tariffa ?? null, referenteId: n.referenteId || null, note: n.note || "" });
     registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: "Correzione: " + cambi.join("; ") });
   }, { messaggio: "Opportunità aggiornata", evidenzia: o.id });
 }
@@ -1102,7 +1111,7 @@ function leggiModulo(modulo) {
 // Opportunità con i valori scritti nel modulo aperto, per l'anteprima del punteggio (null se non c'è)
 function opportunitaDelModulo(modulo) {
   if (modulo.id === "modulo-opportunita") return leggiModificaOpportunita(modulo);
-  if (modulo.id === "modulo-fase") return { ...trova(modulo.dataset.id), ore: Math.round(Number(modulo.ore.value)) || 0 };
+  if (modulo.id === "modulo-fase") return trova(modulo.dataset.id) ? { ...trova(modulo.dataset.id), ore: Math.round(Number(modulo.ore.value)) || 0 } : null;
   const letto = leggiModulo(modulo);
   const opp = letto.opp;
   // Per l'anteprima l'azienda nuova non è ancora salvata: la si passa direttamente
@@ -1148,6 +1157,34 @@ function segnalaCampo(campo, messaggio) {
   campo.setCustomValidity(messaggio);
   campo.reportValidity();
   campo.setCustomValidity("");
+}
+
+// Il dato del modulo non c'è più (es. cancellato in un'altra scheda): la finestra si chiude e si spiega perché
+function datoNonPiuPresente(testo) {
+  chiudiFinestra();
+  mostraAvviso(testo);
+}
+
+// Valori dei campi di un modulo per nome (le caselle di spunta valgono true o false)
+function valoriCampi(modulo) {
+  const valori = {};
+  [...modulo.elements].forEach((c) => {
+    if (!c.name || (c.type === "radio" && !c.checked)) return;
+    valori[c.name] = c.type === "checkbox" ? c.checked : c.value;
+  });
+  return valori;
+}
+
+// Ricorda i valori del modulo appena aperto, per salvare poi solo i campi cambiati
+function ricordaValori(modulo) {
+  modulo.dataset.iniziali = JSON.stringify(valoriCampi(modulo));
+}
+
+// Nomi dei campi cambiati dall'apertura: gli altri restano come sono salvati (anche se un'altra scheda li ha cambiati)
+function campiCambiati(modulo) {
+  const prima = JSON.parse(modulo.dataset.iniziali || "{}");
+  const ora = valoriCampi(modulo);
+  return new Set(Object.keys(ora).filter((nome) => ora[nome] !== prima[nome]));
 }
 
 function salvaContatto(modulo) {
@@ -1450,6 +1487,14 @@ function apriRipristino() {
 function applica(cambia, { messaggio = "", evidenzia = null, fase = null, vai = null, annullabile = true } = {}) {
   const copia = { dati: clona(stato), fase: faseSelezionata, evidenzia, schermata: location.hash };
   if (cambia() === false) return false;
+  // Ultima difesa: dati che non si rileggerebbero (es. collegati a un'azienda eliminata in un'altra scheda) non si salvano
+  if (!strutturaValida(stato)) {
+    stato = copia.dati;
+    if (finestra.open) chiudiFinestra();
+    disegna();
+    mostraAvviso("Modifica non salvata: i dati sono cambiati in un'altra scheda. Controlla e riprova");
+    return false;
+  }
   salva();
   if (finestra.open) chiudiFinestra();
   if (fase) faseSelezionata = fase;
@@ -1525,13 +1570,15 @@ function tornaIndietro(id) {
   if (!puoTornareIndietro(o)) return;
   const attuale = CONFIG.fasi[faseRaggiunta(o)];
   const precedente = CONFIG.fasi[faseRaggiunta(o) - 1];
+  let promemoria = null;
   applica(() => {
     delete o.storico[attuale.id];
     if (attuale.id === "offerta") o.scadenzaOfferta = null;
     if (attuale.id === "contratto") o.avvio = null;
-    togliPromemoriaAutomatici(o.id); // il promemoria era della fase annullata
     registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: "Correzione: fase «" + attuale.nome + "» annullata, torna a «" + precedente.nome + "»" });
-  }, { messaggio: nomeCliente(o) + " torna a «" + precedente.nome + "»", evidenzia: o.id, fase: precedente.id });
+    // Il promemoria della fase annullata sparisce e torna quello della fase precedente (dalla sua data, mai prima di oggi)
+    promemoria = cadenza(o, precedente, o.storico[precedente.id]);
+  }, { messaggio: () => nomeCliente(o) + " torna a «" + precedente.nome + "»" + testoPromemoria(promemoria), evidenzia: o.id, fase: precedente.id });
 }
 
 // Correzione: riapre una trattativa segnata come persa
@@ -1539,10 +1586,15 @@ function riapri(id) {
   const o = trova(id);
   if (!o || !o.perso) return;
   const motivo = o.perso.motivo;
+  const fase = CONFIG.fasi[faseRaggiunta(o)];
+  let promemoria = null;
   applica(() => {
     o.perso = null;
+    o.riaperta = oggi(); // i giorni «fermi» si contano da oggi, non dalla vecchia data della fase
     registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: "Correzione: trattativa riaperta (era persa per «" + motivo + "»)" });
-  }, { messaggio: nomeCliente(o) + ": trattativa riaperta", evidenzia: o.id, fase: CONFIG.fasi[faseRaggiunta(o)].id });
+    // Nessuna trattativa aperta senza prossima azione: torna il promemoria della sua fase
+    promemoria = cadenza(o, fase, oggi());
+  }, { messaggio: () => nomeCliente(o) + ": trattativa riaperta" + testoPromemoria(promemoria), evidenzia: o.id, fase: fase.id });
 }
 
 // Assegna il contratto alla prima squadra interna con ore libere nella zona
@@ -1691,6 +1743,17 @@ const AZIONI = {
 const MODIFICANO_DATI = new Set(["avanza", "fatto", "fatto-fase", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
   "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "annulla"]);
 let ultimoClicModifica = 0;
+let ultimoInvio = 0; // quando è stato inviato l'ultimo modulo (ms)
+
+// Doppio tocco su «Salva»: il secondo tocco, a finestra già chiusa, cadrebbe sul menu o sulla pagina sotto.
+// Per 600 ms dopo l'invio di un modulo che ha chiuso la finestra, un clic fuori dalla finestra non fa nulla
+// (se il modulo ha un errore la finestra resta aperta e non si blocca niente)
+document.addEventListener("click", (evento) => {
+  if (Date.now() - ultimoInvio < 600 && !finestra.contains(evento.target)) {
+    evento.preventDefault();
+    evento.stopPropagation();
+  }
+}, true);
 
 // Doppio clic su un pulsante che apre una finestra: il secondo clic non deve premere un pulsante della finestra appena aperta
 finestra.addEventListener("click", (evento) => {
@@ -1739,6 +1802,7 @@ document.addEventListener("submit", (evento) => {
     ...GESTORI_MODULI, // moduli della schermata Clienti (clienti.js)
   };
   if (gestori[modulo.id]) gestori[modulo.id](modulo);
+  if (!finestra.open) ultimoInvio = Date.now(); // salvato e chiuso: il secondo tocco di un doppio tocco va ignorato
 });
 
 // Anteprima del punteggio mentre si compila il modulo; ricerca nell'elenco clienti; bozza dell'attività
@@ -1855,7 +1919,8 @@ function comeScorrere() {
 function schermataAttuale() {
   const hash = location.hash.slice(1);
   if (hash.startsWith("cliente-") && trovaAzienda(hash.slice(8))) return { nome: "cliente", parametro: hash.slice(8), menu: "clienti" };
-  return SCHERMATE[hash] && hash !== "cliente" ? { nome: hash, menu: hash } : { nome: "pipeline", menu: "pipeline" };
+  // hasOwn: un indirizzo come #constructor non deve trovare le proprietà nascoste degli oggetti
+  return Object.hasOwn(TITOLI, hash) ? { nome: hash, menu: hash } : { nome: "pipeline", menu: "pipeline" };
 }
 
 // Contatore del menu: il numero si vede, il lettore di schermo legge la frase intera (es. ", 4 attività da fare entro oggi")

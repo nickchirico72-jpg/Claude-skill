@@ -6,7 +6,8 @@
 
 // Tariffa e costi del servizio; se il servizio non è più in config.js, valori a zero (senza bloccare nulla)
 function datiServizio(nome) {
-  return CONFIG.servizi[nome] || { tariffa: 0, costoInterno: 0, costoPartner: 0, fuoriElenco: true };
+  // hasOwn: un nome come "constructor" non deve trovare le proprietà nascoste degli oggetti
+  return (Object.hasOwn(CONFIG.servizi, nome) && CONFIG.servizi[nome]) || { tariffa: 0, costoInterno: 0, costoPartner: 0, fuoriElenco: true };
 }
 
 // Tariffa oraria dell'opportunità (se non indicata, quella standard del servizio)

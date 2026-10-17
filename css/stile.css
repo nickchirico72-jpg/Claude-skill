@@ -405,7 +405,7 @@ textarea {
   margin-bottom: 12px;
 }
 
-/* Il testo prende lo spazio libero, il pulsante resta a destra e non si stringe */
+/* Il testo prende lo spazio libero, i pulsanti restano a destra; su telefono vanno a capo invece di uscire dallo schermo */
 .intestazione > div {
   flex: 1 1 480px;
   min-width: 0;
@@ -413,7 +413,13 @@ textarea {
 
 .intestazione > .azioni-intestazione,
 .intestazione > .pulsante {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.azioni-intestazione .pulsante {
+  max-width: 100%;
 }
 
 .occhiello {
@@ -651,6 +657,13 @@ textarea {
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Telefoni stretti: la spiegazione sotto i numeri della Pipeline va a capo invece di tagliarsi */
+@media (max-width: 399px) {
+  .riepilogo-pipeline small {
+    white-space: normal;
+  }
 }
 
 /* Pipeline: su telefono prima le cose da fare, poi riepilogo e schede */
@@ -1049,13 +1062,23 @@ textarea {
 
 /* Su telefono, bersagli di tocco di almeno 44 px */
 @media (max-width: 899px) {
+  /* La barra in basso non copre l'elemento raggiunto con il tasto Tab */
+  html {
+    scroll-padding-bottom: calc(var(--altezza-nav-mobile) + env(safe-area-inset-bottom) + 12px);
+  }
+
   .pulsante.piccolo,
   .pulsante-testo {
     min-height: 44px;
   }
 
+  /* Il nome della scheda è alto 44 px da toccare, senza allungare la scheda */
   .scheda-nome {
-    padding: 4px 0;
+    position: relative;
+    z-index: 1;
+    min-height: 44px;
+    padding: 13px 0;
+    margin-block: -9px;
   }
 
   /* «Fissala» resta alto 44 px senza allargare la riga */
@@ -2764,6 +2787,14 @@ h1[tabindex="-1"]:focus {
   }
 
   .tabella.impilata .pulsante-link {
+    min-height: 44px;
+    margin-block: -12px;
+  }
+
+  /* Link nelle tabelle impilate (es. il cliente di una commessa): 44 px da toccare, riga della stessa altezza */
+  .tabella.impilata td a.link {
+    display: inline-flex;
+    align-items: center;
     min-height: 44px;
     margin-block: -12px;
   }

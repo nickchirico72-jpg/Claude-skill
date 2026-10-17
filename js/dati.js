@@ -54,15 +54,20 @@ function datiIniziali() {
     a.creata = date[0] || oggi();
   });
 
-  const attivita = CONFIG.attivita.map((x, i) => ({
-    id: "at" + (i + 1),
-    aziendaId: x.azienda,
-    referenteId: null,
-    tipo: x.tipo,
-    data: x.data,
-    testo: x.testo,
-    daFare: !!x.daFare,
-  }));
+  const attivita = CONFIG.attivita.map((x, i) => {
+    // Promemoria automatico: collegato alla trattativa dell'azienda, così sparisce quando la fase cambia
+    const o = x.automatica && opportunita.find((y) => y.aziendaId === x.azienda && !y.perso);
+    return {
+      id: "at" + (i + 1),
+      aziendaId: x.azienda,
+      referenteId: null,
+      tipo: x.tipo,
+      data: x.data,
+      testo: x.testo,
+      daFare: !!x.daFare,
+      ...(o ? { opportunitaId: o.id, automatica: true } : {}),
+    };
+  });
 
   return migra({ aziende, referenti, opportunita, attivita, contatore: opportunita.length, contatoreId: 1000, ultimoBackup: null });
 }
@@ -92,25 +97,30 @@ function strutturaValida(d) {
   const isOggetto = (x) => !!x && typeof x === "object" && !Array.isArray(x);
   if (!isOggetto(d) || d.versione !== CONFIG.versioneDati) return false;
   if (![d.aziende, d.referenti, d.opportunita, d.attivita].every(Array.isArray)) return false;
-  if (!Number.isFinite(d.contatore) || !Number.isFinite(d.contatoreId)) return false;
+  // Contatori interi e non negativi: da contatoreId nascono i nuovi id (es. "at1001")
+  if (![d.contatore, d.contatoreId].every((n) => Number.isSafeInteger(n) && n >= 0)) return false;
   if (d.ultimoBackup != null && !isData(d.ultimoBackup)) return false;
   const idAziende = new Set(d.aziende.map((a) => a && a.id));
   const aziendaEsiste = (id) => isId(id) && idAziende.has(id);
   const facoltativo = (x, controllo) => x == null || controllo(x); // campi aggiunti dopo: assenti o validi
+  const testoFacoltativo = (x) => facoltativo(x, isTesto);
   const propostaOk = (p) => isOggetto(p) && isId(p.partnerId) && isData(p.data) && ["attesa", "si", "no"].includes(p.esito);
-  return d.aziende.every((a) => isOggetto(a) && isId(a.id) && isTesto(a.ragioneSociale) && a.ragioneSociale.trim() !== "") &&
-    d.referenti.every((r) => isOggetto(r) && isId(r.id) && aziendaEsiste(r.aziendaId) &&
+  return d.aziende.every((a) => isOggetto(a) && isId(a.id) && isTesto(a.ragioneSociale) && a.ragioneSociale.trim() !== "" &&
+      ["settore", "comune", "fonte", "piva", "note"].every((k) => testoFacoltativo(a[k])) ) &&
+    d.referenti.every((r) => isOggetto(r) && isId(r.id) && aziendaEsiste(r.aziendaId) && isTesto(r.nome) &&
+      ["ruolo", "telefono", "email", "canale"].every((k) => testoFacoltativo(r[k])) && facoltativo(r.decisore, (v) => typeof v === "boolean") &&
       isOggetto(r.privacy) && isTesto(r.privacy.base) && (r.privacy.data === null || isData(r.privacy.data)) &&
       isTesto(r.privacy.raccolta) && typeof r.privacy.opposizione === "boolean" &&
       facoltativo(r.cancellato, (v) => typeof v === "boolean")) &&
-    d.attivita.every((x) => isOggetto(x) && isId(x.id) && aziendaEsiste(x.aziendaId) && isData(x.data) && isTesto(x.testo) &&
+    d.attivita.every((x) => isOggetto(x) && isId(x.id) && aziendaEsiste(x.aziendaId) && isData(x.data) && isTesto(x.testo) && isTesto(x.tipo) &&
+      facoltativo(x.referenteId, isId) &&
       typeof x.daFare === "boolean" && (x.ora == null || x.ora === "" || (isTesto(x.ora) && /^\d{2}:\d{2}$/.test(x.ora))) &&
       facoltativo(x.opportunitaId, isId) && facoltativo(x.fase, isId) && facoltativo(x.automatica, (v) => typeof v === "boolean")) &&
     d.opportunita.every((o) => isOggetto(o) && isId(o.id) && isTesto(o.codice) && aziendaEsiste(o.aziendaId) &&
-      isTesto(o.servizio) && Number.isFinite(o.ore) && o.ore >= 0 &&
+      isTesto(o.servizio) && testoFacoltativo(o.comune) && facoltativo(o.referenteId, isId) && Number.isFinite(o.ore) && o.ore >= 0 &&
       (o.tariffa == null || (Number.isFinite(o.tariffa) && o.tariffa >= 0)) &&
       isOggetto(o.storico) && isData(o.storico.contatto) && Object.values(o.storico).every(isData) &&
-      facoltativo(o.scadenzaOfferta, isData) && facoltativo(o.avvio, isData) && facoltativo(o.note, isTesto) && facoltativo(o.motivazioneC, isTesto) &&
+      facoltativo(o.scadenzaOfferta, isData) && facoltativo(o.avvio, isData) && facoltativo(o.riaperta, isData) && facoltativo(o.note, isTesto) && facoltativo(o.motivazioneC, isTesto) &&
       (o.perso == null || (isOggetto(o.perso) && isData(o.perso.data) && isTesto(o.perso.motivo) && facoltativo(o.perso.nota, isTesto))) &&
       (o.allocazione == null || (isOggetto(o.allocazione) && ["squadra", "partner"].includes(o.allocazione.tipo) &&
         isId(o.allocazione.id) && isData(o.allocazione.data))) &&
@@ -348,8 +358,16 @@ function scaricaDatiScartati() {
   scaricaFile("gate-crm-dati-da-recuperare-" + oggi() + ".json", testoScartato, "application/json");
 }
 
+// Telefono per il CSV con spazi, così Excel lo legge come testo: "0039 000 000 1011", estero "0044 2079460958"
+function telefonoPerCsv(telefono) {
+  const n = numeroInternazionale(telefono);
+  if (!n) return "";
+  if (n.startsWith("39")) return telefonoLeggibile(n).replace("+", "00");
+  return "00" + n.slice(0, 2) + " " + n.slice(2);
+}
+
 // Esporta aziende e referenti in CSV (separatore ";" per Excel in italiano).
-// Il telefono esce come "0039 000 000 1011": Excel lo legge come testo e non come formula.
+// Telefoni con spazi e partita IVA con il prefisso IT: Excel li legge come testo e non perde gli zeri iniziali.
 function esportaCsvClienti() {
   // Un testo che inizia con = + - @ sarebbe letto da Excel come formula: l'apostrofo lo lascia testo
   const campo = (v) => {
@@ -362,8 +380,8 @@ function esportaCsvClienti() {
   stato.aziende.forEach((a) => {
     const refs = referentiDi(a.id);
     (refs.length ? refs : [{}]).forEach((r) => righe.push([
-      a.ragioneSociale, a.piva, a.settore, a.comune, a.fonte, statoAzienda(a.id),
-      r.nome, r.ruolo, r.nome ? (r.decisore ? "Sì" : "No") : "", r.telefono ? telefonoLeggibile(r.telefono).replace("+", "00") : "", r.email, r.canale,
+      a.ragioneSociale, a.piva ? "IT" + a.piva : "", a.settore, a.comune, a.fonte, statoAzienda(a.id),
+      r.nome, r.ruolo, r.nome ? (r.decisore ? "Sì" : "No") : "", telefonoPerCsv(r.telefono), r.email, r.canale,
       r.privacy ? r.privacy.base : "", r.privacy ? formattaData(r.privacy.data) : "", r.privacy ? (r.privacy.opposizione ? "Sì" : "No") : "",
     ]));
   });

@@ -309,20 +309,21 @@ const CONFIG = {
   ],
 
   // Attività registrate (chiamate, email, visite, note) e attività da fare (promemoria).
+  // automatica: true = promemoria della fase in cui è la trattativa: sparisce da solo quando la fase cambia.
   attivita: [
     { azienda: "az1", tipo: "Nota", data: traGiorni(-35), testo: "Servizio avviato: controllo qualità previsto dopo il primo mese." },
-    { azienda: "az1", tipo: "Visita", data: traGiorni(5), testo: "Controllo qualità con il cliente", daFare: true },
+    { azienda: "az1", tipo: "Visita", data: traGiorni(5), testo: "Controllo qualità con il cliente", daFare: true, automatica: true },
     { azienda: "az4", tipo: "Chiamata", data: traGiorni(-15), testo: "Follow-up sull'offerta: il cliente chiede i tempi di avvio." },
-    { azienda: "az4", tipo: "Chiamata", data: traGiorni(0), testo: "Richiamare per l'esito dell'offerta", daFare: true },
+    { azienda: "az4", tipo: "Chiamata", data: traGiorni(0), testo: "Richiamare per l'esito dell'offerta", daFare: true, automatica: true },
     { azienda: "az5", tipo: "Email", data: traGiorni(-35), testo: "Inviata l'offerta per pulizia e sanificazione degli ambulatori." },
-    { azienda: "az5", tipo: "Email", data: traGiorni(-2), testo: "Sollecitare la risposta all'offerta", daFare: true },
+    { azienda: "az5", tipo: "Email", data: traGiorni(-2), testo: "Sollecitare la risposta all'offerta", daFare: true, automatica: true },
     { azienda: "az6", tipo: "Chiamata", data: traGiorni(-36), testo: "Il cliente ha scelto un'offerta più economica." },
     { azienda: "az7", tipo: "Visita", data: traGiorni(-12), testo: "Sopralluogo: uffici su due piani, circa 380 mq." },
     { azienda: "az7", tipo: "Chiamata", data: traGiorni(3), testo: "Individuare il decisore (direzione regionale)", daFare: true },
     { azienda: "az9", tipo: "Visita", data: traGiorni(-9), testo: "Sopralluogo: open space e tre sale riunioni." },
-    { azienda: "az9", tipo: "Nota", data: traGiorni(0), testo: "Preparare l'offerta", daFare: true },
+    { azienda: "az9", tipo: "Nota", data: traGiorni(0), testo: "Preparare l'offerta", daFare: true, automatica: true },
     { azienda: "az13", tipo: "Nota", data: traGiorni(-6), testo: "Richiesta arrivata dal modulo «Richiedi un preventivo» del sito." },
-    { azienda: "az13", tipo: "Chiamata", data: traGiorni(1), testo: "Prima telefonata di qualifica", daFare: true },
+    { azienda: "az13", tipo: "Chiamata", data: traGiorni(1), testo: "Prima telefonata di qualifica", daFare: true, automatica: true },
     { azienda: "az14", tipo: "Chiamata", data: traGiorni(-4), testo: "Interessati a una pulizia settimanale; manca il consenso privacy." },
     { azienda: "az17", tipo: "Nota", data: traGiorni(-2), testo: "Richiesta dal sito, ancora da qualificare." },
     { azienda: "az17", tipo: "Chiamata", data: traGiorni(0), testo: "Chiamare per qualificare la richiesta", daFare: true },

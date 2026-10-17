@@ -30,10 +30,12 @@ function trattativaAperta(o) {
 }
 
 // Stato di una trattativa aperta: giorni nella fase, se è ferma e la prossima azione in agenda
-// (la prima attività da fare dell'azienda, con precedenza a quelle di questa opportunità)
+// (la prima attività da fare dell'azienda, con precedenza a quelle di questa opportunità).
+// Una trattativa riaperta conta i giorni dalla riapertura
 function statoTrattativa(o) {
   const fase = CONFIG.fasi[faseRaggiunta(o)];
-  const giorniInFase = giorniTra(dataFaseAttuale(o), oggi());
+  const inizio = o.riaperta && o.riaperta > dataFaseAttuale(o) ? o.riaperta : dataFaseAttuale(o);
+  const giorniInFase = giorniTra(inizio, oggi());
   const daFare = stato.attivita.filter((x) => x.daFare && x.aziendaId === o.aziendaId).sort((a, b) => a.data.localeCompare(b.data));
   const prossima = daFare.find((x) => x.opportunitaId === o.id) || daFare[0] || null;
   return { giorniInFase, ferma: fase.giorniFerma != null && giorniInFase > fase.giorniFerma, prossima };
@@ -143,15 +145,24 @@ function motiviPerdita(opportunita) {
   return [...motivi.values()].sort((a, b) => b.numero - a.numero || b.valore - a.valore);
 }
 
-// Risultati per settore: i contatti sono le opportunità più i lead del settore
+// Valori dell'elenco di config.js, più quelli salvati nei dati ma non più in elenco (in fondo)
+function elencoConSalvati(elenco, salvati) {
+  const altri = [...new Set(salvati)].filter((v) => v && !elenco.includes(v)).sort((a, b) => String(a).localeCompare(String(b), "it"));
+  return elenco.concat(altri);
+}
+
+// Risultati per settore: i contatti sono le opportunità più i lead del settore.
+// Un settore tolto da config.js ma ancora nei dati resta, con fuoriElenco = true (così i totali tornano)
 function risultatiPerSettore(opportunita, aziende = stato.aziende) {
   const lead = leadSenzaOpportunita(opportunita, aziende);
-  return CONFIG.settori.map((settore) => {
+  const settori = elencoConSalvati(CONFIG.settori, opportunita.map(settoreDi).concat(lead.map((a) => a.settore)));
+  return settori.map((settore) => {
     const gruppo = opportunita.filter((o) => settoreDi(o) === settore);
     const firmati = gruppo.filter((o) => o.storico.contratto);
     const contatti = gruppo.length + lead.filter((a) => a.settore === settore).length;
     return {
       settore,
+      fuoriElenco: !CONFIG.settori.includes(settore),
       pilota: settore === CONFIG.pilota.settore,
       contatti,
       contratti: firmati.length,
@@ -169,18 +180,21 @@ function costiFissiTotali() {
 }
 
 // Risultati per canale di acquisizione (fonte dell'azienda): quale canale porta contratti e a che costo.
-// I contatti sono le opportunità più i lead del canale; anche i lead pagano il costo per contatto
+// I contatti sono le opportunità più i lead del canale; anche i lead pagano il costo per contatto.
+// Un canale tolto da config.js ma ancora nei dati resta, senza costo fisso (non più noto)
 function risultatiPerCanale(opportunita, aziende = stato.aziende) {
   const c = CONFIG.costiAcquisizione;
   const lead = leadSenzaOpportunita(opportunita, aziende);
-  return fonti().map((fonte) => {
+  const canali = elencoConSalvati(fonti(), opportunita.map((o) => (aziendaDi(o) || {}).fonte).concat(lead.map((a) => a.fonte)));
+  return canali.map((fonte) => {
     const gruppo = opportunita.filter((o) => (aziendaDi(o) || {}).fonte === fonte);
     const contatti = gruppo.length + lead.filter((a) => a.fonte === fonte).length;
     const conta = (id) => contaRaggiunte(gruppo, id);
     const contratti = conta("contratto");
-    const costi = contatti * c.perContatto + conta("sopralluogo") * c.perSopralluogo + conta("offerta") * c.perOfferta + c.fissiPerCanale[fonte];
+    const costi = contatti * c.perContatto + conta("sopralluogo") * c.perSopralluogo + conta("offerta") * c.perOfferta + (Object.hasOwn(c.fissiPerCanale, fonte) ? c.fissiPerCanale[fonte] : 0);
     return {
       fonte,
+      fuoriElenco: !Object.hasOwn(c.fissiPerCanale, fonte),
       contatti,
       contratti,
       conversione: rapporto(contratti, contatti),

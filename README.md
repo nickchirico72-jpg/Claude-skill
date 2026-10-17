@@ -66,7 +66,7 @@ I dati restano nel browser di chi usa il prototipo (localStorage): non c'è ness
 
 Accanto ai pulsanti il **promemoria del backup** dice quando è stato fatto l'ultimo ("oggi", "ieri", "N giorni fa", "mai") e invita a farne uno dopo 7 giorni. Se il browser non riesce a salvare, o se i dati salvati non si leggono, un avviso in cima alla pagina lo dice subito e permette di scaricare una copia: i dati non vengono mai scartati in silenzio.
 
-Nella schermata Clienti, **Esporta per Excel** scarica aziende e referenti in un file CSV; le celle che iniziano con `=`, `+`, `-` o `@` non diventano formule in Excel.
+Nella schermata Clienti, **Esporta per Excel** scarica aziende e referenti in un file CSV; le celle che iniziano con `=`, `+`, `-` o `@` non diventano formule in Excel. La partita IVA esce con il prefisso `IT` (es. `IT01234567890`) e i telefoni con gli spazi (es. `0039 000 000 1011`), così Excel non toglie gli zeri iniziali; se si importa il file in altro modo, impostare queste colonne come «Testo».
 
 ## Gate può usarlo davvero?
 

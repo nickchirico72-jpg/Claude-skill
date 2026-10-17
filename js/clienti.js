@@ -484,6 +484,7 @@ function apriModificaAzienda(id) {
         <button class="pulsante primario" type="submit">Salva</button>
       </div>
     </form>`);
+  ricordaValori(document.getElementById("modulo-azienda"));
 }
 
 function apriReferente(aziendaId, referenteId) {
@@ -520,6 +521,7 @@ function apriReferente(aziendaId, referenteId) {
         <button class="pulsante primario" type="submit">Salva</button>
       </div>
     </form>`);
+  ricordaValori(document.getElementById("modulo-referente"));
 }
 
 // Conferma prima di cancellare i dati personali di un referente (diritto alla cancellazione)
@@ -537,7 +539,7 @@ function apriCancellaDati(referenteId) {
 }
 
 // Cancella i dati personali: il referente sparisce, oppure resta anonimo se un'opportunità lo usa.
-// Il nome sparisce anche dai testi della cronologia e dalle note delle trattative
+// Il nome sparisce anche dai testi della cronologia, dalle note dell'azienda e da quelle delle trattative
 function cancellaDatiPersonali(referenteId) {
   const r = trovaReferente(referenteId);
   if (!r) return chiudiFinestra();
@@ -551,12 +553,17 @@ function cancellaDatiPersonali(referenteId) {
     } else {
       stato.referenti = stato.referenti.filter((x) => x.id !== r.id);
     }
+    // Il nome sparisce da ogni testo libero: cronologia, note dell'azienda, note e motivazioni delle trattative
+    const togliNome = (testo) => (nome && testo ? testo.split(nome).join("[referente cancellato]") : testo);
     stato.attivita.forEach((x) => {
       if (x.referenteId === r.id) x.referenteId = null;
-      if (nome && x.testo.includes(nome)) x.testo = x.testo.split(nome).join("[referente cancellato]");
+      x.testo = togliNome(x.testo);
     });
+    stato.aziende.forEach((a) => { a.note = togliNome(a.note); });
     stato.opportunita.forEach((o) => {
-      if (nome && o.note && o.note.includes(nome)) o.note = o.note.split(nome).join("[referente cancellato]");
+      o.note = togliNome(o.note);
+      o.motivazioneC = togliNome(o.motivazioneC);
+      if (o.perso) o.perso.nota = togliNome(o.perso.nota);
     });
     registraAttivita({ aziendaId: r.aziendaId, tipo: "Pipeline", testo: "Dati personali di un referente cancellati su richiesta il " + formattaData(oggi()) });
   }, { messaggio: "Dati personali cancellati" });
@@ -680,18 +687,23 @@ const AZIONI_CLIENTI = {
 const GESTORI_MODULI = {
   "modulo-azienda": (modulo) => {
     const a = trovaAzienda(modulo.dataset.id);
-    const nome = modulo.ragioneSociale.value.trim();
+    if (!a) return datoNonPiuPresente("Questa azienda è stata eliminata in un'altra scheda: modifiche non salvate");
+    // Solo i campi cambiati in questo modulo: gli altri restano come sono salvati ora (anche da un'altra scheda)
+    const cambiati = campiCambiati(modulo);
+    const letti = { ragioneSociale: modulo.ragioneSociale.value.trim(), piva: modulo.piva.value.replace(/\s/g, ""),
+      settore: modulo.settore.value, comune: modulo.comune.value, fonte: modulo.fonte.value, note: modulo.note.value.trim() };
+    const dati = Object.fromEntries(Object.entries(letti).filter(([k]) => cambiati.has(k)));
+    const nome = dati.ragioneSociale ?? a.ragioneSociale;
+    const piva = dati.piva ?? (a.piva || "");
     if (!nome) return segnalaCampo(modulo.ragioneSociale, "Scrivi la ragione sociale");
-    const piva = modulo.piva.value.replace(/\s/g, "");
     // Stesso nome (anche scritto diverso, es. con «Srl») o stessa partita IVA di un'altra azienda
     const errore = controllaAzienda({ ragioneSociale: nome, piva }, a.id);
     if (errore) return segnalaCampo(modulo[errore.campo], errore.testo);
-    const dati = { ragioneSociale: nome, piva, settore: modulo.settore.value, comune: modulo.comune.value, fonte: modulo.fonte.value, note: modulo.note.value.trim() };
     // Una riga di cronologia con i campi cambiati, es. "Dati aggiornati: comune Bari → Modugno"
     const etichette = { ragioneSociale: "ragione sociale", piva: "partita IVA", settore: "settore", comune: "comune", fonte: "fonte" };
-    const cambi = Object.entries(etichette).filter(([k]) => (a[k] || "") !== dati[k])
+    const cambi = Object.entries(etichette).filter(([k]) => k in dati && (a[k] || "") !== dati[k])
       .map(([k, nome]) => nome + " " + (a[k] || "—") + " → " + (dati[k] || "—"));
-    if ((a.note || "") !== dati.note) cambi.push("note aggiornate");
+    if ("note" in dati && (a.note || "") !== dati.note) cambi.push("note aggiornate");
     if (!cambi.length) return chiudiFinestra(); // nulla da salvare
     applica(() => {
       Object.assign(a, dati);
@@ -699,12 +711,16 @@ const GESTORI_MODULI = {
     }, { messaggio: "Dati dell'azienda aggiornati" });
   },
   "modulo-referente": (modulo) => {
+    const esistente = trovaReferente(modulo.dataset.id);
+    // Referente o azienda cancellati in un'altra scheda: non si ricreano (dati personali cancellati restano cancellati)
+    if (!trovaAzienda(modulo.dataset.azienda)) return datoNonPiuPresente("Questa azienda è stata eliminata in un'altra scheda: referente non salvato");
+    if (modulo.dataset.id && !esistente) return datoNonPiuPresente("Questo referente è stato cancellato in un'altra scheda: modifiche non salvate");
     const nome = modulo.nome.value.trim();
     if (!nome) return segnalaCampo(modulo.nome, "Scrivi nome e cognome");
     if (modulo.email.value && !modulo.email.checkValidity()) return segnalaCampo(modulo.email, "Controlla l'indirizzo email");
     const dataPrivacy = modulo.dataPrivacy.value;
     if (dataPrivacy && (!formattaData(dataPrivacy) || dataPrivacy > oggi())) return segnalaCampo(modulo.dataPrivacy, "La data della privacy non può essere nel futuro");
-    const dati = {
+    const letti = {
       nome,
       ruolo: modulo.ruolo.value.trim(),
       telefono: telefonoDaSalvare(modulo.telefono.value),
@@ -713,7 +729,23 @@ const GESTORI_MODULI = {
       decisore: modulo.decisore.checked,
       privacy: { base: modulo.base.value, data: dataPrivacy || null, raccolta: modulo.raccolta.value, opposizione: modulo.opposizione.checked },
     };
-    const esistente = trovaReferente(modulo.dataset.id);
+    // Per un referente esistente si prendono solo i campi cambiati in questo modulo; gli altri restano come sono salvati ora
+    const cambiati = campiCambiati(modulo);
+    const prendi = (campo, nuovo, attuale) => (!esistente || cambiati.has(campo) ? nuovo : attuale);
+    const dati = !esistente ? letti : {
+      nome: prendi("nome", letti.nome, esistente.nome),
+      ruolo: prendi("ruolo", letti.ruolo, esistente.ruolo || ""),
+      telefono: prendi("telefono", letti.telefono, esistente.telefono || ""),
+      email: prendi("email", letti.email, esistente.email || ""),
+      canale: prendi("canale", letti.canale, esistente.canale),
+      decisore: prendi("decisore", letti.decisore, !!esistente.decisore),
+      privacy: {
+        base: prendi("base", letti.privacy.base, esistente.privacy.base),
+        data: prendi("dataPrivacy", letti.privacy.data, esistente.privacy.data),
+        raccolta: prendi("raccolta", letti.privacy.raccolta, esistente.privacy.raccolta),
+        opposizione: prendi("opposizione", letti.privacy.opposizione, esistente.privacy.opposizione),
+      },
+    };
     // Cronologia: i campi cambiati; di telefono ed email solo che sono cambiati, senza i numeri
     const cambi = [];
     if (esistente) {
@@ -741,6 +773,7 @@ const GESTORI_MODULI = {
     }, { messaggio: esistente ? "Referente aggiornato" : "Referente aggiunto: " + nome });
   },
   "modulo-attivita": (modulo) => {
+    if (!trovaAzienda(modulo.dataset.id)) return datoNonPiuPresente("Questa azienda è stata eliminata in un'altra scheda: attività non registrata");
     const daFare = modulo.quando.value === "daFare";
     const testo = modulo.testo.value.trim();
     const data = modulo.data.value;
@@ -761,6 +794,9 @@ const GESTORI_MODULI = {
     if (!formattaData(data)) return segnalaCampo(modulo.data, "Scegli una data");
     if (data < oggi()) return segnalaCampo(modulo.data, "La prossima azione va fissata da oggi in poi");
     const o = trova(modulo.dataset.id);
+    if (!trovaAzienda(modulo.dataset.azienda) || (modulo.dataset.id && !o)) {
+      return datoNonPiuPresente("Questa trattativa è stata eliminata in un'altra scheda: prossima azione non fissata");
+    }
     applica(() => registraAttivita({ aziendaId: modulo.dataset.azienda, referenteId: o ? o.referenteId || null : null,
       ...(o ? { opportunitaId: o.id } : {}), tipo: modulo.tipo.value, testo, data, daFare: true }),
     { messaggio: "Prossima azione fissata: " + accorcia(testo, 40) + " " + formattaGiorno(data), evidenzia: o ? o.id : null });
