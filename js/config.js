@@ -158,6 +158,16 @@ const CONFIG = {
     marginalitaMedia: 0.18,        // margine / ricavi previsti
   },
 
+  // Suggerimenti mostrati in «Il pilota in sintesi» quando un obiettivo non è raggiunto
+  // (stesse chiavi degli obiettivi; ipotesi da confermare con Gate)
+  suggerimenti: {
+    tassoQualificati: "Filtra meglio i contatti alla prima telefonata",
+    tassoSopralluoghi: "Proponi il sopralluogo già nella telefonata di qualifica",
+    conversioneOfferte: "Sollecita le offerte aperte e controlla i motivi di perdita",
+    costoAcquisizioneMax: "Sposta il budget sui canali con il costo per contratto più basso",
+    marginalitaMedia: "Privilegia le commesse eseguibili dalle squadre interne o rivedi la tariffa",
+  },
+
   // ------------------------------------------------- Messaggio WhatsApp
   // Il nome del cliente NON compare: il cliente resta di Gate.
   messaggioWhatsApp:

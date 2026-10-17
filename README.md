@@ -23,10 +23,10 @@ Quattro schermate:
 
 | Schermata | Cosa fa |
 |---|---|
-| **Pipeline** | Le opportunità avanzano con un clic nelle fasi Contatto → Qualificato → Sopralluogo → Offerta → Contratto (più Perso). Ogni opportunità ha un **punteggio di coerenza A/B/C** su 6 criteri: settore pilota, distanza da Bari, capacità disponibile, margine stimato, dimensione della commessa, decisore identificato. Un'opportunità C passa a Offerta solo con una motivazione scritta. |
-| **Clienti** | L'anagrafica: aziende con i loro **referenti** (ruolo, decisore, telefono, email, canale preferito, consenso privacy), pulsanti **Chiama / WhatsApp / Email** con un clic, **cronologia delle attività** (chiamate, email, visite, note) e **prossime azioni** con data. Ogni azienda ha la sua **fonte** (sito web, porta a porta, intermediario, portale gare, eventi e LinkedIn, passaparola). Le attività in scadenza compaiono in "Da fare oggi" nella Pipeline. |
+| **Pipeline** | Le opportunità passano per le fasi Contatto → Qualificato → Sopralluogo → Offerta → Contratto (più Perso). Ogni opportunità ha un **punteggio di coerenza A/B/C** su 6 criteri: settore pilota, distanza da Bari, capacità disponibile, margine stimato, dimensione della commessa, decisore identificato. In alto ci sono la **previsione ponderata** (valore annuo × probabilità della fase), "Da fare oggi" e "Da seguire". |
+| **Clienti** | L'anagrafica: aziende con i loro **referenti** (ruolo, decisore, telefono, email, canale preferito, privacy), pulsanti **Chiama / WhatsApp / Email** con un clic, **cronologia delle attività** e **prossime azioni** con data. La ricerca trova anche telefono, ruolo e codice dell'opportunità; i riquadri del riepilogo (Cliente, In trattativa, Da qualificare, Perso) fanno da filtro. |
 | **Allocazione** | Ogni contratto firmato va prima a una **squadra interna** con ore libere nella zona. Se non c'è capacità, il coordinatore lo propone a un'**impresa partner** con un messaggio **WhatsApp precompilato** (link wa.me). Il partner risponde SÌ o NO senza usare nessuna app; se risponde NO, il sistema propone il partner successivo. Sono ammesse solo imprese con DURC regolare, nessun lavoratore autonomo. Il cliente resta di Gate, che firma il contratto e controlla la qualità. |
-| **Indicatori** | I 5 KPI richiesti da Gate, divisi in **efficacia** (contatti qualificati, sopralluoghi, conversione delle offerte) ed **efficienza** (costo di acquisizione, margine atteso), ciascuno con la formula e i numeri. Poi il funnel commerciale, i risultati per settore e i **risultati per canale di acquisizione**, cioè quale canale porta contratti e a che costo. |
+| **Indicatori** | In testa **"Il pilota in sintesi"**: quanti dei 5 obiettivi sono raggiunti, un suggerimento per ogni obiettivo mancato e la previsione ponderata. Poi i 5 KPI richiesti da Gate, divisi in **efficacia** (contatti qualificati, sopralluoghi, conversione delle offerte) ed **efficienza** (costo di acquisizione, margine atteso), ciascuno con la formula e i numeri. Infine il funnel, la tabella **"Perché perdiamo"** e i risultati per settore e per **canale di acquisizione**. |
 
 Il portale per i partner compare solo come anteprima, etichettata "evoluzione futura".
 
@@ -36,10 +36,23 @@ Il portale per i partner compare solo come anteprima, etichettata "evoluzione fu
 ![Indicatori di performance](docs/screenshot/indicatori-desktop.png)
 
 <p>
-  <img src="docs/screenshot/pipeline-mobile.png" alt="Pipeline da telefono" width="260">
-  <img src="docs/screenshot/scheda-cliente-mobile.png" alt="Scheda cliente da telefono" width="260">
-  <img src="docs/screenshot/allocazione-mobile.png" alt="Allocazione da telefono" width="260">
+  <img src="docs/screenshot/pipeline-mobile.png" alt="Pipeline da telefono" width="200">
+  <img src="docs/screenshot/scheda-cliente-mobile.png" alt="Scheda cliente da telefono" width="200">
+  <img src="docs/screenshot/allocazione-mobile.png" alt="Allocazione da telefono" width="200">
+  <img src="docs/screenshot/indicatori-mobile.png" alt="Il pilota in sintesi da telefono" width="200">
 </p>
+
+## Come si lavora
+
+- **Le fasi si registrano a cose fatte.** I pulsanti dicono cosa è già successo: "È qualificato", "Sopralluogo fatto", "Offerta inviata", "Contratto firmato". Ogni passo chiede la data e i dati utili (ore confermate al sopralluogo, importo e validità dell'offerta, data di avvio del servizio). Un'opportunità di classe C passa a Offerta solo con una motivazione scritta. Il sopralluogo si può fissare in agenda prima di farlo.
+- **Ogni trattativa ha una prossima azione.** Quando si chiude l'ultima attività di un cliente in trattativa, il prototipo chiede "Qual è la prossima azione?". Dopo ogni fase crea da solo il promemoria giusto (per esempio "Sollecitare la risposta all'offerta"). Il riquadro **Da seguire** elenca le trattative senza prossima azione o ferme da troppo tempo.
+- **Annulla.** Dopo ogni modifica compare per 8 secondi un avviso con "Annulla", che riporta tutto com'era, schermata compresa. Un doppio clic non registra due volte la stessa azione.
+- **Correzioni.** Dal dettaglio di un'opportunità si può tornare alla fase precedente, riaprire una trattativa persa o modificare servizio, ore e tariffa. Ogni correzione lascia una riga nella cronologia.
+- **Niente doppioni.** Mentre si scrive un nuovo contatto compare "Forse esiste già" con le aziende simili (stesso nome, P.IVA, telefono o email). Stesso nome o stessa P.IVA bloccano il salvataggio. Un contatto si può salvare anche con "Servizio ancora da capire": diventa un'azienda "Da qualificare" con la chiamata di qualifica in agenda.
+- **Registrare un'attività.** Nella scheda cliente si sceglie "È già successo" oppure "Da fare" (che fissa la prossima azione, da domani). Il testo scritto non si perde finché non si registra, e tornando all'elenco ricerca e filtri restano quelli di prima.
+- **Privacy.** Per ogni referente si registrano base giuridica, data, modo di raccolta ed eventuale opposizione alle proposte. Senza privacy verificata i pulsanti di contatto hanno un bordo ambra. "Cancella i dati personali" e "Elimina azienda" applicano il diritto alla cancellazione, con una conferma dentro la pagina.
+- **Indicatori con tutti i contatti.** I contatti sono le opportunità più le aziende ancora da qualificare (per esempio 16 + 2 = 18): così funnel, KPI e risultati per canale contano anche chi non ha ancora un'opportunità.
+- **Da telefono.** Navigazione in basso, campi a 16 px (l'iPhone non ingrandisce la pagina), tabelle che diventano schede, pulsanti alti almeno 44 px. Focus visibile, contatori e punteggi leggibili dai lettori di schermo; una prova con un lettore di schermo reale e su iPhone resta da fare.
 
 ## Come avviarlo
 
@@ -48,20 +61,31 @@ Il portale per i partner compare solo come anteprima, etichettata "evoluzione fu
 
 I dati restano nel browser di chi usa il prototipo (localStorage): non c'è nessun server. In fondo alla pagina ci sono tre pulsanti:
 - **Salva backup**: scarica tutti i dati in un file `.json`;
-- **Carica backup**: ripristina i dati da quel file, anche su un altro computer;
-- **Ripristina dati di esempio**: riparte dai dati fittizi.
+- **Carica backup**: ripristina i dati da quel file, anche su un altro computer (si può annullare);
+- **Ripristina dati di esempio**: riparte dai dati fittizi (si può annullare).
 
-Nella schermata Clienti, **Esporta per Excel** scarica aziende e referenti in un file CSV.
+Accanto ai pulsanti il **promemoria del backup** dice quando è stato fatto l'ultimo ("oggi", "ieri", "N giorni fa", "mai") e invita a farne uno dopo 7 giorni. Se il browser non riesce a salvare, o se i dati salvati non si leggono, un avviso in cima alla pagina lo dice subito e permette di scaricare una copia: i dati non vengono mai scartati in silenzio.
+
+Nella schermata Clienti, **Esporta per Excel** scarica aziende e referenti in un file CSV; le celle che iniziano con `=`, `+`, `-` o `@` non diventano formule in Excel.
 
 ## Gate può usarlo davvero?
 
 Sì, per il pilota e da una persona alla volta. Il coordinatore commerciale può registrare clienti, referenti, attività e trattative reali, salvare il backup ogni sera e passarlo a un collega, ed esportare l'elenco per Excel.
 
-Il prototipo però non condivide i dati tra più utenti: ogni browser ha la sua copia. Per un uso da parte di tutto l'ufficio servono due passi successivi:
-1. **un archivio condiviso online** con accesso tramite login (per esempio un database gestito) al posto del salvataggio nel browser;
-2. **il collegamento al gestionale di Gate**, così che un contratto firmato diventi direttamente una commessa nelle sezioni Contratti e Pianificazione Personale.
+### Limiti
 
-Prima di inserire dati personali reali va verificato con Gate il rispetto del GDPR: informativa, consenso e luogo dove sono conservati i dati.
+- **Un browser, una copia dei dati.** Il prototipo non condivide i dati tra più persone né tra computer e telefono: si passano con il backup. Se due persone lavorano su copie diverse, una sovrascrive l'altra.
+- **Nessun login e nessun registro delle modifiche.** Chiunque usi quel browser vede e modifica tutto; "Annulla" torna indietro di un solo passo.
+- **Promemoria solo dentro l'app.** Le prossime azioni non arrivano sul telefono come notifiche.
+- **Un servizio per opportunità.** Offerte con più servizi, rinnovi e scadenze dei contratti non sono gestiti.
+- **Ipotesi da confermare.** Costi, obiettivi, soglie del punteggio, giorni oltre i quali una trattativa è "ferma" e suggerimenti degli indicatori sono ipotesi in `js/config.js`, da concordare con Gate.
+- **Privacy.** Prima di inserire dati personali reali va verificato con Gate e con il suo consulente il rispetto del GDPR: informativa, base giuridica e luogo dove sono conservati i dati (oggi nel browser e nei file di backup).
+
+### Passi successivi
+
+1. **Un archivio condiviso online con login**: un piccolo server con database al posto del salvataggio nel browser, con utenti, ruoli e registro delle modifiche. Potrebbe essere realizzato in Python (per esempio con Django), riusando le stesse regole del prototipo (punteggio, allocazione, KPI).
+2. **Il collegamento al gestionale di Gate**, così che un contratto firmato diventi direttamente una commessa nelle sezioni Contratti e Pianificazione Personale, senza ricopiare i dati.
+3. Poi, nell'ordine: promemoria nel calendario del telefono, importazione dei contatti da Excel, indicatori nel tempo (ciclo di vendita, previsione per mese).
 
 ## Stack
 
@@ -79,8 +103,8 @@ js/formato.js       formattazione di euro, percentuali e date
 js/dati.js          salvataggio nel browser, collegamenti tra aziende/referenti/opportunità, backup ed esportazione
 js/allocazione.js   regole di allocazione: squadre, partner, DURC, messaggio WhatsApp
 js/punteggio.js     stime economiche e punteggio di coerenza A/B/C
-js/kpi.js           5 KPI, funnel e risultati per settore
-js/clienti.js       schermata Clienti: elenco, scheda cliente, referenti, attività, "Da fare"
+js/kpi.js           5 KPI, obiettivi del pilota, funnel, motivi di perdita, risultati per settore e canale
+js/clienti.js       schermata Clienti: elenco con ricerca e filtri, scheda cliente, referenti, attività, privacy
 js/app.js           schermate Pipeline, Allocazione e Indicatori, finestre e clic
 ```
 
@@ -89,9 +113,10 @@ js/app.js           schermate Pipeline, Allocazione e Indicatori, finestre e cli
 Tutto si trova in `js/config.js`, con un commento per ogni voce:
 
 - **tariffe e costi orari** per servizio (squadra interna e partner) e spese dirette;
-- **probabilità di chiusura** per fase, usate per il margine atteso;
 - **pesi e soglie del punteggio** A/B/C, compresa la conferma motivata per i clienti C (`confermaPerPunteggioC`);
-- **costi commerciali** per il costo di acquisizione e **obiettivi** dei KPI;
+- **fasi**: probabilità di chiusura, giorni oltre i quali una trattativa è "ferma" e promemoria automatici;
+- **costi commerciali** per il costo di acquisizione, **obiettivi** dei KPI e **suggerimenti** mostrati quando un obiettivo non è raggiunto;
+- **basi giuridiche** e **modi di raccolta** della privacy;
 - **comuni e zone**, **squadre** (ore di capacità e già impegnate), **partner** (tipo, zone, servizi, scadenza DURC, telefono);
 - **testo del messaggio WhatsApp**;
 - **aziende con i referenti**, **opportunità** e **attività** di esempio;

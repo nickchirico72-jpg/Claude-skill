@@ -1,7 +1,8 @@
 /*
  * INDICATORI DI PERFORMANCE
- * I 5 KPI richiesti da Gate, il funnel commerciale e i risultati per settore.
+ * I 5 KPI richiesti da Gate, il funnel commerciale e i risultati per settore e per canale.
  * Un'opportunità "ha raggiunto" una fase se nello storico c'è la data di quella fase.
+ * Contatti = opportunità + aziende ancora senza opportunità (lead "Da qualificare").
  */
 
 // Indice dell'ultima fase raggiunta (0 = Contatto ... 4 = Contratto)
@@ -61,8 +62,25 @@ function rapporto(a, b) {
   return b > 0 ? a / b : 0;
 }
 
-function calcolaKpi(opportunita) {
-  const contatti = opportunita.length;
+// Lead: aziende che non hanno ancora nessuna opportunità (stato "Da qualificare")
+function leadSenzaOpportunita(opportunita, aziende) {
+  const conOpportunita = new Set(opportunita.map((o) => o.aziendaId));
+  return aziende.filter((a) => !conOpportunita.has(a.id));
+}
+
+// Previsione ponderata: valore annuo delle trattative aperte × probabilità di chiusura della loro fase
+function previsionePonderata(opportunita) {
+  const aperte = opportunita.filter(trattativaAperta);
+  return {
+    aperte: aperte.length,
+    ponderata: aperte.reduce((s, o) => s + ricaviAttesi(o), 0),
+    pieno: aperte.reduce((s, o) => s + valoreAnnuo(o), 0),
+  };
+}
+
+function calcolaKpi(opportunita, aziende = stato.aziende) {
+  const lead = leadSenzaOpportunita(opportunita, aziende).length;
+  const contatti = opportunita.length + lead;
   const qualificati = contaRaggiunte(opportunita, "qualificato");
   const sopralluoghi = contaRaggiunte(opportunita, "sopralluogo");
   const offerte = contaRaggiunte(opportunita, "offerta");
@@ -75,7 +93,7 @@ function calcolaKpi(opportunita) {
   const ricavi = opportunita.reduce((s, o) => s + ricaviAttesi(o), 0);
 
   return {
-    contatti, qualificati, sopralluoghi, offerte, contratti,
+    contatti, lead, qualificati, sopralluoghi, offerte, contratti,
     persi: opportunita.filter((o) => o.perso).length,
     tassoQualificati: rapporto(qualificati, contatti),
     tassoSopralluoghi: rapporto(sopralluoghi, qualificati),
@@ -88,29 +106,59 @@ function calcolaKpi(opportunita) {
   };
 }
 
-// Funnel: per ogni fase, quante opportunità l'hanno raggiunta e la conversione dalla fase precedente
-function calcolaFunnel(opportunita) {
-  return CONFIG.fasi.map((f, i) => {
-    const n = contaRaggiunte(opportunita, f.id);
-    const precedente = i === 0 ? n : contaRaggiunte(opportunita, CONFIG.fasi[i - 1].id);
-    return { nome: f.nome, n, conversione: i === 0 ? null : rapporto(n, precedente) };
-  });
+// I 5 obiettivi del pilota: valore, obiettivo e se è raggiunto (l'id è anche la chiave di CONFIG.suggerimenti)
+function obiettiviPilota(k) {
+  const ob = CONFIG.obiettivi;
+  return [
+    { id: "tassoQualificati", nome: "Contatti qualificati", valore: formattaPercentuale(k.tassoQualificati),
+      obiettivo: "≥ " + formattaPercentuale(ob.tassoQualificati), raggiunto: k.tassoQualificati >= ob.tassoQualificati },
+    { id: "tassoSopralluoghi", nome: "Appuntamenti (sopralluoghi)", valore: formattaPercentuale(k.tassoSopralluoghi),
+      obiettivo: "≥ " + formattaPercentuale(ob.tassoSopralluoghi), raggiunto: k.tassoSopralluoghi >= ob.tassoSopralluoghi },
+    { id: "conversioneOfferte", nome: "Conversione delle offerte", valore: formattaPercentuale(k.conversioneOfferte),
+      obiettivo: "≥ " + formattaPercentuale(ob.conversioneOfferte), raggiunto: k.conversioneOfferte >= ob.conversioneOfferte },
+    { id: "costoAcquisizioneMax", nome: "Costo di acquisizione", valore: k.contratti ? formattaEuro(k.costoAcquisizione) : "n.d.",
+      obiettivo: "≤ " + formattaEuro(ob.costoAcquisizioneMax), raggiunto: k.contratti > 0 && k.costoAcquisizione <= ob.costoAcquisizioneMax },
+    { id: "marginalitaMedia", nome: "Marginalità media", valore: formattaPercentuale(k.marginalitaMedia),
+      obiettivo: "≥ " + formattaPercentuale(ob.marginalitaMedia), raggiunto: k.marginalitaMedia >= ob.marginalitaMedia },
+  ];
 }
 
-// Risultati per settore
-function risultatiPerSettore(opportunita) {
+// Funnel: per ogni fase, quanti contatti l'hanno raggiunta e la conversione dalla fase precedente.
+// La prima riga «Contatto» conta anche i lead ancora senza opportunità
+function calcolaFunnel(opportunita, aziende = stato.aziende) {
+  const lead = leadSenzaOpportunita(opportunita, aziende).length;
+  const raggiunte = CONFIG.fasi.map((f, i) => contaRaggiunte(opportunita, f.id) + (i === 0 ? lead : 0));
+  return CONFIG.fasi.map((f, i) => ({ nome: f.nome, n: raggiunte[i], conversione: i === 0 ? null : rapporto(raggiunte[i], raggiunte[i - 1]) }));
+}
+
+// Perché perdiamo: per ogni motivo, quante trattative e quanto valore annuo, dal motivo più frequente
+function motiviPerdita(opportunita) {
+  const motivi = new Map();
+  opportunita.filter((o) => o.perso).forEach((o) => {
+    const m = motivi.get(o.perso.motivo) || { motivo: o.perso.motivo, numero: 0, valore: 0 };
+    m.numero++;
+    m.valore += valoreAnnuo(o);
+    motivi.set(o.perso.motivo, m);
+  });
+  return [...motivi.values()].sort((a, b) => b.numero - a.numero || b.valore - a.valore);
+}
+
+// Risultati per settore: i contatti sono le opportunità più i lead del settore
+function risultatiPerSettore(opportunita, aziende = stato.aziende) {
+  const lead = leadSenzaOpportunita(opportunita, aziende);
   return CONFIG.settori.map((settore) => {
     const gruppo = opportunita.filter((o) => settoreDi(o) === settore);
     const firmati = gruppo.filter((o) => o.storico.contratto);
+    const contatti = gruppo.length + lead.filter((a) => a.settore === settore).length;
     return {
       settore,
       pilota: settore === CONFIG.pilota.settore,
-      contatti: gruppo.length,
+      contatti,
       contratti: firmati.length,
-      conversione: rapporto(firmati.length, gruppo.length),
+      conversione: rapporto(firmati.length, contatti),
       valoreContratti: firmati.reduce((s, o) => s + valoreAnnuo(o), 0),
       margineAtteso: gruppo.reduce((s, o) => s + margineAtteso(o, opportunita), 0),
-      quotaA: rapporto(gruppo.filter((o) => calcolaPunteggio(o, opportunita).classe === "A").length, gruppo.length),
+      quotaA: gruppo.length ? rapporto(gruppo.filter((o) => calcolaPunteggio(o, opportunita).classe === "A").length, gruppo.length) : null,
     };
   });
 }
@@ -120,19 +168,22 @@ function costiFissiTotali() {
   return Object.values(CONFIG.costiAcquisizione.fissiPerCanale).reduce((s, v) => s + v, 0);
 }
 
-// Risultati per canale di acquisizione (fonte dell'azienda): quale canale porta contratti e a che costo
-function risultatiPerCanale(opportunita) {
+// Risultati per canale di acquisizione (fonte dell'azienda): quale canale porta contratti e a che costo.
+// I contatti sono le opportunità più i lead del canale; anche i lead pagano il costo per contatto
+function risultatiPerCanale(opportunita, aziende = stato.aziende) {
   const c = CONFIG.costiAcquisizione;
+  const lead = leadSenzaOpportunita(opportunita, aziende);
   return fonti().map((fonte) => {
     const gruppo = opportunita.filter((o) => (aziendaDi(o) || {}).fonte === fonte);
+    const contatti = gruppo.length + lead.filter((a) => a.fonte === fonte).length;
     const conta = (id) => contaRaggiunte(gruppo, id);
     const contratti = conta("contratto");
-    const costi = gruppo.length * c.perContatto + conta("sopralluogo") * c.perSopralluogo + conta("offerta") * c.perOfferta + c.fissiPerCanale[fonte];
+    const costi = contatti * c.perContatto + conta("sopralluogo") * c.perSopralluogo + conta("offerta") * c.perOfferta + c.fissiPerCanale[fonte];
     return {
       fonte,
-      contatti: gruppo.length,
+      contatti,
       contratti,
-      conversione: rapporto(contratti, gruppo.length),
+      conversione: rapporto(contratti, contatti),
       costi,
       costoAcquisizione: contratti ? costi / contratti : null,
     };

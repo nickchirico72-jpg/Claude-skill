@@ -169,43 +169,85 @@ function pulsantiContatto(r, compatti) {
 
 // ============================================================== ELENCO CLIENTI
 
+const STATI_AZIENDA = ["Cliente", "In trattativa", "Da qualificare", "Perso"];
+
+// Ricerca e filtri ripresi da interfaccia.filtri (app.js): restano tornando dalla scheda di un cliente
 function disegnaClienti() {
   const conteggi = { "Cliente": 0, "In trattativa": 0, "Da qualificare": 0, "Perso": 0 };
   stato.aziende.forEach((a) => conteggi[statoAzienda(a.id)]++);
+  const f = interfaccia.filtri;
   return `
+    <div class="pagina-clienti">
     ${intestazione({
       titolo: "Aziende e referenti",
       istruzione: "Cerca un'azienda e apri la sua scheda per chiamare i referenti, registrare un contatto e fissare la prossima azione.",
       azione: `<div class="azioni-intestazione">
-        <button class="pulsante secondario" type="button" data-azione="esporta-csv">Esporta per Excel</button>
+        <button class="pulsante-testo positivo esporta" type="button" data-azione="esporta-csv">Esporta per Excel</button>
         <button class="pulsante accento" type="button" data-azione="nuovo">${icona("piu")} Nuovo contatto</button></div>`,
     })}
 
-    <section class="riepilogo" aria-label="Riepilogo clienti">
-      ${Object.entries(conteggi).map(([nome, n]) => `<div><span>${nome}</span><strong>${n}</strong></div>`).join("")}
+    <section class="riepilogo riepilogo-clienti" aria-label="Filtra per stato">
+      ${STATI_AZIENDA.map((nome) => `
+        <button class="filtro" type="button" data-azione="filtro-stato" data-id="${nome}" aria-pressed="${f.stato === nome}">
+          <span>${nome}</span><strong>${conteggi[nome]}</strong></button>`).join("")}
     </section>
 
     <div class="filtri" id="filtri-clienti" role="search">
       <label class="campo-cerca">${icona("cerca")}
-        <input type="search" id="cerca-clienti" placeholder="Cerca per azienda, referente o comune" aria-label="Cerca">
+        <input type="search" id="cerca-clienti" placeholder="Azienda, referente, telefono o codice" aria-label="Cerca" value="${esc(f.testo)}">
       </label>
-      <select id="filtro-settore" aria-label="Filtra per settore"><option value="">Tutti i settori</option>${opzioni(CONFIG.settori, "")}</select>
-      <select id="filtro-stato" aria-label="Filtra per stato"><option value="">Tutti gli stati</option>${opzioni(Object.keys(conteggi), "")}</select>
+      <select id="filtro-settore" aria-label="Filtra per settore"><option value="">Tutti i settori</option>${opzioni(CONFIG.settori, f.settore)}</select>
+      <select id="filtro-stato" aria-label="Filtra per stato"><option value="">Tutti gli stati</option>${opzioni(STATI_AZIENDA, f.stato)}</select>
     </div>
 
-    <div id="elenco-clienti" class="griglia tre">${schedeClienti(stato.aziende)}</div>`;
+    <p class="risultati-clienti" id="risultati-clienti" aria-live="polite"></p>
+    <div id="elenco-clienti" class="griglia tre">${schedeClienti(aziendeFiltrate())}</div>
+    </div>`;
 }
 
-// Ridisegna solo l'elenco, così il campo di ricerca non perde il cursore
-function aggiornaElencoClienti() {
-  const testo = document.getElementById("cerca-clienti").value.trim().toLowerCase();
-  const settore = document.getElementById("filtro-settore").value;
-  const statoScelto = document.getElementById("filtro-stato").value;
-  const filtrate = stato.aziende.filter((a) => {
-    const testi = [a.ragioneSociale, a.comune, a.piva, ...referentiDi(a.id).map((r) => r.nome + " " + r.email)].join(" ").toLowerCase();
-    return (!testo || testi.includes(testo)) && (!settore || a.settore === settore) && (!statoScelto || statoAzienda(a.id) === statoScelto);
+// Legge ricerca e filtri dalla pagina e li ricorda nell'interfaccia
+function leggiFiltriClienti() {
+  interfaccia.filtri = {
+    testo: document.getElementById("cerca-clienti").value,
+    settore: document.getElementById("filtro-settore").value,
+    stato: document.getElementById("filtro-stato").value,
+  };
+}
+
+// Solo le cifre di un testo: "+39 000 000 1091" -> "390000001091"
+function soloCifre(testo) {
+  return String(testo || "").replace(/\D/g, "");
+}
+
+// Aziende che corrispondono a ricerca e filtri. La ricerca guarda nome, comune, P.IVA, referenti (nome, ruolo, email),
+// telefoni e codici delle opportunità; con almeno 3 cifre confronta solo le cifre (es. "1091" trova il telefono)
+function aziendeFiltrate() {
+  const { testo, settore, stato: statoScelto } = interfaccia.filtri;
+  const cerca = testo.trim().toLowerCase();
+  const cifre = soloCifre(cerca);
+  return stato.aziende.filter((a) => {
+    if (settore && a.settore !== settore) return false;
+    if (statoScelto && statoAzienda(a.id) !== statoScelto) return false;
+    if (!cerca) return true;
+    const refs = referentiDi(a.id);
+    const codici = opportunitaDi(a.id).map((o) => o.codice);
+    const testi = [a.ragioneSociale, a.comune, a.piva, ...codici, ...refs.map((r) => r.nome + " " + r.ruolo + " " + r.email)].join(" ").toLowerCase();
+    if (testi.includes(cerca)) return true;
+    return cifre.length >= 3 && [a.piva, ...codici, ...refs.map((r) => r.telefono)].some((v) => soloCifre(v).includes(cifre));
   });
-  document.getElementById("elenco-clienti").innerHTML = schedeClienti(filtrate);
+}
+
+// Ridisegna solo l'elenco (e i pulsanti-filtro), così il campo di ricerca non perde il cursore
+function aggiornaElencoClienti() {
+  const elenco = document.getElementById("elenco-clienti");
+  if (!elenco) return; // nel frattempo si è cambiata schermata
+  const filtrate = aziendeFiltrate();
+  elenco.innerHTML = schedeClienti(filtrate);
+  document.querySelectorAll("[data-azione=filtro-stato]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.id === interfaccia.filtri.stato));
+  document.getElementById("filtro-stato").value = interfaccia.filtri.stato;
+  // Il lettore di schermo annuncia quante aziende sono rimaste
+  const filtriAttivi = Object.values(interfaccia.filtri).some((v) => v.trim());
+  document.getElementById("risultati-clienti").textContent = filtriAttivi ? quanti(filtrate.length, "azienda trovata", "aziende trovate") : "";
 }
 
 const CLASSI_STATO = { "Cliente": "chip-ok", "In trattativa": "chip-info", "Da qualificare": "chip-attenzione", "Perso": "" };
@@ -215,12 +257,24 @@ function chipStato(aziendaId) {
   return `<span class="chip ${CLASSI_STATO[s]}">${s}</span>`;
 }
 
+// Schede dell'elenco: prima le aziende con un'attività scaduta o di oggi, poi quelle con una prossima azione
+// (per data), poi le altre in ordine alfabetico. Le prossime azioni si calcolano una volta sola
 function schedeClienti(aziende) {
-  if (!aziende.length) return '<p class="vuoto">Nessuna azienda corrisponde alla ricerca.</p>';
-  return [...aziende].sort((x, y) => x.ragioneSociale.localeCompare(y.ragioneSociale)).map((a) => {
+  if (!aziende.length) {
+    return `<div class="vuoto">Nessuna azienda trovata.
+      <button class="pulsante secondario piccolo" type="button" data-azione="cancella-filtri">Cancella i filtri</button></div>`;
+  }
+  const prossime = new Map();
+  attivitaDaFare().forEach((x) => { if (!prossime.has(x.aziendaId)) prossime.set(x.aziendaId, x); });
+  // 0 = scaduta o di oggi, 1 = prossima azione futura, 2 = nessuna
+  const gruppo = (a) => (!prossime.has(a.id) ? 2 : prossime.get(a.id).data <= oggi() ? 0 : 1);
+  const ordinate = [...aziende].sort((x, y) => gruppo(x) - gruppo(y)
+    || (gruppo(x) < 2 ? prossime.get(x.id).data.localeCompare(prossime.get(y.id).data) : 0)
+    || x.ragioneSociale.localeCompare(y.ragioneSociale));
+  return ordinate.map((a) => {
     const refs = referentiDi(a.id);
-    const principale = refs.find((r) => r.decisore) || refs[0];
-    const prossima = attivitaDaFare().find((x) => x.aziendaId === a.id);
+    const principale = refs.find((r) => r.decisore && !r.cancellato) || refs.find((r) => !r.cancellato);
+    const prossima = prossime.get(a.id);
     const aperte = opportunitaDi(a.id).filter((o) => !o.perso);
     return `
       <article class="riquadro cliente">
@@ -232,7 +286,9 @@ function schedeClienti(aziende) {
         ${principale ? `
           <div class="cliente-referente">
             <p><strong>${esc(principale.nome)}</strong>${principale.ruolo ? " · " + esc(principale.ruolo) : ""}${principale.decisore ? ' <span class="chip chip-ok">decisore</span>' : ""}</p>
-            <div class="contatti">${pulsantiContatto(principale)}</div>
+            ${principale.telefono ? `<p class="cliente-telefono">${icona("telefono")} ${esc(telefonoLeggibile(principale.telefono))}</p>` : ""}
+            <div class="contatti contatti-tutti">${pulsantiContatto(principale)}</div>
+            <div class="contatti contatti-compatti">${pulsantiContatto(principale, true)}</div>
           </div>` : '<p class="nota-piccola">Nessun referente registrato.</p>'}
         <p class="nota-piccola">${aperte.length} opportunità ${aperte.length === 1 ? "attiva" : "attive"}${aperte.length ? " · " + formattaEuro(aperte.reduce((s, o) => s + valoreAnnuo(o), 0)) + "/anno" : ""}</p>
         ${prossima ? `<p class="cliente-prossima">${scadenza(prossima.data)} ${esc(prossima.testo)}</p>` : ""}
@@ -247,10 +303,13 @@ function disegnaSchedaCliente(id) {
   const refs = referentiDi(id);
   const opp = opportunitaDi(id);
   const daFare = attivitaDaFare().filter((x) => x.aziendaId === id);
-  const cronologia = attivitaDi(id).filter((x) => !x.daFare).sort((x, y) => y.data.localeCompare(x.data) || y.id.localeCompare(x.id));
+  const cronologia = attivitaDi(id).filter((x) => !x.daFare).sort((x, y) => y.data.localeCompare(x.data) || y.id.localeCompare(x.id, "it", { numeric: true }));
+  // Ritorno: alla Pipeline o all'Allocazione se si arriva da lì, altrimenti all'elenco (con i filtri di prima)
+  const ritorno = { pipeline: "Pipeline", allocazione: "Allocazione" }[interfaccia.provenienza];
 
   return `
-    <a class="link-indietro" href="#clienti">${icona("indietro")} Tutti i clienti</a>
+    ${ritorno ? `<a class="link-indietro" href="#${interfaccia.provenienza}">${icona("indietro")} ${ritorno}</a>`
+      : `<a class="link-indietro" href="#clienti">${icona("indietro")} Tutti i clienti</a>`}
     ${intestazione({
       occhiello: esc(a.settore),
       titolo: esc(a.ragioneSociale),
@@ -296,16 +355,16 @@ function disegnaSchedaCliente(id) {
           <h2>Opportunità <span class="conteggio">${opp.length}</span></h2>
           ${opp.length ? `
             <div class="tabella-scorrevole">
-              <table class="tabella">
+              <table class="tabella impilata">
                 <thead><tr><th>Rif.</th><th>Servizio</th><th>Sede</th><th>Fase</th><th>Punteggio</th><th class="num">Valore annuo</th></tr></thead>
                 <tbody>
                   ${opp.map((o) => `<tr>
-                    <td><button class="link pulsante-link" type="button" data-azione="dettaglio" data-id="${esc(o.id)}">${esc(o.codice)}</button></td>
-                    <td>${esc(o.servizio)}<br><span class="nota-piccola">${Number(o.ore)} h/mese</span></td>
-                    <td>${esc(o.comune)}</td>
-                    <td>${faseAttuale(o) === "perso" ? "Perso" : CONFIG.fasi[faseRaggiunta(o)].nome}</td>
-                    <td>${badgePunteggio(calcolaPunteggio(o, stato.opportunita))}</td>
-                    <td class="num">${formattaEuro(valoreAnnuo(o))}</td>
+                    <td data-etichetta="Rif."><button class="link pulsante-link codice" type="button" data-azione="dettaglio" data-id="${esc(o.id)}">${esc(o.codice)}</button></td>
+                    <td data-etichetta="Servizio"><span>${esc(o.servizio)}<br><span class="nota-piccola">${Number(o.ore)} h/mese</span></span></td>
+                    <td data-etichetta="Sede">${esc(o.comune)}</td>
+                    <td data-etichetta="Fase">${faseAttuale(o) === "perso" ? "Perso" : CONFIG.fasi[faseRaggiunta(o)].nome}</td>
+                    <td data-etichetta="Punteggio">${badgePunteggio(calcolaPunteggio(o, stato.opportunita))}</td>
+                    <td class="num" data-etichetta="Valore annuo">${formattaEuro(valoreAnnuo(o))}</td>
                   </tr>`).join("")}
                 </tbody>
               </table>
@@ -321,23 +380,8 @@ function disegnaSchedaCliente(id) {
         </section>
 
         <section class="sezione">
-          <h2>Registra un'attività</h2>
-          <form class="modulo riquadro" id="modulo-attivita" data-id="${esc(a.id)}">
-            <div class="riga-doppia">
-              <label>Tipo <select name="tipo">${opzioni(CONFIG.tipiAttivita, "Chiamata")}</select></label>
-              <label>Referente
-                <select name="referente"><option value="">Nessuno in particolare</option>${refs.map((r) => `<option value="${esc(r.id)}">${esc(r.nome)}</option>`).join("")}</select>
-              </label>
-            </div>
-            <label>Cosa è successo o cosa fare
-              <textarea name="testo" required placeholder="Es. Telefonata: chiede un preventivo per la pulizia settimanale"></textarea>
-            </label>
-            <div class="riga-doppia">
-              <label>Data <input name="data" type="date" value="${oggi()}" required></label>
-              <label class="spunta"><input name="daFare" type="checkbox"> È una prossima azione da fare</label>
-            </div>
-            <div class="azioni-finestra"><button class="pulsante primario" type="submit">Registra</button></div>
-          </form>
+          <h2 id="titolo-attivita">Registra un'attività</h2>
+          ${moduloAttivita(a, refs)}
         </section>
 
         <section class="sezione">
@@ -354,6 +398,59 @@ function disegnaSchedaCliente(id) {
         </section>
       </div>
     </div>`;
+}
+
+// Modulo «Registra un'attività»: «È già successo» oppure «Da fare» (prossima azione).
+// I valori vengono dalla bozza (interfaccia.bozze), così il testo non si perde quando la pagina si ridisegna
+function moduloAttivita(a, refs) {
+  const attivi = refs.filter((r) => !r.cancellato);
+  // Referente proposto: l'unico, se ce n'è uno solo, altrimenti il decisore
+  const proposto = attivi.length === 1 ? attivi[0] : attivi.find((r) => r.decisore);
+  const b = interfaccia.bozze[a.id] || { tipo: "Chiamata", referente: proposto ? proposto.id : "", testo: "", quando: "fatto", data: oggi() };
+  const daFare = b.quando === "daFare";
+  return `
+    <form class="modulo riquadro" id="modulo-attivita" data-id="${esc(a.id)}" aria-labelledby="titolo-attivita">
+      <fieldset class="scelta-doppia">
+        <legend class="solo-lettori">Che cosa registri</legend>
+        <label><input type="radio" name="quando" value="fatto" ${daFare ? "" : "checked"}> È già successo</label>
+        <label><input type="radio" name="quando" value="daFare" ${daFare ? "checked" : ""}> Da fare</label>
+      </fieldset>
+      <div class="riga-doppia">
+        <label>Tipo <select name="tipo">${opzioni(CONFIG.tipiAttivita, b.tipo)}</select></label>
+        <label>Referente
+          <select name="referente"><option value="">Nessuno in particolare</option>${attivi.map((r) => `<option value="${esc(r.id)}" ${r.id === b.referente ? "selected" : ""}>${esc(r.nome)}</option>`).join("")}</select>
+        </label>
+      </div>
+      <label>${daFare ? "Cosa fare" : "Cosa è successo"}
+        <textarea name="testo" required placeholder="${daFare ? "Es. Richiamare per fissare il sopralluogo" : "Es. Telefonata: chiede un preventivo per la pulizia settimanale"}">${esc(b.testo)}</textarea>
+      </label>
+      <label>Data <input name="data" type="date" value="${esc(b.data)}" required ${daFare ? `min="${oggi()}"` : `max="${oggi()}"`}></label>
+      <div class="azioni-finestra"><button class="pulsante primario" type="submit">${daFare ? "Fissa la prossima azione" : "Registra"}</button></div>
+    </form>`;
+}
+
+// Ricorda i campi del modulo attività finché non si registra (bozza per azienda)
+function salvaBozzaAttivita(modulo) {
+  interfaccia.bozze[modulo.dataset.id] = {
+    tipo: modulo.tipo.value,
+    referente: modulo.referente.value,
+    testo: modulo.testo.value,
+    quando: modulo.quando.value,
+    data: modulo.data.value,
+  };
+}
+
+// «È già successo» / «Da fare»: cambia la data (oggi o domani), le etichette e il pulsante
+function cambiaQuandoAttivita(modulo, campo) {
+  if (campo.name !== "quando") return salvaBozzaAttivita(modulo);
+  const daFare = campo.value === "daFare";
+  modulo.data.value = daFare ? traGiorni(1) : oggi();
+  modulo.data.min = daFare ? oggi() : "";
+  modulo.data.max = daFare ? "" : oggi();
+  modulo.testo.closest("label").firstChild.textContent = daFare ? "Cosa fare\n" : "Cosa è successo\n";
+  modulo.testo.placeholder = daFare ? "Es. Richiamare per fissare il sopralluogo" : "Es. Telefonata: chiede un preventivo per la pulizia settimanale";
+  modulo.querySelector("[type=submit]").textContent = daFare ? "Fissa la prossima azione" : "Registra";
+  salvaBozzaAttivita(modulo);
 }
 
 // Chip della privacy del referente: in regola (con la data), da verificare, oppure da non contattare
@@ -562,6 +659,16 @@ const AZIONI_CLIENTI = {
     if (fase) apriFase(trova(x.opportunitaId), fase, { data: x.data, attivitaId: x.id });
   },
   "prossima-azione": (el) => apriProssimaAzione(el.dataset.id),
+  // Riquadri del riepilogo Clienti: il primo clic filtra per quello stato, il secondo toglie il filtro
+  "filtro-stato": (el) => {
+    interfaccia.filtri.stato = interfaccia.filtri.stato === el.dataset.id ? "" : el.dataset.id;
+    aggiornaElencoClienti();
+  },
+  "cancella-filtri": () => {
+    interfaccia.filtri = { testo: "", settore: "", stato: "" };
+    disegna();
+    document.getElementById("cerca-clienti").focus();
+  },
   "conferma-importa": () => applica(() => {
     if (!backupInAttesa) return false;
     stato = backupInAttesa;
@@ -634,18 +741,18 @@ const GESTORI_MODULI = {
     }, { messaggio: esistente ? "Referente aggiornato" : "Referente aggiunto: " + nome });
   },
   "modulo-attivita": (modulo) => {
+    const daFare = modulo.quando.value === "daFare";
     const testo = modulo.testo.value.trim();
-    if (!testo) return segnalaCampo(modulo.testo, "Scrivi cosa è successo o cosa fare");
-    if (!modulo.data.value) return segnalaCampo(modulo.data, "Scegli una data");
-    const dati = {
-      aziendaId: modulo.dataset.id,
-      referenteId: modulo.referente.value || null,
-      tipo: modulo.tipo.value,
-      data: modulo.data.value,
-      testo,
-      daFare: modulo.daFare.checked,
-    };
-    applica(() => registraAttivita(dati), { messaggio: dati.daFare ? "Prossima azione fissata" : "Attività registrata" });
+    const data = modulo.data.value;
+    if (!testo) return segnalaCampo(modulo.testo, daFare ? "Scrivi cosa fare" : "Scrivi cosa è successo");
+    if (!formattaData(data)) return segnalaCampo(modulo.data, "Scegli una data");
+    if (daFare && data < oggi()) return segnalaCampo(modulo.data, "La prossima azione va fissata da oggi in poi");
+    if (!daFare && data > oggi()) return segnalaCampo(modulo.data, "Un'attività già successa non può avere una data futura");
+    const dati = { aziendaId: modulo.dataset.id, referenteId: modulo.referente.value || null, tipo: modulo.tipo.value, data, testo, daFare };
+    applica(() => {
+      delete interfaccia.bozze[dati.aziendaId]; // dopo «Registra» la bozza si svuota
+      registraAttivita(dati);
+    }, { messaggio: daFare ? "Prossima azione fissata: " + accorcia(testo, 40) + " " + formattaGiorno(data) : "Attività registrata" });
   },
   "modulo-prossima": (modulo) => {
     const testo = modulo.testo.value.trim();

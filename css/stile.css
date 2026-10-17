@@ -19,7 +19,7 @@
   --accent: hsl(170 55% 55%);
   --accent-foreground: hsl(210 50% 10%);
   --border: hsl(210 20% 88%);
-  --input: hsl(210 20% 82%);
+  --input: hsl(210 15% 56%); /* bordo dei campi: 3,3:1 sul bianco (WCAG 1.4.11) */
   --ring: hsl(195 55% 35%);
   --radius: 0.75rem;
   --card-shadow: 0 4px 24px -4px hsl(210 60% 14% / 0.08);
@@ -101,9 +101,9 @@ textarea {
 }
 
 /* ------------------------------------------------ Struttura generale */
-/* Su telefono: testata in alto e navigazione fissa in basso */
+/* Su telefono: testata in alto (scorre via con la pagina) e navigazione fissa in basso */
 .barra-laterale {
-  position: sticky;
+  position: static;
   top: 0;
   z-index: 20;
   display: flex;
@@ -238,6 +238,7 @@ textarea {
   }
 
   .barra-laterale {
+    position: sticky;
     height: 100vh;
     flex-direction: column;
     align-items: stretch;
@@ -410,9 +411,9 @@ textarea {
   min-width: 0;
 }
 
-.azioni-intestazione,
+.intestazione > .azioni-intestazione,
 .intestazione > .pulsante {
-  flex-shrink: 0;
+  flex: 0 0 auto;
 }
 
 .occhiello {
@@ -2253,13 +2254,23 @@ dialog .azioni-finestra {
 /* Filtri dell'elenco clienti */
 .filtri {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 16px;
+}
+
+/* Su telefono la ricerca occupa tutta la riga, i due filtri stanno affiancati sotto */
+.filtri .campo-cerca {
+  grid-column: 1 / -1;
 }
 
 @media (min-width: 760px) {
   .filtri {
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .filtri .campo-cerca {
+    grid-column: auto;
   }
 }
 
@@ -2655,4 +2666,358 @@ dialog .azioni-finestra {
 /* Titolo della schermata: riceve il focus al cambio di schermata, senza il riquadro del focus */
 h1[tabindex="-1"]:focus {
   outline: none;
+}
+
+/* ================================================ Telefono e accessibilità */
+
+/* Focus ben visibile anche sul fondo scuro del menu (7,9:1) */
+.barra-laterale :focus-visible {
+  outline-color: var(--accent);
+}
+
+/* Codici GT-AAAA-NNN su una riga sola */
+.codice {
+  white-space: nowrap;
+}
+
+@media (max-width: 899px) {
+  /* Campi a 16 px: iPhone non ingrandisce la pagina quando li si tocca */
+  .modulo input:not([type="checkbox"]):not([type="radio"]),
+  .modulo select,
+  .modulo textarea,
+  .filtri select,
+  .campo-cerca input {
+    font-size: 16px;
+  }
+
+  /* Bersagli di tocco di almeno 44 px */
+  .pulsante,
+  .pulsante.piccolo {
+    min-height: 44px;
+  }
+
+  .link-indietro,
+  .link-titolo {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  /* Link azienda nelle liste: area di tocco di 44 px senza allargare la riga */
+  .elenco-da-fare .link {
+    display: inline-block;
+    padding-block: 12px;
+    margin-block: -12px;
+    line-height: 20px;
+  }
+
+  .link-indietro {
+    margin-bottom: 4px;
+  }
+}
+
+/* Indicatori: le tabelle larghe scorrono di lato con la prima colonna sempre in vista */
+.tabella:not(.impilata) th:first-child,
+.tabella:not(.impilata) td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--card);
+}
+
+.tabella:not(.impilata) th:first-child {
+  background: var(--muted);
+}
+
+/* Sotto i 640 px le tabelle impilate mostrano ogni riga come una scheda: etichetta a sinistra, valore a destra */
+@media (max-width: 639px) {
+  .tabella.impilata thead {
+    display: none;
+  }
+
+  .tabella.impilata tr {
+    display: block;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tabella.impilata tr:last-child {
+    border-bottom: 0;
+  }
+
+  .tabella.impilata td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    border: 0;
+    text-align: right;
+  }
+
+  .tabella.impilata td::before {
+    content: attr(data-etichetta);
+    flex-shrink: 0;
+    color: var(--muted-foreground);
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .tabella.impilata .pulsante-link {
+    min-height: 44px;
+    margin-block: -12px;
+  }
+}
+
+/* ================================================ Clienti */
+
+/* Su telefono: prima ricerca e filtri, poi il riepilogo come riga di chip, poi l'elenco */
+.pagina-clienti {
+  display: flex;
+  flex-direction: column;
+}
+
+.pagina-clienti > * {
+  min-width: 0;
+}
+
+.pagina-clienti > .intestazione { order: 1; }
+.pagina-clienti > .filtri { order: 2; }
+.pagina-clienti > .riepilogo { order: 3; }
+.pagina-clienti > .risultati-clienti { order: 4; }
+.pagina-clienti > #elenco-clienti { order: 5; }
+
+@media (min-width: 900px) {
+  .pagina-clienti > .riepilogo { order: 2; }
+  .pagina-clienti > .filtri { order: 3; }
+}
+
+/* Riquadri del riepilogo che fanno da filtro: premuto = filtro attivo */
+.riepilogo > .filtro {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.riepilogo > .filtro:hover {
+  border-color: var(--primary);
+}
+
+.riepilogo > .filtro[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: hsl(195 55% 35% / 0.08);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+@media (max-width: 899px) {
+  .riepilogo-clienti {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .riepilogo-clienti > .filtro {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 999px;
+  }
+
+  .riepilogo-clienti > .filtro > span {
+    font-size: 13px;
+  }
+
+  .riepilogo-clienti strong {
+    min-height: 0;
+    font-size: 15px;
+  }
+}
+
+.risultati-clienti:not(:empty) {
+  margin: -4px 0 10px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* «Esporta per Excel» come pulsante-testo, alto quanto i pulsanti accanto */
+.pulsante-testo.esporta {
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 14px;
+}
+
+.azioni-intestazione .pulsante-testo.esporta {
+  margin-right: 4px;
+}
+
+.cliente-telefono {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.cliente-telefono .icona {
+  width: 14px;
+  height: 14px;
+}
+
+/* Su telefono, nell'elenco, solo il pulsante del canale preferito */
+.contatti-compatti {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .contatti-tutti {
+    display: none;
+  }
+
+  .contatti-compatti {
+    display: flex;
+  }
+}
+
+.vuoto .pulsante {
+  margin-top: 10px;
+}
+
+#elenco-clienti > .vuoto {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* «È già successo» / «Da fare»: due pulsanti radio affiancati */
+.scelta-doppia {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--input);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.scelta-doppia label {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 10px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.scelta-doppia label + label {
+  border-left: 1px solid var(--input);
+}
+
+/* Il pallino resta per tastiera e lettori di schermo ma non si vede: si vede la scelta colorata */
+.scelta-doppia input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scelta-doppia label:has(input:checked) {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.scelta-doppia label:has(input:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: -4px;
+}
+
+/* ================================================ Indicatori: il pilota in sintesi */
+.sintesi {
+  margin-bottom: 8px;
+  border-left: 4px solid var(--accent);
+}
+
+.sintesi-numero {
+  margin: 4px 0 8px;
+  color: var(--secondary);
+  font-family: Sora, system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.sintesi-numero strong {
+  font-weight: 700;
+}
+
+.sintesi-numero.ok strong {
+  color: var(--ok);
+}
+
+.sintesi-elenco {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+@media (min-width: 1100px) {
+  .sintesi-elenco {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 24px;
+  }
+}
+
+.sintesi-elenco li,
+.sintesi-previsione {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.sintesi-elenco .icona {
+  margin-top: 2px;
+  color: var(--attenzione);
+}
+
+.sintesi-suggerimento {
+  color: var(--muted-foreground);
+}
+
+.sintesi-previsione {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.sintesi-previsione .icona {
+  margin-top: 2px;
+  color: var(--accent-testo);
+}
+
+/* Funnel su telefono: la conversione va sotto la barra */
+@media (max-width: 639px) {
+  .funnel-riga {
+    grid-template-columns: 84px minmax(0, 1fr) 30px;
+    row-gap: 0;
+  }
+
+  .funnel-conv {
+    grid-column: 2 / -1;
+  }
+
+  .funnel-conv:empty {
+    display: none;
+  }
 }

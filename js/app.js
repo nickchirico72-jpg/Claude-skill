@@ -11,6 +11,11 @@ let ultimaModificata = null;      // scheda da evidenziare dopo un'azione
 let espanse = {};                 // colonne della Pipeline mostrate per intero (oltre le 20 schede)
 let elenchiAperti = { "da-fare": false, "da-seguire": false }; // «Mostra tutte» di Da fare oggi e Da seguire
 
+// Stato dell'interfaccia, separato dai dati: sopravvive ai ridisegni.
+// filtri = ricerca e filtri dei Clienti; bozze = testo di «Registra un'attività» per azienda;
+// provenienza = schermata da cui si è arrivati (per il link «← Pipeline» della scheda cliente)
+const interfaccia = { filtri: { testo: "", settore: "", stato: "" }, bozze: {}, provenienza: "" };
+
 // ================================================================== ICONE
 
 const ICONE = {
@@ -49,8 +54,9 @@ function intestazione({ occhiello = "", titolo, istruzione, azione = "" }) {
     </header>`;
 }
 
+// Badge A/B/C; il lettore di schermo legge anche «Punteggio di coerenza»
 function badgePunteggio(p) {
-  return `<span class="badge badge-${p.classe}" title="Punteggio di coerenza: ${p.totale} su 100">${p.classe} · ${p.totale}</span>`;
+  return `<span class="badge badge-${p.classe}" title="Punteggio di coerenza: ${p.totale} su 100"><span class="solo-lettori">Punteggio di coerenza </span>${p.classe} · ${p.totale}</span>`;
 }
 
 // Tabella dei 6 criteri del punteggio, con i punti ottenuti
@@ -94,8 +100,7 @@ function disegnaPipeline() {
   const aperte = tutte.filter(trattativaAperta);
   const classi = { A: 0, B: 0, C: 0 };
   aperte.forEach((o) => classi[punteggi.get(o.id).classe]++);
-  const valorePieno = aperte.reduce((s, o) => s + valoreAnnuo(o), 0);
-  const ponderata = aperte.reduce((s, o) => s + ricaviAttesi(o), 0);
+  const previsione = previsionePonderata(tutte);
   const daSeguire = trattativeDaSeguire().length;
 
   // Colonne: le 5 fasi più "Perso"
@@ -114,7 +119,7 @@ function disegnaPipeline() {
     <section class="riepilogo riepilogo-pipeline" aria-label="Riepilogo">
       <div><span>In trattativa</span><strong>${aperte.length}</strong><small>su ${tutte.length} opportunità</small></div>
       <div title="Valore annuo di ogni trattativa × probabilità di chiusura della sua fase">
-        <span>Previsione ponderata</span><strong>${formattaEuro(ponderata)}</strong><small>su ${formattaEuro(valorePieno)} di valore annuo pieno</small></div>
+        <span>Previsione ponderata</span><strong>${formattaEuro(previsione.ponderata)}</strong><small>su ${formattaEuro(previsione.pieno)} di valore annuo pieno</small></div>
       <div><span>Coerenza</span><strong>
         <span class="badge badge-A">A ${classi.A}</span>
         <span class="badge badge-B">B ${classi.B}</span>
@@ -318,17 +323,20 @@ function disegnaAllocazione() {
       <h2>Commesse assegnate <span class="conteggio">${assegnate.length}</span></h2>
       ${assegnate.length ? `
         <div class="tabella-scorrevole">
-          <table class="tabella">
+          <table class="tabella impilata">
             <thead><tr><th>Rif.</th><th>Cliente</th><th>Servizio</th><th>Comune</th><th class="num">Ore/mese</th><th>Eseguita da</th><th class="num">Margine</th></tr></thead>
             <tbody>
               ${assegnate.map((o) => {
                 const interna = o.allocazione.tipo === "squadra";
                 const chi = interna ? nomeSquadra(o.allocazione.id) : nomePartner(o.allocazione.id);
                 return `<tr>
-                  <td>${esc(o.codice)}</td><td><a class="link" href="#cliente-${esc(o.aziendaId)}">${esc(nomeCliente(o))}</a></td><td>${esc(o.servizio)}</td><td>${esc(o.comune)}</td>
-                  <td class="num">${Number(o.ore)}</td>
-                  <td>${esc(chi)}<br><span class="nota-piccola">${interna ? "Squadra interna" : "Impresa partner"}</span></td>
-                  <td class="num">${formattaPercentuale(marginePercentuale(o, tutte))}</td>
+                  <td data-etichetta="Rif."><span class="codice">${esc(o.codice)}</span></td>
+                  <td data-etichetta="Cliente"><a class="link" href="#cliente-${esc(o.aziendaId)}">${esc(nomeCliente(o))}</a></td>
+                  <td data-etichetta="Servizio">${esc(o.servizio)}</td>
+                  <td data-etichetta="Comune">${esc(o.comune)}</td>
+                  <td class="num" data-etichetta="Ore/mese">${Number(o.ore)}</td>
+                  <td data-etichetta="Eseguita da"><span>${esc(chi)}<br><span class="nota-piccola">${interna ? "Squadra interna" : "Impresa partner"}</span></span></td>
+                  <td class="num" data-etichetta="Margine">${formattaPercentuale(marginePercentuale(o, tutte))}</td>
                 </tr>`;
               }).join("")}
             </tbody>
@@ -350,14 +358,14 @@ function disegnaAllocazione() {
       <h2>Registro delle proposte <span class="conteggio">${registro.length}</span></h2>
       ${registro.length ? `
         <div class="tabella-scorrevole">
-          <table class="tabella">
+          <table class="tabella impilata">
             <thead><tr><th>Data</th><th>Commessa</th><th>Partner</th><th>Esito</th></tr></thead>
             <tbody>
               ${registro.map((r) => `<tr>
-                <td>${formattaData(r.data)}</td>
-                <td>${esc(r.opp.codice)} · ${esc(nomeCliente(r.opp))}</td>
-                <td>${esc(nomePartner(r.partnerId))}</td>
-                <td>${esiti[r.esito]}</td>
+                <td data-etichetta="Data">${formattaData(r.data)}</td>
+                <td data-etichetta="Commessa"><span><span class="codice">${esc(r.opp.codice)}</span> · ${esc(nomeCliente(r.opp))}</span></td>
+                <td data-etichetta="Partner">${esc(nomePartner(r.partnerId))}</td>
+                <td data-etichetta="Esito">${esiti[r.esito]}</td>
               </tr>`).join("")}
             </tbody>
           </table>
@@ -485,42 +493,46 @@ function schedaPartner(p) {
 function disegnaIndicatori() {
   const tutte = stato.opportunita;
   const k = calcolaKpi(tutte);
-  const ob = CONFIG.obiettivi;
   const c = CONFIG.costiAcquisizione;
+  const obiettivi = obiettiviPilota(k);
+  // Obiettivo e raggiunto di una tessera, presi dall'elenco degli obiettivi
+  const esito = (id) => {
+    const o = obiettivi.find((x) => x.id === id);
+    return { obiettivo: o.obiettivo, raggiunto: o.raggiunto };
+  };
   const funnel = calcolaFunnel(tutte);
   const settori = risultatiPerSettore(tutte);
+  const previsione = previsionePonderata(tutte);
   const firmati = tutte.filter((o) => o.storico.contratto && !o.perso);
   const interne = firmati.filter((o) => o.allocazione && o.allocazione.tipo === "squadra").length;
   const aPartner = firmati.filter((o) => o.allocazione && o.allocazione.tipo === "partner").length;
-  const perse = tutte.filter((o) => o.perso);
-  const motivi = {};
-  perse.forEach((o) => (motivi[o.perso.motivo] = (motivi[o.perso.motivo] || 0) + 1));
-  const n = (x) => x.toLocaleString("it-IT");
+  const perdite = motiviPerdita(tutte);
+  const raggiunti = obiettivi.filter((o) => o.raggiunto).length;
+  // Formula dei contatti, es. "16 opportunità + 2 aziende ancora da qualificare = 18"
+  const formulaContatti = `${tutte.length} opportunità + ${quanti(k.lead, "azienda ancora da qualificare", "aziende ancora da qualificare")} = ${k.contatti}`;
 
   const efficacia = [
     tesseraKpi({
       etichetta: "Contatti qualificati",
-      valore: n(k.qualificati),
-      dettaglio: formattaPercentuale(k.tassoQualificati) + " dei " + k.contatti + " contatti",
-      formula: `Contatti arrivati almeno a «Qualificato» ÷ contatti totali = ${k.qualificati} ÷ ${k.contatti} = ${formattaPercentuale(k.tassoQualificati)}`,
-      obiettivo: "≥ " + formattaPercentuale(ob.tassoQualificati),
-      raggiunto: k.tassoQualificati >= ob.tassoQualificati,
+      valore: formattaPercentuale(k.tassoQualificati),
+      dettaglio: k.qualificati + " su " + k.contatti + " contatti",
+      formula: `Contatti = ${formulaContatti}.<br>
+        Contatti arrivati almeno a «Qualificato» ÷ contatti = ${k.qualificati} ÷ ${k.contatti} = ${formattaPercentuale(k.tassoQualificati)}`,
+      ...esito("tassoQualificati"),
     }),
     tesseraKpi({
       etichetta: "Appuntamenti (sopralluoghi)",
-      valore: n(k.sopralluoghi),
-      dettaglio: formattaPercentuale(k.tassoSopralluoghi) + " dei contatti qualificati",
+      valore: formattaPercentuale(k.tassoSopralluoghi),
+      dettaglio: k.sopralluoghi + " su " + k.qualificati + " contatti qualificati",
       formula: `Sopralluoghi fatti ÷ contatti qualificati = ${k.sopralluoghi} ÷ ${k.qualificati} = ${formattaPercentuale(k.tassoSopralluoghi)}`,
-      obiettivo: "≥ " + formattaPercentuale(ob.tassoSopralluoghi),
-      raggiunto: k.tassoSopralluoghi >= ob.tassoSopralluoghi,
+      ...esito("tassoSopralluoghi"),
     }),
     tesseraKpi({
       etichetta: "Conversione delle offerte",
       valore: formattaPercentuale(k.conversioneOfferte),
       dettaglio: k.contratti + " contratti su " + k.offerte + " offerte presentate",
       formula: `Contratti firmati ÷ offerte presentate (comprese quelle ancora in attesa di risposta) = ${k.contratti} ÷ ${k.offerte} = ${formattaPercentuale(k.conversioneOfferte)}`,
-      obiettivo: "≥ " + formattaPercentuale(ob.conversioneOfferte),
-      raggiunto: k.conversioneOfferte >= ob.conversioneOfferte,
+      ...esito("conversioneOfferte"),
     }),
   ];
 
@@ -530,8 +542,7 @@ function disegnaIndicatori() {
       valore: k.contratti ? formattaEuro(k.costoAcquisizione) : "n.d.",
       dettaglio: "per ogni contratto firmato",
       formula: `(${k.contatti} contatti × ${formattaEuro(c.perContatto)} + ${k.sopralluoghi} sopralluoghi × ${formattaEuro(c.perSopralluogo)} + ${k.offerte} offerte × ${formattaEuro(c.perOfferta)} + ${formattaEuro(costiFissiTotali())} di costi dei canali) ÷ ${k.contratti} contratti = ${formattaEuro(k.costiCommerciali)} ÷ ${k.contratti} = ${k.contratti ? formattaEuro(k.costoAcquisizione) : "n.d."}`,
-      obiettivo: "≤ " + formattaEuro(ob.costoAcquisizioneMax),
-      raggiunto: k.contratti > 0 && k.costoAcquisizione <= ob.costoAcquisizioneMax,
+      ...esito("costoAcquisizioneMax"),
     }),
     tesseraKpi({
       etichetta: "Margine atteso",
@@ -540,8 +551,8 @@ function disegnaIndicatori() {
       formula: `Somma di (valore annuo × margine % × probabilità di chiusura della fase) sulle opportunità non perse = ${formattaEuro(k.margineAtteso)}.<br>
         Probabilità: ${CONFIG.fasi.map((f) => f.nome + " " + formattaPercentuale(f.probabilita)).join(" · ")}.<br>
         Il margine % usa il costo della squadra interna o del partner, secondo chi esegue.`,
-      obiettivo: "marginalità ≥ " + formattaPercentuale(ob.marginalitaMedia),
-      raggiunto: k.marginalitaMedia >= ob.marginalitaMedia,
+      ...esito("marginalitaMedia"),
+      obiettivo: "marginalità " + esito("marginalitaMedia").obiettivo,
     }),
   ];
 
@@ -553,7 +564,20 @@ function disegnaIndicatori() {
       istruzione: "Leggi l'andamento del pilota: ogni indicatore mostra la formula e i numeri da cui nasce.",
     })}
 
-    <section class="sezione" style="margin-top:0">
+    <section class="riquadro sintesi" aria-labelledby="titolo-sintesi">
+      <h2 id="titolo-sintesi" class="titolo-riquadro">Il pilota in sintesi</h2>
+      <p class="sintesi-numero ${raggiunti === obiettivi.length ? "ok" : ""}">Obiettivi raggiunti: <strong>${raggiunti} su ${obiettivi.length}</strong></p>
+      ${raggiunti < obiettivi.length ? `<ul class="sintesi-elenco">
+        ${obiettivi.filter((o) => !o.raggiunto).map((o) => `
+          <li>${icona("attenzione")}
+            <span><strong>${o.nome}: ${o.valore}</strong> (obiettivo ${o.obiettivo})<br>
+              <span class="sintesi-suggerimento">${esc((CONFIG.suggerimenti || {})[o.id] || "")}</span></span></li>`).join("")}
+      </ul>` : '<p class="nota-piccola">Tutti gli obiettivi del pilota sono raggiunti.</p>'}
+      <p class="sintesi-previsione">${icona("freccia")} <span>Previsione ponderata: <strong>${formattaEuro(previsione.ponderata)} all'anno</strong>
+        da ${quanti(previsione.aperte, "trattativa aperta", "trattative aperte")}</span></p>
+    </section>
+
+    <section class="sezione">
       <h2>Efficacia <span class="sottotitolo">quanto il processo porta risultati</span></h2>
       <div class="griglia tre">${efficacia.join("")}</div>
     </section>
@@ -564,26 +588,42 @@ function disegnaIndicatori() {
     </section>
 
     <section class="sezione">
-      <h2>Funnel commerciale <span class="sottotitolo">opportunità che hanno raggiunto ogni fase, perse comprese</span></h2>
+      <h2>Funnel commerciale <span class="sottotitolo">contatti che hanno raggiunto ogni fase, persi compresi</span></h2>
       <div class="riquadro">
         <div class="funnel">
           ${funnel.map((f) => {
-            const conv = f.conversione === null ? "" : formattaPercentuale(f.conversione) + " dalla fase prima";
+            const conv = f.conversione === null ? "" : formattaPercentuale(f.conversione) + " della fase prima";
             return `
-              <div class="funnel-riga" tabindex="0" title="${f.nome}: ${f.n} opportunità${conv ? " · " + conv : ""}">
+              <div class="funnel-riga" tabindex="0" title="${f.nome}: ${f.n} contatti${conv ? " · " + conv : ""}">
                 <span class="funnel-fase">${f.nome}</span>
                 <span class="funnel-barra"><span style="width:${(f.n / massimo) * 100}%"></span></span>
                 <span class="funnel-numero">${f.n}</span>
-                <span class="funnel-conv">${f.conversione === null ? "" : "→ " + formattaPercentuale(f.conversione)}</span>
+                <span class="funnel-conv">${conv}</span>
               </div>`;
           }).join("")}
         </div>
         <p class="nota-piccola" style="margin-top:10px">
-          → = conversione dalla fase precedente.
-          Perse: ${perse.length}${perse.length ? " (" + Object.entries(motivi).map(([m, q]) => esc(m.toLowerCase()) + " " + q).join(", ") + ")" : ""}.
+          Contatto = ${formulaContatti}.
           Commesse firmate: ${firmati.length}, di cui ${interne} a squadre interne, ${aPartner} a partner, ${firmati.length - interne - aPartner} da assegnare.
         </p>
       </div>
+    </section>
+
+    <section class="sezione">
+      <h2>Perché perdiamo <span class="sottotitolo">${quanti(perdite.reduce((s, m) => s + m.numero, 0), "trattativa persa", "trattative perse")}</span></h2>
+      ${perdite.length ? `
+        <div class="tabella-scorrevole">
+          <table class="tabella">
+            <thead><tr><th>Motivo</th><th class="num">Trattative</th><th class="num">Valore annuo perso</th></tr></thead>
+            <tbody>
+              ${perdite.map((m) => `<tr>
+                <td>${esc(m.motivo)}</td>
+                <td class="num">${m.numero}</td>
+                <td class="num">${formattaEuro(m.valore)}</td>
+              </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>` : '<p class="vuoto">Nessuna trattativa persa.</p>'}
     </section>
 
     <section class="sezione">
@@ -602,12 +642,12 @@ function disegnaIndicatori() {
               <td class="num">${s.contatti ? formattaPercentuale(s.conversione) : "–"}</td>
               <td class="num">${formattaEuro(s.valoreContratti)}</td>
               <td class="num">${formattaEuro(s.margineAtteso)}</td>
-              <td class="num">${s.contatti ? formattaPercentuale(s.quotaA) : "–"}</td>
+              <td class="num">${s.quotaA === null ? "–" : formattaPercentuale(s.quotaA)}</td>
             </tr>`).join("")}
           </tbody>
         </table>
       </div>
-      <p class="nota-piccola" style="margin-top:8px">Conversione = contratti ÷ contatti del settore. Quota A = opportunità con punteggio A sul totale del settore.</p>
+      <p class="nota-piccola" style="margin-top:8px">Contatti = opportunità + aziende ancora da qualificare del settore. Conversione = contratti ÷ contatti. Quota A = opportunità con punteggio A sul totale delle opportunità del settore.</p>
     </section>
 
     <section class="sezione">
@@ -630,7 +670,7 @@ function disegnaIndicatori() {
           </tbody>
         </table>
       </div>
-      <p class="nota-piccola" style="margin-top:8px">Costi del canale = contatti × ${formattaEuro(CONFIG.costiAcquisizione.perContatto)} + sopralluoghi × ${formattaEuro(CONFIG.costiAcquisizione.perSopralluogo)} + offerte × ${formattaEuro(CONFIG.costiAcquisizione.perOfferta)} + spesa fissa del canale. Il canale è la fonte indicata nella scheda cliente.</p>
+      <p class="nota-piccola" style="margin-top:8px">Contatti = opportunità + aziende ancora da qualificare del canale. Costi del canale = contatti × ${formattaEuro(CONFIG.costiAcquisizione.perContatto)} + sopralluoghi × ${formattaEuro(CONFIG.costiAcquisizione.perSopralluogo)} + offerte × ${formattaEuro(CONFIG.costiAcquisizione.perOfferta)} + spesa fissa del canale. Il canale è la fonte indicata nella scheda cliente.</p>
     </section>`;
 }
 
@@ -1701,7 +1741,8 @@ document.addEventListener("submit", (evento) => {
   if (gestori[modulo.id]) gestori[modulo.id](modulo);
 });
 
-// Anteprima del punteggio mentre si compila il modulo; ricerca nell'elenco clienti
+// Anteprima del punteggio mentre si compila il modulo; ricerca nell'elenco clienti; bozza dell'attività
+let timerRicerca;
 document.addEventListener("input", (evento) => {
   const modulo = evento.target.closest("#modulo-contatto, #modulo-opportunita");
   if (modulo) aggiornaAnteprima(modulo);
@@ -1709,7 +1750,13 @@ document.addEventListener("input", (evento) => {
     aggiornaAvvisoDoppione(evento.target.form);
   }
   if (evento.target.closest("#modulo-fase")) aggiornaModuloFase(evento.target.form, evento.target);
-  if (evento.target.closest("#filtri-clienti")) aggiornaElencoClienti();
+  // Ricerca e filtri dei Clienti: si ricordano nell'interfaccia e l'elenco si ridisegna dopo 150 ms
+  if (evento.target.closest("#filtri-clienti")) {
+    leggiFiltriClienti();
+    clearTimeout(timerRicerca);
+    timerRicerca = setTimeout(aggiornaElencoClienti, 150);
+  }
+  if (evento.target.closest("#modulo-attivita")) salvaBozzaAttivita(evento.target.form);
 });
 
 // Importazione di un backup scelto dall'utente
@@ -1721,7 +1768,8 @@ document.getElementById("file-backup").addEventListener("change", (evento) => {
 
 document.addEventListener("change", (evento) => {
   const campo = evento.target;
-  if (campo.closest("#filtri-clienti")) return aggiornaElencoClienti();
+  if (campo.closest("#filtri-clienti")) return; // già gestito dall'evento input
+  if (campo.form && campo.form.id === "modulo-attivita") return cambiaQuandoAttivita(campo.form, campo);
   if (campo.form && campo.form.id === "modulo-fase") return aggiornaModuloFase(campo.form, campo);
   // Privacy del referente: scegliendo una base giuridica la data diventa oggi, se non era già scritta
   if (campo.form && campo.form.id === "modulo-referente" && campo.name === "base") {
@@ -1810,6 +1858,13 @@ function schermataAttuale() {
   return SCHERMATE[hash] && hash !== "cliente" ? { nome: hash, menu: hash } : { nome: "pipeline", menu: "pipeline" };
 }
 
+// Contatore del menu: il numero si vede, il lettore di schermo legge la frase intera (es. ", 4 attività da fare entro oggi")
+function aggiornaContatore(id, n, testo) {
+  const el = document.getElementById(id);
+  el.innerHTML = `<span aria-hidden="true">${n}</span><span class="solo-lettori">, ${n} ${testo}</span>`;
+  el.hidden = n === 0;
+}
+
 // Ridisegna la schermata attuale a partire dallo stato.
 // Restituisce true se ha messo il focus sulla scheda appena modificata
 function disegna() {
@@ -1835,17 +1890,11 @@ function disegna() {
 
   // Numero di attività da fare entro oggi accanto alla voce "Pipeline", dove c'è l'elenco "Da fare oggi"
   const scadute = attivitaDaFare().filter((x) => x.data <= oggi()).length;
-  const conteggioPipeline = document.getElementById("conteggio-pipeline");
-  conteggioPipeline.textContent = scadute;
-  conteggioPipeline.hidden = scadute === 0;
-  conteggioPipeline.setAttribute("aria-label", scadute + " attività da fare entro oggi");
+  aggiornaContatore("conteggio-pipeline", scadute, "attività da fare entro oggi");
 
   // Numero di commesse da assegnare accanto alla voce "Allocazione"
   const daAssegnare = stato.opportunita.filter((o) => o.storico.contratto && !o.perso && !o.allocazione).length;
-  const conteggio = document.getElementById("conteggio-allocazione");
-  conteggio.textContent = daAssegnare;
-  conteggio.hidden = daAssegnare === 0;
-  conteggio.setAttribute("aria-label", daAssegnare + " commesse da assegnare");
+  aggiornaContatore("conteggio-allocazione", daAssegnare, daAssegnare === 1 ? "commessa da assegnare" : "commesse da assegnare");
 
   aggiornaStatoBackup();
 
@@ -1866,7 +1915,9 @@ function disegna() {
   return focusSulla;
 }
 
-window.addEventListener("hashchange", () => {
+window.addEventListener("hashchange", (evento) => {
+  // Schermata di provenienza (es. "pipeline"): la scheda cliente offre «← Pipeline» per tornarci
+  interfaccia.provenienza = (evento.oldURL.split("#")[1] || "pipeline").split("-")[0];
   // L'avviso appena comparso (es. "Contatto creato" salvato da Clienti) resta visibile sulla nuova schermata
   if (Date.now() - avvisoMostratoIl > 1000) nascondiAvviso();
   window.scrollTo(0, 0);
