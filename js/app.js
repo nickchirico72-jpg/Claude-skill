@@ -359,7 +359,8 @@ function schedaCommessa(o) {
           <p class="passo-titolo">Partner proposto: ${partner.nome}</p>
           <p class="nota-piccola">${requisitiPartner(partner).testo} · zone: ${partner.zone.join(", ")}</p>
           <blockquote class="messaggio"><span class="messaggio-titolo">Messaggio precompilato</span>${esc(testoWhatsApp(o, partner)).replace(/\n/g, "<br>")}</blockquote>
-          <button class="pulsante whatsapp" type="button" data-azione="proponi" data-id="${o.id}" data-partner="${partner.id}">${icona("messaggio")} Proponi su WhatsApp</button>`;
+          <a class="pulsante whatsapp" href="${linkWhatsApp(o, partner)}" target="_blank" rel="noopener"
+             data-azione="proponi" data-id="${o.id}" data-partner="${partner.id}">${icona("messaggio")} Proponi su WhatsApp</a>`;
       } else if (rifiuti.length) {
         corpo = `
           <p class="passo-titolo avviso">${icona("attenzione")} Tutti i partner idonei hanno risposto NO</p>
@@ -789,17 +790,17 @@ function assegnaSquadra(id) {
   mostraAvviso("Commessa assegnata a " + squadra.nome);
 }
 
-// Apre WhatsApp e registra la proposta "in attesa di risposta"
+// Registra la proposta "in attesa di risposta" (il link apre WhatsApp in una nuova scheda)
 function proponi(id, partnerId) {
   const o = trova(id);
-  window.open(linkWhatsApp(o, trovaPartner(partnerId)), "_blank", "noopener");
   if (!propostaInAttesa(o)) {
     o.proposte = o.proposte || [];
     o.proposte.push({ partnerId, data: oggi(), esito: "attesa" });
   }
   salva();
   ultimaModificata = o.id;
-  disegna();
+  // Si ridisegna subito dopo, così il link fa in tempo ad aprire WhatsApp
+  setTimeout(disegna, 0);
   mostraAvviso("Messaggio pronto su WhatsApp. Registra qui la risposta del partner.");
 }
 
@@ -857,6 +858,12 @@ const AZIONI = {
 document.addEventListener("click", (evento) => {
   const el = evento.target.closest("[data-azione]");
   if (el && AZIONI[el.dataset.azione]) AZIONI[el.dataset.azione](el, evento);
+});
+
+// Anche il clic con la rotellina sul link WhatsApp registra la proposta
+document.addEventListener("auxclick", (evento) => {
+  const el = evento.target.closest('[data-azione="proponi"]');
+  if (el && evento.button === 1) AZIONI.proponi(el);
 });
 
 // Invio dei moduli nelle finestre
