@@ -530,7 +530,7 @@ textarea {
 /* Selettore delle fasi: visibile su schermi stretti */
 .selettore-fasi {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   margin-bottom: 14px;
 }
@@ -541,11 +541,12 @@ textarea {
   justify-content: space-between;
   gap: 4px;
   min-height: 44px;
-  padding: 6px 10px;
+  padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--card);
   font-size: 13px;
+  min-width: 0;
   font-weight: 600;
   cursor: pointer;
 }
@@ -575,6 +576,7 @@ textarea {
 
 .colonna-testa {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
@@ -655,6 +657,7 @@ textarea {
 
 .scheda-alto {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
@@ -662,6 +665,7 @@ textarea {
 }
 
 .scheda-nome {
+  min-width: 0;
   padding: 0;
   border: 0;
   background: none;
@@ -732,6 +736,28 @@ textarea {
   color: var(--muted-foreground);
   font-size: 13px;
   text-align: center;
+}
+
+/* Su telefono la scheda portata in vista non finisce sotto la barra in basso */
+.scheda,
+.commessa {
+  scroll-margin: 16px 0 calc(var(--altezza-nav-mobile) + 90px);
+}
+
+/* Su telefono, bersagli di tocco di almeno 44 px */
+@media (max-width: 899px) {
+  .pulsante.piccolo,
+  .pulsante-testo {
+    min-height: 44px;
+  }
+
+  .scheda-nome {
+    padding: 6px 0;
+  }
+
+  .modulo .spunta {
+    min-height: 44px;
+  }
 }
 
 .evidenziata {
@@ -1444,5 +1470,18 @@ dialog::backdrop {
   *::after {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* Telefoni molto stretti: il selettore delle fasi resta su tre colonne */
+@media (max-width: 400px) {
+  .fase-pulsante {
+    padding: 6px;
+    font-size: 12px;
+  }
+
+  .fase-pulsante .conteggio {
+    min-width: 18px;
+    padding: 1px 5px;
   }
 }

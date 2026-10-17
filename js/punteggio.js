@@ -48,10 +48,10 @@ function calcolaPunteggio(opp, opportunita) {
     const squadra = squadraDisponibile(opp, opportunita);
     if (squadra) {
       capacita = 1;
-      notaCapacita = squadra.nome + ": " + oreLibereSquadra(squadra, opportunita) + " ore libere al mese";
+      notaCapacita = squadra.nome + ": " + oreLibereSquadra(squadra, opportunita, opp.id) + " ore libere al mese";
     } else if (partnerIdonei(opp).length > 0) {
       capacita = 0.5;
-      notaCapacita = "Nessuna squadra libera in " + comune.zona + ": serve un partner";
+      notaCapacita = "Nessuna squadra in " + comune.zona + " con " + opp.ore + " ore libere al mese: serve un partner";
     } else {
       capacita = 0;
       notaCapacita = "Nessuna squadra né partner disponibile in " + comune.zona;
@@ -61,7 +61,8 @@ function calcolaPunteggio(opp, opportunita) {
 
   // 4. Margine stimato
   const margine = marginePercentuale(opp, opportunita);
-  const chi = esecutorePrevisto(opp, opportunita) === "squadra" ? "squadra interna" : "partner";
+  const esecutore = esecutorePrevisto(opp, opportunita);
+  const chi = esecutore === "squadra" ? "squadra interna" : esecutore === "partner" ? "partner" : "costo partner (ipotesi: oggi nessun esecutore)";
   criteri.push({ nome: "Margine stimato", valore: margine >= p.margine.obiettivo ? 1 : margine >= p.margine.minimo ? 0.5 : 0,
     peso: p.pesi.margine, nota: formattaPercentuale(margine) + " con " + chi });
 

@@ -26,39 +26,50 @@ function trovaPartner(id) {
   return CONFIG.partner.find((p) => p.id === id);
 }
 
+// La squadra può eseguire questo servizio in questa zona?
+function squadraCopre(squadra, opp) {
+  return squadra.zone.includes(infoComune(opp.comune).zona) && squadra.servizi.includes(opp.servizio);
+}
+
 // Ore libere di una squadra = capacità - ore già impegnate - commesse assegnate dal prototipo
-function oreLibereSquadra(squadra, opportunita) {
-  const assegnate = opportunita
-    .filter((o) => o.allocazione && o.allocazione.tipo === "squadra" && o.allocazione.id === squadra.id)
+// - contratti firmati e non ancora assegnati che la squadra potrebbe eseguire (ore "prenotate").
+// escludiId: l'opportunità che si sta valutando, che non prenota ore per sé stessa.
+function oreLibereSquadra(squadra, opportunita, escludiId) {
+  const occupate = opportunita
+    .filter((o) => o.id !== escludiId && !o.perso)
+    .filter((o) => o.allocazione
+      ? o.allocazione.tipo === "squadra" && o.allocazione.id === squadra.id
+      : o.storico.contratto && !propostaInAttesa(o) && squadraCopre(squadra, o))
     .reduce((somma, o) => somma + o.ore, 0);
-  return squadra.oreCapacita - squadra.oreImpegnate - assegnate;
+  return squadra.oreCapacita - squadra.oreImpegnate - occupate;
 }
 
 // Prima squadra interna che copre zona e servizio e ha abbastanza ore libere
 function squadraDisponibile(opp, opportunita) {
-  const zona = infoComune(opp.comune).zona;
-  return CONFIG.squadre.find(
-    (s) => s.zone.includes(zona) && s.servizi.includes(opp.servizio) && oreLibereSquadra(s, opportunita) >= opp.ore
-  );
+  return CONFIG.squadre.find((s) => squadraCopre(s, opp) && oreLibereSquadra(s, opportunita, opp.id) >= opp.ore);
 }
 
-// Verifica i requisiti di un partner: solo imprese, DURC regolare (non scaduto)
-function requisitiPartner(partner) {
+// Verifica i requisiti di un partner: solo imprese, DURC regolare alla data indicata (di solito l'avvio)
+function requisitiPartner(partner, data = oggi()) {
   if (partner.tipo !== "impresa") {
     return { idoneo: false, testo: "Lavoratore autonomo: non ammesso" };
   }
-  if (partner.durcScadenza < oggi()) {
-    return { idoneo: false, testo: "DURC scaduto il " + formattaData(partner.durcScadenza) };
+  if (partner.durcScadenza < data) {
+    const scaduto = partner.durcScadenza < oggi();
+    return { idoneo: false, testo: (scaduto ? "DURC scaduto il " : "DURC in scadenza il ") + formattaData(partner.durcScadenza) };
   }
   return { idoneo: true, testo: "DURC regolare fino al " + formattaData(partner.durcScadenza) };
 }
 
-// Partner idonei per zona e servizio, nell'ordine di priorità della configurazione
-function partnerIdonei(opp) {
+// Partner che coprono zona e servizio, nell'ordine di priorità della configurazione
+function partnerInZona(opp) {
   const zona = infoComune(opp.comune).zona;
-  return CONFIG.partner.filter(
-    (p) => requisitiPartner(p).idoneo && p.zone.includes(zona) && p.servizi.includes(opp.servizio)
-  );
+  return CONFIG.partner.filter((p) => p.zone.includes(zona) && p.servizi.includes(opp.servizio));
+}
+
+// Partner idonei: in zona e con i requisiti validi fino all'avvio del servizio
+function partnerIdonei(opp) {
+  return partnerInZona(opp).filter((p) => requisitiPartner(p, dataAvvio(opp)).idoneo);
 }
 
 // Primo partner idoneo che non ha già risposto NO per questa commessa
@@ -82,9 +93,9 @@ function esecutorePrevisto(opp, opportunita) {
 
 // Data di avvio del servizio: firma del contratto + giorni configurati
 function dataAvvio(opp) {
-  const firma = new Date(opp.storico.contratto || oggi());
-  firma.setDate(firma.getDate() + CONFIG.giorniAvvioServizio);
-  return firma.toISOString().slice(0, 10);
+  const [a, m, g] = (opp.storico.contratto || oggi()).split("-").map(Number);
+  const giorni = Math.round((new Date(a, m - 1, g) - new Date(new Date().toDateString())) / 86400000);
+  return traGiorni(giorni + CONFIG.giorniAvvioServizio);
 }
 
 // Testo del messaggio WhatsApp con i segnaposto sostituiti

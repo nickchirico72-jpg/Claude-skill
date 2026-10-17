@@ -6,7 +6,7 @@
 
 // =================================================================== STATO
 
-// Codice commessa progressivo, es. GT-2026-017
+// Codice di riferimento progressivo, es. GT-2026-017 (diventa il codice della commessa alla firma)
 function codiceCommessa(numero) {
   return "GT-" + new Date().getFullYear() + "-" + String(numero).padStart(3, "0");
 }
@@ -28,12 +28,21 @@ function datiIniziali() {
 // Legge i dati salvati nel browser; se non ci sono, usa gli esempi
 function carica() {
   try {
-    const salvato = localStorage.getItem(CONFIG.chiaveSalvataggio);
-    if (salvato) return JSON.parse(salvato);
+    const salvato = JSON.parse(localStorage.getItem(CONFIG.chiaveSalvataggio));
+    if (datiValidi(salvato)) return salvato;
   } catch (e) {
     // Salvataggio non disponibile (es. navigazione privata): si usano gli esempi
   }
   return datiIniziali();
+}
+
+// Controlla che i dati salvati siano coerenti con config.js (es. dopo aver cambiato squadre o partner)
+function datiValidi(d) {
+  return !!d && Array.isArray(d.opportunita) && typeof d.contatore === "number" &&
+    d.opportunita.every((o) => o && o.id && o.storico && o.storico.contatto && CONFIG.servizi[o.servizio] &&
+      CONFIG.settori.includes(o.settore) && CONFIG.comuni.some((c) => c.nome === o.comune) &&
+      (!o.allocazione || (o.allocazione.tipo === "squadra" ? trovaSquadra(o.allocazione.id) : trovaPartner(o.allocazione.id))) &&
+      (o.proposte || []).every((p) => trovaPartner(p.partnerId)));
 }
 
 function salva() {
@@ -304,7 +313,7 @@ function disegnaAllocazione() {
         In futuro un portale potrebbe permettere al partner di vedere le richieste, rispondere con un clic e caricare il DURC aggiornato.</p>
       <div class="anteprima-portale" aria-hidden="true">
         <p class="commessa-codice">RICHIESTA DA GATE S.R.L.</p>
-        <p><strong>Pulizia professionale · Modugno</strong></p>
+        <p><strong>Pulizia Professionale · Modugno</strong></p>
         <p class="nota-piccola">60 ore al mese · avvio tra 15 giorni</p>
         <div class="pulsanti-risposta">
           <button class="pulsante si piccolo" type="button" disabled tabindex="-1">Accetto</button>
@@ -325,7 +334,7 @@ function schedaCommessa(o) {
     passo = `
       <div class="passo passo-squadra">
         <p class="passo-titolo">${icona("spunta")} Squadra interna disponibile</p>
-        <p><strong>${squadra.nome}</strong> · ${squadra.caposquadra} · ${oreLibereSquadra(squadra, stato.opportunita)} ore libere al mese (ne servono ${o.ore})</p>
+        <p><strong>${squadra.nome}</strong> · ${squadra.caposquadra} · ${oreLibereSquadra(squadra, stato.opportunita, o.id)} ore libere al mese (ne servono ${o.ore})</p>
         <button class="pulsante primario" type="button" data-azione="assegna-squadra" data-id="${o.id}">Assegna a ${squadra.nome}</button>
       </div>`;
   } else {
@@ -350,17 +359,20 @@ function schedaCommessa(o) {
           <p class="passo-titolo">Partner proposto: ${partner.nome}</p>
           <p class="nota-piccola">${requisitiPartner(partner).testo} · zone: ${partner.zone.join(", ")}</p>
           <blockquote class="messaggio"><span class="messaggio-titolo">Messaggio precompilato</span>${esc(testoWhatsApp(o, partner)).replace(/\n/g, "<br>")}</blockquote>
-          <a class="pulsante whatsapp" href="${linkWhatsApp(o, partner)}" target="_blank" rel="noopener"
-             data-azione="proponi" data-id="${o.id}" data-partner="${partner.id}">${icona("messaggio")} Proponi su WhatsApp</a>`;
+          <button class="pulsante whatsapp" type="button" data-azione="proponi" data-id="${o.id}" data-partner="${partner.id}">${icona("messaggio")} Proponi su WhatsApp</button>`;
+      } else if (rifiuti.length) {
+        corpo = `
+          <p class="passo-titolo avviso">${icona("attenzione")} Tutti i partner idonei hanno risposto NO</p>
+          <p class="nota-piccola">Valuta con il cliente un rinvio dell'avvio o cerca un nuovo partner con DURC regolare in ${zona}.</p>`;
       } else {
         corpo = `
-          <p class="passo-titolo avviso">${icona("attenzione")} Nessun partner idoneo disponibile</p>
-          <p class="nota-piccola">Valuta con il cliente un rinvio dell'avvio, oppure aggiungi in config.js un partner con DURC regolare per ${zona}.</p>`;
+          <p class="passo-titolo avviso">${icona("attenzione")} Nessun partner idoneo in ${zona}</p>
+          <p class="nota-piccola">Valuta con il cliente un rinvio dell'avvio o cerca un partner con DURC regolare in questa zona.</p>`;
       }
     }
     passo = `
       <div class="passo passo-partner">
-        <p class="avviso-capacita">${icona("attenzione")} Nessuna squadra interna con ore libere in ${zona} per ${o.servizio.toLowerCase()}.</p>
+        <p class="avviso-capacita">${icona("attenzione")} Nessuna squadra interna in ${zona} ha ${o.ore} ore libere al mese per ${o.servizio.toLowerCase()}.</p>
         ${rifiuti.length ? `<ul class="rifiuti">${rifiuti.map((r) => `<li>${icona("x")} ${trovaPartner(r.partnerId).nome} ha risposto NO il ${formattaData(r.data)}</li>`).join("")}</ul>` : ""}
         ${corpo}
       </div>`;
@@ -446,7 +458,7 @@ function disegnaIndicatori() {
       etichetta: "Conversione delle offerte",
       valore: formattaPercentuale(k.conversioneOfferte),
       dettaglio: k.contratti + " contratti su " + k.offerte + " offerte presentate",
-      formula: `Contratti firmati ÷ offerte presentate = ${k.contratti} ÷ ${k.offerte} = ${formattaPercentuale(k.conversioneOfferte)}`,
+      formula: `Contratti firmati ÷ offerte presentate (comprese quelle ancora in attesa di risposta) = ${k.contratti} ÷ ${k.offerte} = ${formattaPercentuale(k.conversioneOfferte)}`,
       obiettivo: "≥ " + formattaPercentuale(ob.conversioneOfferte),
       raggiunto: k.conversioneOfferte >= ob.conversioneOfferte,
     }),
@@ -581,7 +593,7 @@ function apriDettaglio(id) {
       Referente: ${esc(o.referente) || "non indicato"}</p>
     <h3>Punteggio di coerenza: ${p.totale} su 100 (classe ${p.classe})</h3>
     ${tabellaCriteri(p)}
-    <p class="nota-piccola">Classe A da ${s.A} punti, B da ${s.B}, C sotto ${s.B}. Pesi e soglie sono nel file config.js.</p>
+    <p class="nota-piccola">Classe A da ${s.A} punti, B da ${s.B}, C sotto ${s.B}. </p>
     <h3>Storico</h3>
     <ol class="storico">${passi}${o.perso ? `<li>Perso: ${formattaData(o.perso.data)} · ${esc(o.perso.motivo)}</li>` : ""}</ol>
     ${o.motivazioneC ? `<p class="nota-c">Offerta inviata nonostante il punteggio C. Motivazione: ${esc(o.motivazioneC)}</p>` : ""}
@@ -778,9 +790,9 @@ function assegnaSquadra(id) {
 }
 
 // Apre WhatsApp e registra la proposta "in attesa di risposta"
-function proponi(id, partnerId, link) {
+function proponi(id, partnerId) {
   const o = trova(id);
-  window.open(link, "_blank", "noopener");
+  window.open(linkWhatsApp(o, trovaPartner(partnerId)), "_blank", "noopener");
   if (!propostaInAttesa(o)) {
     o.proposte = o.proposte || [];
     o.proposte.push({ partnerId, data: oggi(), esito: "attesa" });
@@ -798,11 +810,18 @@ function rispostaPartner(id, esito) {
   attesa.esito = esito;
   const partner = trovaPartner(attesa.partnerId);
   if (esito === "si") {
-    o.allocazione = { tipo: "partner", id: partner.id, data: oggi() };
-    mostraAvviso("Commessa assegnata a " + partner.nome + ". Il cliente resta di Gate.");
+    // Ricontrollo dei requisiti al momento della conferma
+    const req = requisitiPartner(partner, dataAvvio(o));
+    if (!req.idoneo) {
+      attesa.esito = "no";
+      mostraAvviso(partner.nome + " non è più idoneo (" + req.testo + "): proponi al partner successivo");
+    } else {
+      o.allocazione = { tipo: "partner", id: partner.id, data: oggi() };
+      mostraAvviso("Commessa assegnata a " + partner.nome + " — il cliente resta di Gate");
+    }
   } else {
     const successivo = prossimoPartner(o);
-    mostraAvviso(partner.nome + " ha risposto NO." + (successivo ? " Proponi a " + successivo.nome + "." : ""));
+    mostraAvviso(partner.nome + " ha risposto NO" + (successivo ? " — ora proponi a " + successivo.nome : ""));
   }
   salva();
   ultimaModificata = o.id;
@@ -821,10 +840,7 @@ const AZIONI = {
   },
   chiudi: () => chiudiFinestra(),
   "assegna-squadra": (el) => assegnaSquadra(el.dataset.id),
-  proponi: (el, evento) => {
-    evento.preventDefault();
-    proponi(el.dataset.id, el.dataset.partner, el.href);
-  },
+  proponi: (el) => proponi(el.dataset.id, el.dataset.partner),
   "risposta-si": (el) => rispostaPartner(el.dataset.id, "si"),
   "risposta-no": (el) => rispostaPartner(el.dataset.id, "no"),
   ripristina: () => apriRipristino(),
@@ -852,7 +868,9 @@ document.addEventListener("submit", (evento) => {
   } else if (modulo.id === "modulo-conferma-c") {
     const testo = modulo.motivazione.value.trim();
     if (testo.length < 5) {
+      modulo.motivazione.setCustomValidity("Scrivi una motivazione di almeno 5 caratteri");
       modulo.motivazione.reportValidity();
+      modulo.motivazione.setCustomValidity("");
       return;
     }
     const o = trova(modulo.dataset.id);
@@ -867,7 +885,7 @@ document.addEventListener("submit", (evento) => {
     faseSelezionata = "perso";
     ultimaModificata = o.id;
     disegna();
-    mostraAvviso(o.cliente + " segnato come perso");
+    mostraAvviso("Opportunità segnata come persa: " + o.cliente);
   }
 });
 
@@ -928,12 +946,18 @@ function disegna() {
   // Porta in vista la scheda appena modificata
   if (ultimaModificata) {
     const el = document.getElementById("scheda-" + ultimaModificata) || document.getElementById("commessa-" + ultimaModificata);
-    if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (el) {
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      // Il focus resta sulla scheda modificata (utile da tastiera e con lettore di schermo)
+      const comando = el.querySelector("button, a");
+      if (comando && !finestra.open) comando.focus({ preventScroll: true });
+    }
     ultimaModificata = null;
   }
 }
 
 window.addEventListener("hashchange", () => {
+  document.getElementById("avviso").classList.remove("visibile");
   disegna();
   window.scrollTo(0, 0);
 });

@@ -14,7 +14,7 @@
 function traGiorni(n) {
   const d = new Date();
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
 
 const CONFIG = {
@@ -38,7 +38,7 @@ const CONFIG = {
   // metodo = passo corrispondente del metodo Gate ("Come lavoriamo" sul sito)
   fasi: [
     { id: "contatto",    nome: "Contatto",    probabilita: 0.05, azione: "Qualifica" },
-    { id: "qualificato", nome: "Qualificato", probabilita: 0.15, azione: "Fissa sopralluogo" },
+    { id: "qualificato", nome: "Qualificato", probabilita: 0.15, azione: "Registra sopralluogo" },
     { id: "sopralluogo", nome: "Sopralluogo", probabilita: 0.35, azione: "Invia offerta", metodo: "Analisi" },
     { id: "offerta",     nome: "Offerta",     probabilita: 0.55, azione: "Contratto firmato", metodo: "Proposta" },
     { id: "contratto",   nome: "Contratto",   probabilita: 1.0,  metodo: "Esecuzione" },
@@ -107,7 +107,7 @@ const CONFIG = {
       idealeDa: 6000, idealeA: 60000,                // nel range ideale = 1
       accettabileDa: 3000, accettabileA: 100000,     // nel range accettabile = 0,5; fuori = 0
     },
-    confermaPerPunteggioC: true,       // se true, un'opportunità C passa a Offerta solo con conferma motivata
+    confermaPerPunteggioC: true,       // true = un'opportunità C passa a Offerta solo con una motivazione; false = nessun controllo
   },
 
   // ---------------------------------- Costi commerciali (costo di acquisizione)
@@ -130,7 +130,7 @@ const CONFIG = {
   // ------------------------------------------------- Messaggio WhatsApp
   // Il nome del cliente NON compare: il cliente resta di Gate.
   messaggioWhatsApp:
-    "Buongiorno {referente}, le scrive {mittente}.\n" +
+    "Buongiorno {referente},\nle scrive {mittente}\n" +
     "Le proponiamo una commessa di {servizio} a {comune}: circa {ore} ore al mese, avvio dal {avvio}.\n" +
     "Il contratto con il cliente resta in capo a Gate, che coordina il servizio e ne controlla la qualità.\n" +
     "Può rispondere SÌ o NO a questo messaggio?\n" +
