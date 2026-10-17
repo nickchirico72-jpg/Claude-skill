@@ -137,21 +137,28 @@ function apriProssimaAzione(aziendaId) {
         <button class="pulsante secondario" type="button" data-azione="chiudi">Nessuna</button>
         <button class="pulsante primario" type="submit">Fissa la prossima azione</button>
       </div>
-    </form>`, "Prossima azione");
+    </form>`);
 }
 
 // ========================================================= CONTATTO CON UN CLIC
 
-// Pulsanti Chiama / WhatsApp / Email per un referente (compatti = solo il canale preferito)
+// Pulsanti Chiama / WhatsApp / Email per un referente (compatti = solo il canale preferito).
+// Senza privacy verificata, o se non vuole proposte, restano cliccabili ma con il bordo ambra e l'avviso
 function pulsantiContatto(r, compatti) {
   const numero = numeroInternazionale(r.telefono);
+  const avviso = avvisoPrivacy(r);
+  const pulsante = (href, testo, etichetta, nomeIcona, extra = "") => {
+    const titolo = esc(etichetta + (avviso ? " · " + avviso : ""));
+    return `<a class="pulsante-contatto${avviso ? " attenzione" : ""}" href="${href}"${extra} title="${titolo}" aria-label="${titolo}">${icona(nomeIcona)}<span>${testo}</span>` +
+      (avviso ? `<span class="segnale-privacy">${icona("attenzione")}</span>` : "") + "</a>";
+  };
   const canali = [];
   if (numero) {
-    canali.push({ nome: "Telefono", html: `<a class="pulsante-contatto" href="tel:+${numero}" title="Chiama ${esc(r.nome)}" aria-label="Chiama ${esc(r.nome)}">${icona("telefono")}<span>Chiama</span></a>` });
-    canali.push({ nome: "WhatsApp", html: `<a class="pulsante-contatto" href="https://wa.me/${numero}" target="_blank" rel="noopener" title="Scrivi su WhatsApp a ${esc(r.nome)}" aria-label="WhatsApp a ${esc(r.nome)}">${icona("messaggio")}<span>WhatsApp</span></a>` });
+    canali.push({ nome: "Telefono", html: pulsante(`tel:+${numero}`, "Chiama", "Chiama " + r.nome, "telefono") });
+    canali.push({ nome: "WhatsApp", html: pulsante(`https://wa.me/${numero}`, "WhatsApp", "WhatsApp a " + r.nome, "messaggio", ' target="_blank" rel="noopener"') });
   }
   if (r.email) {
-    canali.push({ nome: "Email", html: `<a class="pulsante-contatto" href="mailto:${esc(r.email)}" title="Scrivi un'email a ${esc(r.nome)}" aria-label="Email a ${esc(r.nome)}">${icona("email")}<span>Email</span></a>` });
+    canali.push({ nome: "Email", html: pulsante(`mailto:${esc(r.email)}`, "Email", "Email a " + r.nome, "email") });
   }
   if (compatti) {
     const preferito = canali.find((c) => c.nome === r.canale) || canali[0];
@@ -250,7 +257,8 @@ function disegnaSchedaCliente(id) {
       istruzione: "Registra ogni contatto con il cliente e fissa sempre la prossima azione: così nessuna trattativa resta ferma.",
       azione: `<div class="azioni-intestazione">
         <button class="pulsante secondario" type="button" data-azione="modifica-azienda" data-id="${esc(a.id)}">${icona("matita")} Modifica dati</button>
-        <button class="pulsante accento" type="button" data-azione="nuova-opportunita" data-id="${esc(a.id)}">${icona("piu")} Nuova opportunità</button></div>`,
+        <button class="pulsante accento" type="button" data-azione="nuova-opportunita" data-id="${esc(a.id)}">${icona("piu")}
+          ${statoAzienda(a.id) === "Da qualificare" ? "Qualifica: crea l'opportunità" : "Nuova opportunità"}</button></div>`,
     })}
     <p class="riga-chip">${chipStato(a.id)} <span class="chip">Fonte: ${esc(a.fonte)}</span> <span class="chip">${esc(a.comune)}</span>
       ${a.piva ? `<span class="chip">P.IVA ${esc(a.piva)}</span>` : ""} <span class="chip">In archivio dal ${formattaData(a.creata)}</span></p>
@@ -261,7 +269,11 @@ function disegnaSchedaCliente(id) {
         <section class="sezione">
           <h2>Referenti <span class="conteggio">${refs.length}</span></h2>
           <div class="griglia-referenti">
-            ${refs.map((r) => `
+            ${refs.map((r) => r.cancellato ? `
+              <article class="riquadro referente">
+                <h3>${esc(r.nome)}</h3>
+                <p class="riga-chip">${r.decisore ? '<span class="chip chip-ok">Decisore</span>' : ""}<span class="chip">Dati personali cancellati su richiesta</span></p>
+              </article>` : `
               <article class="riquadro referente">
                 <div class="scheda-alto">
                   <h3>${esc(r.nome)}</h3>
@@ -270,7 +282,7 @@ function disegnaSchedaCliente(id) {
                 <p class="partner-dati">${esc(r.ruolo) || "Ruolo non indicato"}</p>
                 <p class="riga-chip">
                   ${r.decisore ? '<span class="chip chip-ok">Decisore</span>' : ""}
-                  ${r.privacy ? `<span class="chip chip-ok">${icona("spunta")} Consenso privacy</span>` : `<span class="chip chip-critico">${icona("attenzione")} Manca il consenso privacy</span>`}
+                  ${chipPrivacy(r)}
                   ${r.canale ? `<span class="chip">Preferisce: ${esc(r.canale)}</span>` : ""}
                 </p>
                 <p class="partner-dati">${r.telefono ? esc(telefonoLeggibile(r.telefono)) : "Telefono non indicato"}<br>${r.email ? esc(r.email) : "Email non indicata"}</p>
@@ -344,16 +356,24 @@ function disegnaSchedaCliente(id) {
     </div>`;
 }
 
+// Chip della privacy del referente: in regola (con la data), da verificare, oppure da non contattare
+function chipPrivacy(r) {
+  const p = r.privacy;
+  if (p.opposizione) return `<span class="chip chip-critico">${icona("x")} Non contattare per proposte</span>`;
+  if (p.base === "Da verificare") return `<span class="chip chip-attenzione">${icona("attenzione")} Privacy da verificare</span>`;
+  return `<span class="chip chip-ok">${icona("spunta")} Privacy: ${esc(p.base)}${p.data ? " del " + formattaData(p.data) : ""}</span>`;
+}
+
 // ========================================================= FINESTRE E MODULI
 
 function apriModificaAzienda(id) {
   const a = trovaAzienda(id);
   apriFinestra(`
-    <form class="modulo" id="modulo-azienda" data-id="${esc(a.id)}">
+    <form class="modulo" id="modulo-azienda" data-id="${esc(a.id)}" novalidate>
       <h2>Dati dell'azienda</h2>
       <label>Ragione sociale <input name="ragioneSociale" required value="${esc(a.ragioneSociale)}"></label>
       <div class="riga-doppia">
-        <label>Partita IVA <input name="piva" inputmode="numeric" value="${esc(a.piva)}" placeholder="11 cifre"></label>
+        <label>Partita IVA (facoltativa) <input name="piva" inputmode="numeric" value="${esc(a.piva)}" placeholder="11 cifre"></label>
         <label>Settore <select name="settore">${opzioni(CONFIG.settori, a.settore)}</select></label>
       </div>
       <div class="riga-doppia">
@@ -362,17 +382,18 @@ function apriModificaAzienda(id) {
       </div>
       <label>Note <textarea name="note" placeholder="Es. orari di accesso, esigenze particolari">${esc(a.note)}</textarea></label>
       <div class="azioni-finestra">
+        <button class="pulsante no a-sinistra" type="button" data-azione="chiedi-elimina-azienda" data-id="${esc(a.id)}">Elimina azienda</button>
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
         <button class="pulsante primario" type="submit">Salva</button>
       </div>
-    </form>`, "Dati dell'azienda");
+    </form>`);
 }
 
 function apriReferente(aziendaId, referenteId) {
-  const r = trovaReferente(referenteId) || { nome: "", ruolo: "", telefono: "", email: "", canale: "Telefono", decisore: false, privacy: false };
-  const usato = referenteId && stato.opportunita.some((o) => o.referenteId === referenteId);
+  const r = trovaReferente(referenteId) || { nome: "", ruolo: "", telefono: "", email: "", canale: "Telefono", decisore: false, privacy: privacyVuota() };
+  const p = r.privacy;
   apriFinestra(`
-    <form class="modulo" id="modulo-referente" data-azienda="${esc(aziendaId)}" data-id="${esc(referenteId)}">
+    <form class="modulo" id="modulo-referente" data-azienda="${esc(aziendaId)}" data-id="${esc(referenteId)}" novalidate>
       <h2>${referenteId ? "Modifica referente" : "Nuovo referente"}</h2>
       <div class="riga-doppia">
         <label>Nome e cognome <input name="nome" required value="${esc(r.nome)}"></label>
@@ -384,13 +405,106 @@ function apriReferente(aziendaId, referenteId) {
       </div>
       <label>Canale preferito <select name="canale">${opzioni(CONFIG.canaliPreferiti, r.canale)}</select></label>
       <label class="spunta"><input name="decisore" type="checkbox" ${r.decisore ? "checked" : ""}> È il decisore</label>
-      <label class="spunta"><input name="privacy" type="checkbox" ${r.privacy ? "checked" : ""}> Ha dato il consenso privacy per essere ricontattato</label>
+      <fieldset class="gruppo">
+        <legend>Privacy</legend>
+        <div class="riga-doppia">
+          <label>Base giuridica <select name="base">${opzioni(CONFIG.basiGiuridiche, p.base)}</select></label>
+          <label>Data <input name="dataPrivacy" type="date" max="${oggi()}" value="${esc(p.data || "")}"></label>
+        </div>
+        <label>Come è stato raccolto
+          <select name="raccolta"><option value="">— Non indicato —</option>${opzioni(CONFIG.modiRaccolta, p.raccolta)}</select>
+        </label>
+        <label class="spunta"><input name="opposizione" type="checkbox" ${p.opposizione ? "checked" : ""}> Non vuole ricevere proposte commerciali</label>
+        <p class="nota-piccola">La base giuridica corretta va confermata con il consulente privacy di Gate.</p>
+      </fieldset>
       <div class="azioni-finestra">
-        ${referenteId && !usato ? `<button class="pulsante no" type="button" data-azione="elimina-referente" data-id="${esc(referenteId)}">Elimina</button>` : ""}
+        ${referenteId ? `<button class="pulsante no a-sinistra" type="button" data-azione="chiedi-cancella-dati" data-id="${esc(referenteId)}">Cancella i dati personali</button>` : ""}
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
         <button class="pulsante primario" type="submit">Salva</button>
       </div>
-    </form>`, "Referente");
+    </form>`);
+}
+
+// Conferma prima di cancellare i dati personali di un referente (diritto alla cancellazione)
+function apriCancellaDati(referenteId) {
+  const r = trovaReferente(referenteId);
+  if (!r) return;
+  apriFinestra(`
+    <h2>Cancellare i dati personali di ${esc(r.nome)}?</h2>
+    <p>Nome, telefono ed email saranno cancellati. Se il referente è collegato a un'opportunità, resta come «Referente cancellato».
+      Ricorda di cancellare anche i backup salvati prima di oggi.</p>
+    <div class="azioni-finestra">
+      <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
+      <button class="pulsante no" type="button" data-azione="cancella-dati" data-id="${esc(r.id)}">Cancella i dati personali</button>
+    </div>`);
+}
+
+// Cancella i dati personali: il referente sparisce, oppure resta anonimo se un'opportunità lo usa.
+// Il nome sparisce anche dai testi della cronologia e dalle note delle trattative
+function cancellaDatiPersonali(referenteId) {
+  const r = trovaReferente(referenteId);
+  if (!r) return chiudiFinestra();
+  const collegato = stato.opportunita.some((o) => o.referenteId === r.id);
+  // Il nome si toglie anche dai testi, purché non sia così corto da cambiare altre parole
+  const nome = r.nome.trim().length >= 3 ? r.nome.trim() : "";
+  applica(() => {
+    if (collegato) {
+      // Il ruolo di decisore resta, così il punteggio delle trattative non cambia
+      Object.assign(r, { nome: "Referente cancellato", ruolo: "", telefono: "", email: "", canale: "", privacy: privacyVuota(), cancellato: true });
+    } else {
+      stato.referenti = stato.referenti.filter((x) => x.id !== r.id);
+    }
+    stato.attivita.forEach((x) => {
+      if (x.referenteId === r.id) x.referenteId = null;
+      if (nome && x.testo.includes(nome)) x.testo = x.testo.split(nome).join("[referente cancellato]");
+    });
+    stato.opportunita.forEach((o) => {
+      if (nome && o.note && o.note.includes(nome)) o.note = o.note.split(nome).join("[referente cancellato]");
+    });
+    registraAttivita({ aziendaId: r.aziendaId, tipo: "Pipeline", testo: "Dati personali di un referente cancellati su richiesta il " + formattaData(oggi()) });
+  }, { messaggio: "Dati personali cancellati" });
+}
+
+// "1 referente", "2 referenti"
+function quanti(n, singolare, plurale) {
+  return n + " " + (n === 1 ? singolare : plurale);
+}
+
+// Conferma prima di eliminare un'azienda, con il riepilogo di cosa sparisce. Un cliente con contratto non si elimina
+function apriEliminaAzienda(aziendaId) {
+  const a = trovaAzienda(aziendaId);
+  if (!a) return;
+  const opp = opportunitaDi(a.id);
+  if (opp.some((o) => o.storico.contratto)) {
+    apriFinestra(`
+      <h2>${esc(a.ragioneSociale)} non si può eliminare</h2>
+      <p>Questa azienda ha un contratto: puoi cancellare i dati personali dei referenti, non l'azienda.</p>
+      <div class="azioni-finestra">
+        <button class="pulsante primario" type="button" data-azione="chiudi">Ho capito</button>
+      </div>`);
+    return;
+  }
+  apriFinestra(`
+    <h2>Eliminare ${esc(a.ragioneSociale)}?</h2>
+    <p>Saranno cancellati ${quanti(referentiDi(a.id).length, "referente", "referenti")}, ${quanti(opp.length, "opportunità", "opportunità")}
+      e ${quanti(attivitaDi(a.id).length, "attività", "attività")}; gli indicatori non conteranno più questa azienda.</p>
+    <p class="nota-piccola">Ricorda di cancellare anche i backup salvati prima di oggi, se l'azienda ha chiesto la cancellazione.</p>
+    <div class="azioni-finestra">
+      <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
+      <button class="pulsante no" type="button" data-azione="elimina-azienda" data-id="${esc(a.id)}">Elimina l'azienda</button>
+    </div>`);
+}
+
+// Elimina l'azienda con referenti, opportunità e attività; si torna all'elenco Clienti (con «Annulla»)
+function eliminaAzienda(aziendaId) {
+  const a = trovaAzienda(aziendaId);
+  if (!a || opportunitaDi(a.id).some((o) => o.storico.contratto)) return chiudiFinestra();
+  applica(() => {
+    stato.aziende = stato.aziende.filter((x) => x.id !== a.id);
+    stato.referenti = stato.referenti.filter((x) => x.aziendaId !== a.id);
+    stato.opportunita = stato.opportunita.filter((x) => x.aziendaId !== a.id);
+    stato.attivita = stato.attivita.filter((x) => x.aziendaId !== a.id);
+  }, { messaggio: "Azienda eliminata: " + a.ragioneSociale, vai: "clienti" });
 }
 
 // Backup scelto dall'utente: si controlla e si chiede conferma prima di sostituire i dati
@@ -416,7 +530,7 @@ function importaBackup(file) {
       <div class="azioni-finestra">
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
         <button class="pulsante primario" type="button" data-azione="conferma-importa">Importa</button>
-      </div>`, "Importazione backup");
+      </div>`);
   };
   lettore.readAsText(file);
 }
@@ -427,10 +541,10 @@ const AZIONI_CLIENTI = {
   "modifica-azienda": (el) => apriModificaAzienda(el.dataset.id),
   "nuovo-referente": (el) => apriReferente(el.dataset.id, null),
   "modifica-referente": (el) => apriReferente(trovaReferente(el.dataset.id).aziendaId, el.dataset.id),
-  "elimina-referente": (el) => applica(() => {
-    stato.referenti = stato.referenti.filter((r) => r.id !== el.dataset.id);
-    stato.attivita.forEach((x) => { if (x.referenteId === el.dataset.id) x.referenteId = null; });
-  }, { messaggio: "Referente eliminato" }),
+  "chiedi-cancella-dati": (el) => apriCancellaDati(el.dataset.id),
+  "cancella-dati": (el) => cancellaDatiPersonali(el.dataset.id),
+  "chiedi-elimina-azienda": (el) => apriEliminaAzienda(el.dataset.id),
+  "elimina-azienda": (el) => eliminaAzienda(el.dataset.id),
   fatto: (el) => {
     const x = stato.attivita.find((y) => y.id === el.dataset.id);
     if (!x || !x.daFare) return;
@@ -461,11 +575,10 @@ const GESTORI_MODULI = {
     const a = trovaAzienda(modulo.dataset.id);
     const nome = modulo.ragioneSociale.value.trim();
     if (!nome) return segnalaCampo(modulo.ragioneSociale, "Scrivi la ragione sociale");
-    if (stato.aziende.some((x) => x.id !== a.id && x.ragioneSociale.toLowerCase() === nome.toLowerCase())) {
-      return segnalaCampo(modulo.ragioneSociale, "Esiste già un'azienda con questo nome");
-    }
     const piva = modulo.piva.value.replace(/\s/g, "");
-    if (piva && !/^\d{11}$/.test(piva)) return segnalaCampo(modulo.piva, "La partita IVA ha 11 cifre");
+    // Stesso nome (anche scritto diverso, es. con «Srl») o stessa partita IVA di un'altra azienda
+    const errore = controllaAzienda({ ragioneSociale: nome, piva }, a.id);
+    if (errore) return segnalaCampo(modulo[errore.campo], errore.testo);
     const dati = { ragioneSociale: nome, piva, settore: modulo.settore.value, comune: modulo.comune.value, fonte: modulo.fonte.value, note: modulo.note.value.trim() };
     // Una riga di cronologia con i campi cambiati, es. "Dati aggiornati: comune Bari → Modugno"
     const etichette = { ragioneSociale: "ragione sociale", piva: "partita IVA", settore: "settore", comune: "comune", fonte: "fonte" };
@@ -482,14 +595,16 @@ const GESTORI_MODULI = {
     const nome = modulo.nome.value.trim();
     if (!nome) return segnalaCampo(modulo.nome, "Scrivi nome e cognome");
     if (modulo.email.value && !modulo.email.checkValidity()) return segnalaCampo(modulo.email, "Controlla l'indirizzo email");
+    const dataPrivacy = modulo.dataPrivacy.value;
+    if (dataPrivacy && (!formattaData(dataPrivacy) || dataPrivacy > oggi())) return segnalaCampo(modulo.dataPrivacy, "La data della privacy non può essere nel futuro");
     const dati = {
       nome,
       ruolo: modulo.ruolo.value.trim(),
-      telefono: numeroInternazionale(modulo.telefono.value),
+      telefono: telefonoDaSalvare(modulo.telefono.value),
       email: modulo.email.value.trim(),
       canale: modulo.canale.value,
       decisore: modulo.decisore.checked,
-      privacy: modulo.privacy.checked,
+      privacy: { base: modulo.base.value, data: dataPrivacy || null, raccolta: modulo.raccolta.value, opposizione: modulo.opposizione.checked },
     };
     const esistente = trovaReferente(modulo.dataset.id);
     // Cronologia: i campi cambiati; di telefono ed email solo che sono cambiati, senza i numeri
@@ -498,11 +613,15 @@ const GESTORI_MODULI = {
       const siNo = (v) => (v ? "sì" : "no");
       if (esistente.nome !== dati.nome) cambi.push("nome aggiornato");
       if ((esistente.ruolo || "") !== dati.ruolo) cambi.push("ruolo " + (esistente.ruolo || "—") + " → " + (dati.ruolo || "—"));
-      if (numeroInternazionale(esistente.telefono) !== dati.telefono) cambi.push("telefono aggiornato");
+      if (numeroInternazionale(esistente.telefono) !== numeroInternazionale(dati.telefono)) cambi.push("telefono aggiornato");
       if ((esistente.email || "") !== dati.email) cambi.push("email aggiornata");
       if (esistente.canale !== dati.canale) cambi.push("canale preferito " + (esistente.canale || "—") + " → " + dati.canale);
       if (!!esistente.decisore !== dati.decisore) cambi.push("decisore " + siNo(esistente.decisore) + " → " + siNo(dati.decisore));
-      if (!!esistente.privacy !== dati.privacy) cambi.push("consenso privacy " + siNo(esistente.privacy) + " → " + siNo(dati.privacy));
+      const prima = esistente.privacy;
+      if (prima.base !== dati.privacy.base) cambi.push("base giuridica " + prima.base + " → " + dati.privacy.base);
+      if (prima.data !== dati.privacy.data) cambi.push("data privacy " + (formattaData(prima.data) || "—") + " → " + (formattaData(dati.privacy.data) || "—"));
+      if (prima.raccolta !== dati.privacy.raccolta) cambi.push("raccolta " + (prima.raccolta || "—") + " → " + (dati.privacy.raccolta || "—"));
+      if (prima.opposizione !== dati.privacy.opposizione) cambi.push("non vuole proposte " + siNo(prima.opposizione) + " → " + siNo(dati.privacy.opposizione));
       if (!cambi.length) return chiudiFinestra(); // nulla da salvare
     }
     applica(() => {

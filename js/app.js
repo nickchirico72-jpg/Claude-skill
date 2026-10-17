@@ -42,7 +42,7 @@ function intestazione({ occhiello = "", titolo, istruzione, azione = "" }) {
     <header class="intestazione">
       <div>
         ${occhiello ? `<p class="occhiello">${occhiello}</p>` : ""}
-        <h1>${titolo}</h1>
+        <h1 tabindex="-1">${titolo}</h1>
         <p class="istruzione">${istruzione}</p>
       </div>
       ${azione}
@@ -650,21 +650,89 @@ function tesseraKpi({ etichetta, valore, dettaglio, formula, obiettivo, raggiunt
 
 const finestra = document.getElementById("finestra");
 
-let finestraApertaIl = 0; // quando si è aperta l'ultima finestra (ms)
+let finestraApertaIl = 0;      // quando si è aperta l'ultima finestra (ms)
+let finestraModificata = false; // l'utente ha scritto qualcosa nel modulo della finestra
+let avvisoChiusuraIl = 0;       // quando è comparso «Hai modifiche non salvate» (0 = non mostrato)
+let apertaDa = null;            // pulsante che ha aperto la finestra: { azione, id }
+let ultimoComando = null;       // ultimo pulsante premuto (lo imposta il gestore dei clic)
 
-function apriFinestra(html, etichetta) {
-  finestra.innerHTML = `<div class="finestra-contenuto">${html}</div>`;
-  finestra.setAttribute("aria-label", etichetta);
+// Apre la finestra di dialogo. Il titolo è il primo h2; larga = due colonne da 900 px (modulo + punteggio)
+function apriFinestra(html, { larga = false } = {}) {
+  finestra.innerHTML = `<div class="finestra-contenuto">${html}</div>
+    <button class="pulsante-icona chiudi-finestra" type="button" data-azione="chiudi" aria-label="Chiudi" title="Chiudi">${icona("x")}</button>`;
+  finestra.classList.toggle("larga", larga);
+  const titolo = finestra.querySelector("h2");
+  if (titolo) {
+    titolo.id = "finestra-titolo";
+    // Il blocco del titolo (titolo e sottotitolo) lascia spazio alla X
+    if (titolo.parentElement.tagName === "DIV" && !titolo.parentElement.classList.contains("finestra-contenuto")) titolo.parentElement.classList.add("blocco-titolo");
+  }
+  finestra.setAttribute("aria-labelledby", "finestra-titolo");
   finestraApertaIl = Date.now();
+  finestraModificata = false;
+  avvisoChiusuraIl = 0;
   // Una finestra può aprirne un'altra (es. dal dettaglio a «Modifica»): si cambia solo il contenuto
-  if (!finestra.open) finestra.showModal();
-  const primo = finestra.querySelector("input, select, textarea");
+  if (!finestra.open) {
+    const origine = ultimoComando && ultimoComando.isConnected ? ultimoComando : document.activeElement;
+    apertaDa = origine && origine.dataset && origine.dataset.azione ? { azione: origine.dataset.azione, id: origine.dataset.id || "" } : null;
+    finestra.showModal();
+  }
+  finestra.scrollTop = 0;
+  // Il cursore va sul campo indicato con autofocus, altrimenti sul primo campo visibile, altrimenti sul titolo
+  const campi = [...finestra.querySelectorAll("[autofocus], input, select, textarea")].filter((c) => c.getClientRects().length);
+  const primo = campi.find((c) => c.hasAttribute("autofocus")) || campi[0];
   if (primo) primo.focus();
+  else if (titolo) {
+    titolo.tabIndex = -1;
+    titolo.focus();
+  }
 }
 
 function chiudiFinestra() {
   finestra.close();
 }
+
+// Esc su un modulo già modificato: la prima volta avvisa dentro la finestra, la seconda chiude
+function fermaChiusura(evento) {
+  if (!finestraModificata) return;
+  // Lo stesso tasto Esc può arrivare come keydown e poi come cancel: si ferma una volta sola
+  if (avvisoChiusuraIl && Date.now() - avvisoChiusuraIl > 100) return;
+  evento.preventDefault();
+  if (avvisoChiusuraIl) return;
+  avvisoChiusuraIl = Date.now();
+  const barra = finestra.querySelector(".azioni-finestra");
+  if (barra) barra.insertAdjacentHTML("afterbegin",
+    `<p class="avviso-chiusura" role="alert">${icona("attenzione")} Hai modifiche non salvate: premi di nuovo Esc o Annulla per chiudere</p>`);
+}
+
+finestra.addEventListener("keydown", (evento) => {
+  if (evento.key === "Escape") fermaChiusura(evento);
+});
+finestra.addEventListener("cancel", fermaChiusura);
+
+// Qualunque cosa scritta in un modulo della finestra la rende «modificata»
+finestra.addEventListener("input", (evento) => {
+  if (evento.target.form) finestraModificata = true;
+});
+
+// Tocco sullo sfondo scuro: chiude solo le finestre senza modulo (un modulo compilato non si perde per sbaglio)
+finestra.addEventListener("click", (evento) => {
+  if (evento.target !== finestra || finestra.querySelector("form")) return;
+  const r = finestra.getBoundingClientRect();
+  const fuori = evento.clientX < r.left || evento.clientX > r.right || evento.clientY < r.top || evento.clientY > r.bottom;
+  if (fuori) chiudiFinestra();
+});
+
+// Alla chiusura il focus torna al pulsante che aveva aperto la finestra (ridisegnato, se serve), altrimenti al titolo
+finestra.addEventListener("close", () => {
+  const attivo = document.activeElement;
+  if (attivo && attivo !== document.body && attivo.isConnected && !finestra.contains(attivo)) return;
+  const selettore = apertaDa ? `[data-azione="${CSS.escape(apertaDa.azione)}"]` + (apertaDa.id ? `[data-id="${CSS.escape(apertaDa.id)}"]` : "") : null;
+  const pulsante = selettore && [...document.querySelectorAll(selettore)].find((el) => !finestra.contains(el) && el.getClientRects().length);
+  const h1 = document.querySelector("#schermata h1");
+  if (pulsante) pulsante.focus();
+  else if (h1) h1.focus({ preventScroll: true });
+});
 
 // Si può tornare alla fase precedente se la trattativa non è persa e la commessa non è ancora affidata
 function puoTornareIndietro(o) {
@@ -702,8 +770,25 @@ function apriDettaglio(id) {
       <button class="pulsante secondario" type="button" data-azione="modifica-opportunita" data-id="${esc(o.id)}">${icona("matita")} Modifica</button>
       <a class="pulsante secondario" href="#cliente-${esc(o.aziendaId)}" data-azione="chiudi">Apri la scheda cliente</a>
       <button class="pulsante primario" type="button" data-azione="chiudi">Chiudi</button>
-    </div>`,
-    "Dettaglio opportunità");
+    </div>`);
+}
+
+// Modulo largo: i campi a sinistra, l'anteprima del punteggio a destra (sotto i 900 px l'anteprima va in fondo)
+function colonneConAnteprima(campi) {
+  return `
+    <div class="modulo-due-colonne">
+      <div class="modulo-campi">${campi}</div>
+      <aside class="anteprima" id="anteprima-punteggio" aria-label="Anteprima del punteggio di coerenza"></aside>
+    </div>`;
+}
+
+// Barra dei pulsanti con il punteggio breve: visibile sotto i 900 px, annunciato dai lettori di schermo quando cambia
+function azioniConPunteggio(pulsanti) {
+  return `
+    <div class="azioni-finestra">
+      <span id="punteggio-breve" class="punteggio-breve" aria-live="polite"></span>
+      ${pulsanti}
+    </div>`;
 }
 
 // Modifica di un'opportunità: servizio, sede, ore, tariffa, referente e note, con l'anteprima del punteggio
@@ -716,30 +801,30 @@ function apriModificaOpportunita(id) {
       <div>
         <h2>Modifica opportunità</h2>
         <p class="nota-piccola">${esc(nomeCliente(o))} · rif. ${esc(o.codice)}. Ogni modifica resta nella cronologia del cliente.</p>
+        <p class="nota-obbligatorio">* obbligatorio</p>
       </div>
-      <div class="riga-doppia">
-        <label>Servizio <select name="servizio" ${assegnata ? "disabled" : ""}>${opzioni(Object.keys(CONFIG.servizi), o.servizio)}</select></label>
-        <label>Sede di lavoro (comune) <select name="comune" ${assegnata ? "disabled" : ""}>${opzioniComuni(o.comune)}</select></label>
-      </div>
-      ${assegnata ? '<p class="nota-piccola">Commessa già assegnata: servizio e sede di lavoro non si possono cambiare.</p>' : ""}
-      <div class="riga-doppia">
-        <label>Ore al mese
-          <input name="ore" type="number" inputmode="numeric" min="1" step="1" required value="${Number(o.ore)}">
-        </label>
-        <label>Tariffa oraria (€)
-          <input name="tariffa" type="number" inputmode="decimal" min="1" step="0.5" value="${Number(tariffaOraria(o))}">
-        </label>
-      </div>
-      <label>Referente <select name="referente">${opzioniReferenti(o.aziendaId, o.referenteId)}</select></label>
-      <label>Note sulla trattativa
-        <textarea name="note" placeholder="Es. decide il titolare entro fine mese">${esc(o.note || "")}</textarea>
-      </label>
-      <div class="anteprima" id="anteprima-punteggio" aria-live="polite"></div>
-      <div class="azioni-finestra">
+      ${colonneConAnteprima(`
+        <div class="riga-doppia">
+          <label>Servizio <select name="servizio" ${assegnata ? "disabled" : ""}>${opzioni(Object.keys(CONFIG.servizi), o.servizio)}</select></label>
+          <label>Sede di lavoro (comune) <select name="comune" ${assegnata ? "disabled" : ""}>${opzioniComuni(o.comune)}</select></label>
+        </div>
+        ${assegnata ? '<p class="nota-piccola">Commessa già assegnata: servizio e sede di lavoro non si possono cambiare.</p>' : ""}
+        <div class="riga-doppia">
+          <label>Ore al mese *
+            <input name="ore" type="number" inputmode="numeric" min="1" step="1" required autofocus value="${Number(o.ore)}">
+          </label>
+          <label>Tariffa oraria (€)
+            <input name="tariffa" type="number" inputmode="decimal" min="1" step="0.5" value="${Number(tariffaOraria(o))}">
+          </label>
+        </div>
+        <label>Referente <select name="referente">${opzioniReferenti(o.aziendaId, o.referenteId)}</select></label>
+        <label>Note sulla trattativa
+          <textarea name="note" placeholder="Es. decide il titolare entro fine mese">${esc(o.note || "")}</textarea>
+        </label>`)}
+      ${azioniConPunteggio(`
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
-        <button class="pulsante primario" type="submit">Salva le modifiche</button>
-      </div>
-    </form>`, "Modifica opportunità");
+        <button class="pulsante primario" type="submit">Salva le modifiche</button>`)}
+    </form>`, { larga: true });
   aggiornaAnteprima(document.getElementById("modulo-opportunita"));
 }
 
@@ -796,7 +881,8 @@ function opzioniComuni(scelto) {
   return CONFIG.comuni.map((c) => `<option value="${esc(c.nome)}" ${c.nome === scelto ? "selected" : ""}>${esc(c.nome)}${c.km ? " (" + c.km + " km)" : ""}</option>`).join("") + mancante;
 }
 
-// Modulo "Nuovo contatto": azienda (nuova o esistente), referente e opportunità, con anteprima del punteggio
+// Modulo "Nuovo contatto": azienda (nuova o esistente), referente e opportunità, con anteprima del punteggio.
+// Per una nuova azienda si può salvare anche solo il contatto, con «Servizio ancora da capire»
 function apriNuovoContatto(aziendaId = "") {
   const servizi = Object.keys(CONFIG.servizi);
   const aziende = [...stato.aziende].sort((x, y) => x.ragioneSociale.localeCompare(y.ragioneSociale));
@@ -806,61 +892,119 @@ function apriNuovoContatto(aziendaId = "") {
       <div>
         <h2>${scelta ? "Nuova opportunità" : "Nuovo contatto"}</h2>
         <p class="nota-piccola">Scegli il cliente o creane uno nuovo, poi indica il servizio: il punteggio di coerenza si aggiorna mentre scrivi.</p>
+        <p class="nota-obbligatorio">* obbligatorio</p>
       </div>
-      <label>Azienda
-        <select name="azienda" id="campo-azienda">
-          <option value="">+ Nuova azienda</option>
-          ${aziende.map((a) => `<option value="${esc(a.id)}" ${a.id === aziendaId ? "selected" : ""}>${esc(a.ragioneSociale)}</option>`).join("")}
-        </select>
-      </label>
-
-      <fieldset class="gruppo" id="gruppo-nuova-azienda" ${scelta ? "hidden" : ""}>
-        <legend>Dati della nuova azienda</legend>
-        <label>Ragione sociale
-          <input name="ragioneSociale" id="campo-ragione" autocomplete="off" placeholder="Es. Studio Commercialisti Omega">
+      ${colonneConAnteprima(`
+        <label>Azienda
+          <select name="azienda" id="campo-azienda">
+            <option value="">+ Nuova azienda</option>
+            ${aziende.map((a) => `<option value="${esc(a.id)}" ${a.id === aziendaId ? "selected" : ""}>${esc(a.ragioneSociale)}</option>`).join("")}
+          </select>
         </label>
-        <div class="riga-doppia">
-          <label>Settore <select name="settore">${opzioni(CONFIG.settori, CONFIG.pilota.settore)}</select></label>
-          <label>Fonte del contatto <select name="fonte">${opzioni(fonti(), fonti()[0])}</select></label>
-        </div>
-        <div class="riga-doppia">
-          <label>Referente (nome e cognome) <input name="refNome" autocomplete="off" placeholder="Es. Dott.ssa Anna Verdi"></label>
-          <label>Ruolo <input name="refRuolo" autocomplete="off" placeholder="Es. Socia titolare"></label>
-        </div>
-        <div class="riga-doppia">
-          <label>Telefono <input name="refTelefono" type="tel" inputmode="tel" autocomplete="off" placeholder="Es. 333 123 4567"></label>
-          <label>Email <input name="refEmail" type="email" inputmode="email" autocomplete="off" placeholder="nome@azienda.it"></label>
-        </div>
-        <label class="spunta"><input name="refDecisore" type="checkbox"> È il decisore</label>
-        <label class="spunta"><input name="refPrivacy" type="checkbox"> Ha dato il consenso privacy per essere ricontattato</label>
-      </fieldset>
 
-      <label id="gruppo-referente" ${scelta ? "" : "hidden"}>Referente per questa opportunità
-        <select name="referente">${scelta ? opzioniReferenti(scelta.id) : ""}</select>
-      </label>
+        <fieldset class="gruppo" id="gruppo-nuova-azienda" ${scelta ? "hidden" : ""}>
+          <legend>Dati della nuova azienda</legend>
+          <div class="riga-doppia">
+            <label>Ragione sociale *
+              <input name="ragioneSociale" id="campo-ragione" required autocomplete="off" placeholder="Es. Studio Commercialisti Omega" ${scelta ? "" : "autofocus"}>
+            </label>
+            <label>Partita IVA (facoltativa)
+              <input name="piva" inputmode="numeric" autocomplete="off" placeholder="11 cifre">
+            </label>
+          </div>
+          <div id="avviso-doppione" class="avviso-doppione" role="status" hidden></div>
+          <div class="riga-doppia">
+            <label>Settore <select name="settore">${opzioni(CONFIG.settori, CONFIG.pilota.settore)}</select></label>
+            <label>Fonte del contatto <select name="fonte" aria-describedby="suggerimento-fonte">${opzioni(fonti(), fonti()[0])}</select>
+              <span class="suggerimento" id="suggerimento-fonte">Chiedi: come ci ha conosciuto?</span>
+            </label>
+          </div>
+          <div class="riga-doppia">
+            <label>Referente (nome e cognome) <input name="refNome" autocomplete="off" placeholder="Es. Dott.ssa Anna Verdi"></label>
+            <label>Ruolo <input name="refRuolo" autocomplete="off" placeholder="Es. Socia titolare"></label>
+          </div>
+          <div class="riga-doppia">
+            <label>Telefono <input name="refTelefono" type="tel" inputmode="tel" autocomplete="off" placeholder="Es. 333 123 4567"></label>
+            <label>Email <input name="refEmail" type="email" inputmode="email" autocomplete="off" placeholder="nome@azienda.it"></label>
+          </div>
+          <div class="riga-doppia">
+            <label>Base giuridica (privacy) <select name="refBase">${opzioni(CONFIG.basiGiuridiche, CONFIG.basiGiuridiche[0])}</select></label>
+            <label class="spunta"><input name="refDecisore" type="checkbox"> È il decisore</label>
+          </div>
+        </fieldset>
 
-      <fieldset class="gruppo">
-        <legend>Servizio richiesto</legend>
-        <div class="riga-doppia">
-          <label>Servizio <select name="servizio">${opzioni(servizi, servizi[0])}</select></label>
-          <label>Sede di lavoro (comune) <select name="comune">${opzioniComuni(scelta ? scelta.comune : "Bari")}</select></label>
-        </div>
-        <div class="riga-doppia">
-          <label>Ore al mese (stima)
-            <input name="ore" type="number" inputmode="numeric" min="1" step="1" required placeholder="Es. 60">
-          </label>
-          <label>Tariffa oraria (€)
-            <input name="tariffa" type="number" inputmode="decimal" min="1" step="0.5" value="${CONFIG.servizi[servizi[0]].tariffa}">
-          </label>
-        </div>
-      </fieldset>
-      <div class="anteprima" id="anteprima-punteggio" aria-live="polite"></div>
-      <div class="azioni-finestra">
+        <label id="gruppo-referente" ${scelta ? "" : "hidden"}>Referente per questa opportunità
+          <select name="referente">${scelta ? opzioniReferenti(scelta.id) : ""}</select>
+        </label>
+
+        <fieldset class="gruppo">
+          <legend>Servizio richiesto</legend>
+          <label class="spunta" id="campo-da-capire" ${scelta ? "hidden" : ""}><input name="daCapire" type="checkbox"> Servizio ancora da capire (salva solo il contatto)</label>
+          <div class="riga-doppia">
+            <label data-servizio>Servizio <select name="servizio">${opzioni(servizi, servizi[0])}</select></label>
+            <label>Sede di lavoro (comune) <select name="comune">${opzioniComuni(scelta ? scelta.comune : "Bari")}</select></label>
+          </div>
+          <div class="riga-doppia" data-servizio>
+            <label>Ore al mese (stima) *
+              <input name="ore" type="number" inputmode="numeric" min="1" step="1" required placeholder="Es. 60" ${scelta ? "autofocus" : ""}>
+            </label>
+            <label>Tariffa oraria (€)
+              <input name="tariffa" type="number" inputmode="decimal" min="1" step="0.5" value="${CONFIG.servizi[servizi[0]].tariffa}">
+            </label>
+          </div>
+        </fieldset>
+        <label>Cosa ha chiesto (facoltativo)
+          <textarea name="richiesta" placeholder="Es. pulizia degli uffici tre volte a settimana, dopo le 18"></textarea>
+        </label>`)}
+      ${azioniConPunteggio(`
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
-        <button class="pulsante primario" type="submit">Salva</button>
-      </div>
-    </form>`, "Nuovo contatto");
-  aggiornaAnteprima();
+        <button class="pulsante primario" type="submit">Salva</button>`)}
+    </form>`, { larga: true });
+  aggiornaAnteprima(document.getElementById("modulo-contatto"));
+}
+
+// Sceglie l'azienda nel modulo «Nuovo contatto» (dall'elenco o da «Usa questa azienda»)
+function scegliAzienda(modulo, id) {
+  const azienda = trovaAzienda(id);
+  modulo.azienda.value = azienda ? azienda.id : "";
+  modulo.querySelector("#gruppo-nuova-azienda").hidden = !!azienda;
+  modulo.querySelector("#gruppo-referente").hidden = !azienda;
+  modulo.querySelector("#campo-da-capire").hidden = !!azienda;
+  if (azienda) modulo.daCapire.checked = false;
+  modulo.referente.innerHTML = azienda ? opzioniReferenti(azienda.id) : "";
+  if (azienda) modulo.comune.value = azienda.comune;
+  aggiornaServizioDaCapire(modulo);
+  aggiornaAvvisoDoppione(modulo);
+  aggiornaAnteprima(modulo);
+}
+
+// «Servizio ancora da capire»: nasconde servizio, ore, tariffa e punteggio
+function aggiornaServizioDaCapire(modulo) {
+  const daCapire = modulo.daCapire.checked && !modulo.azienda.value;
+  modulo.querySelectorAll("[data-servizio]").forEach((el) => (el.hidden = daCapire));
+  modulo.querySelector(".modulo-due-colonne").classList.toggle("senza-anteprima", daCapire);
+  modulo.querySelector("#anteprima-punteggio").hidden = daCapire;
+  modulo.querySelector("#punteggio-breve").hidden = daCapire;
+}
+
+// Riquadro «Forse esiste già»: aziende con lo stesso nome, partita IVA, telefono o email
+function aggiornaAvvisoDoppione(modulo) {
+  const box = modulo.querySelector("#avviso-doppione");
+  if (!box) return;
+  const d = new FormData(modulo);
+  const trovati = d.get("azienda") ? [] : possibiliDoppioni({
+    ragioneSociale: d.get("ragioneSociale"), piva: d.get("piva"), telefono: d.get("refTelefono"), email: d.get("refEmail"),
+  });
+  const html = trovati.slice(0, 3).map(({ azienda, motivi }) => `
+    <p>${icona("attenzione")} <span><strong>Forse esiste già:</strong> ${esc(azienda.ragioneSociale)} · ${esc(azienda.comune)} (${motivi.join(", ")})</span>
+      <button class="pulsante secondario piccolo" type="button" data-azione="usa-azienda" data-id="${esc(azienda.id)}">Usa questa azienda</button></p>`).join("");
+  // Si riscrive solo se cambia, così il lettore di schermo non lo ripete a ogni lettera
+  const chiave = trovati.map(({ azienda, motivi }) => azienda.id + ":" + motivi.join()).join("|");
+  if (box.dataset.chiave !== chiave) {
+    box.dataset.chiave = chiave;
+    box.innerHTML = html;
+  }
+  box.hidden = !trovati.length;
 }
 
 // Opzioni dei referenti di un'azienda: scelto quello indicato, altrimenti il decisore
@@ -871,32 +1015,35 @@ function opzioniReferenti(aziendaId, scelto = null) {
   return refs.map((r) => `<option value="${esc(r.id)}" ${r.id === principale.id ? "selected" : ""}>${esc(r.nome)}${r.ruolo ? " · " + esc(r.ruolo) : ""}${r.decisore ? " (decisore)" : ""}</option>`).join("");
 }
 
-// Legge il modulo: nuova azienda e nuovo referente (se servono) e l'opportunità
+// Legge il modulo: nuova azienda e nuovo referente (se servono), l'opportunità (null se il servizio è da capire)
+// e la richiesta del cliente
 function leggiModulo(modulo) {
   const d = new FormData(modulo);
   const testo = (nome) => String(d.get(nome) || "").trim();
   const servizio = d.get("servizio");
   const tariffa = Number(d.get("tariffa"));
   const aziendaId = d.get("azienda");
+  const daCapire = !aziendaId && d.get("daCapire") === "on";
   const nuovaAzienda = aziendaId ? null : {
     ragioneSociale: testo("ragioneSociale"),
-    piva: "",
+    piva: testo("piva").replace(/\s/g, ""),
     settore: d.get("settore"),
     comune: d.get("comune"),
     fonte: d.get("fonte"),
     note: "",
     creata: oggi(),
   };
+  const base = d.get("refBase") || "Da verificare";
   const nuovoReferente = aziendaId || !testo("refNome") ? null : {
     nome: testo("refNome"),
     ruolo: testo("refRuolo"),
-    telefono: testo("refTelefono"),
+    telefono: telefonoDaSalvare(testo("refTelefono")),
     email: testo("refEmail"),
     canale: testo("refTelefono") ? "Telefono" : "Email",
     decisore: d.get("refDecisore") === "on",
-    privacy: d.get("refPrivacy") === "on",
+    privacy: privacyVuota(base, base === "Da verificare" ? null : oggi()),
   };
-  const opp = {
+  const opp = daCapire ? null : {
     aziendaId,
     referenteId: aziendaId ? d.get("referente") || null : null,
     comune: d.get("comune"),
@@ -909,34 +1056,52 @@ function leggiModulo(modulo) {
     allocazione: null,
     proposte: [],
   };
-  return { opp, nuovaAzienda, nuovoReferente };
+  return { opp, nuovaAzienda, nuovoReferente, richiesta: testo("richiesta") };
 }
 
-// Anteprima del punteggio nei moduli "Nuovo contatto" e "Modifica opportunità"
-function aggiornaAnteprima(modulo = document.querySelector("#modulo-contatto, #modulo-opportunita")) {
+// Opportunità con i valori scritti nel modulo aperto, per l'anteprima del punteggio (null se non c'è)
+function opportunitaDelModulo(modulo) {
+  if (modulo.id === "modulo-opportunita") return leggiModificaOpportunita(modulo);
+  if (modulo.id === "modulo-fase") return { ...trova(modulo.dataset.id), ore: Math.round(Number(modulo.ore.value)) || 0 };
+  const letto = leggiModulo(modulo);
+  const opp = letto.opp;
+  // Per l'anteprima l'azienda nuova non è ancora salvata: la si passa direttamente
+  if (opp && letto.nuovaAzienda) {
+    opp._azienda = letto.nuovaAzienda;
+    opp._decisore = letto.nuovoReferente && letto.nuovoReferente.decisore ? letto.nuovoReferente : null;
+  }
+  return opp;
+}
+
+// Anteprima del punteggio nei moduli "Nuovo contatto", "Modifica opportunità" e "Sopralluogo fatto"
+function aggiornaAnteprima(modulo = document.querySelector("#modulo-contatto, #modulo-opportunita, #modulo-fase")) {
   const box = modulo && modulo.querySelector("#anteprima-punteggio");
   if (!box) return;
-  let opp;
-  if (modulo.id === "modulo-opportunita") {
-    opp = leggiModificaOpportunita(modulo);
-  } else {
-    const letto = leggiModulo(modulo);
-    opp = letto.opp;
-    // Per l'anteprima l'azienda nuova non è ancora salvata: la si passa direttamente
-    if (letto.nuovaAzienda) {
-      opp._azienda = letto.nuovaAzienda;
-      opp._decisore = letto.nuovoReferente && letto.nuovoReferente.decisore ? letto.nuovoReferente : null;
-    }
-  }
+  const opp = opportunitaDelModulo(modulo);
+  if (!opp) return;
   if (opp.ore <= 0) {
-    box.innerHTML = '<p class="nota-piccola">Inserisci le ore al mese per calcolare il punteggio di coerenza.</p>';
+    box.innerHTML = '<p class="anteprima-titolo">Punteggio di coerenza</p><p class="nota-piccola">Inserisci le ore al mese per calcolare il punteggio.</p>';
+    aggiornaPunteggioBreve(modulo, null);
     return;
   }
   const p = calcolaPunteggio(opp, stato.opportunita);
   box.innerHTML = `
-    <p class="anteprima-testa">Punteggio di coerenza ${badgePunteggio(p)}
-      <span class="nota-piccola">${formattaEuro(valoreAnnuo(opp))} all'anno</span></p>
+    <p class="anteprima-titolo">Punteggio di coerenza</p>
+    <p class="anteprima-testa"><span class="badge badge-${p.classe} badge-grande">${p.classe} · ${p.totale}</span>
+      <span><strong>${formattaEuro(valoreAnnuo(opp))}</strong> all'anno</span></p>
     ${tabellaCriteri(p)}`;
+  aggiornaPunteggioBreve(modulo, p);
+}
+
+// «Punteggio B · 65» nella barra dei pulsanti; il lettore di schermo sente «Punteggio B, 65 su 100» solo quando cambia
+function aggiornaPunteggioBreve(modulo, p) {
+  const breve = modulo.querySelector("#punteggio-breve");
+  if (!breve) return;
+  const chiave = p ? p.classe + p.totale : "";
+  if (breve.dataset.chiave === chiave) return;
+  breve.dataset.chiave = chiave;
+  breve.innerHTML = p ? `<span aria-hidden="true">Punteggio <span class="badge badge-${p.classe}">${p.classe} · ${p.totale}</span></span>
+    <span class="solo-lettori">Punteggio ${p.classe}, ${p.totale} su 100</span>` : "";
 }
 
 function segnalaCampo(campo, messaggio) {
@@ -946,29 +1111,42 @@ function segnalaCampo(campo, messaggio) {
 }
 
 function salvaContatto(modulo) {
-  const { opp, nuovaAzienda, nuovoReferente } = leggiModulo(modulo);
+  const { opp, nuovaAzienda, nuovoReferente, richiesta } = leggiModulo(modulo);
   if (nuovaAzienda) {
-    const nome = nuovaAzienda.ragioneSociale;
-    if (!nome) return segnalaCampo(modulo.ragioneSociale, "Scrivi la ragione sociale");
-    const doppione = stato.aziende.find((a) => a.ragioneSociale.toLowerCase() === nome.toLowerCase());
-    if (doppione) return segnalaCampo(modulo.ragioneSociale, "Esiste già un'azienda con questo nome: sceglila dall'elenco Azienda");
+    if (!nuovaAzienda.ragioneSociale) return segnalaCampo(modulo.ragioneSociale, "Scrivi la ragione sociale");
+    // Stesso nome o stessa partita IVA di un'azienda già in archivio: si blocca
+    const errore = controllaAzienda(nuovaAzienda);
+    if (errore) return segnalaCampo(modulo[errore.campo], errore.testo + ": sceglila dall'elenco Azienda");
+    if (modulo.refEmail.value.trim() && !modulo.refEmail.checkValidity()) return segnalaCampo(modulo.refEmail, "Controlla l'indirizzo email");
   }
-  if (opp.ore <= 0) return segnalaCampo(modulo.ore, "Inserisci le ore al mese");
+  if (opp && opp.ore <= 0) return segnalaCampo(modulo.ore, "Inserisci le ore al mese");
 
   const nome = nuovaAzienda ? nuovaAzienda.ragioneSociale : nomeCliente(opp);
+  const chiamata = traGiorni(2);
   let promemoria = null;
+  let aziendaId = opp ? opp.aziendaId : null;
   applica(() => {
+    let referenteId = opp ? opp.referenteId : null;
     if (nuovaAzienda) {
       nuovaAzienda.id = nuovoId("az");
       stato.aziende.push(nuovaAzienda);
-      opp.aziendaId = nuovaAzienda.id;
+      aziendaId = nuovaAzienda.id;
       if (nuovoReferente) {
         nuovoReferente.id = nuovoId("rf");
         nuovoReferente.aziendaId = nuovaAzienda.id;
         stato.referenti.push(nuovoReferente);
-        opp.referenteId = nuovoReferente.id;
+        referenteId = nuovoReferente.id;
       }
     }
+    // «Cosa ha chiesto» resta come nota nella cronologia del cliente
+    if (richiesta) registraAttivita({ aziendaId, referenteId, tipo: "Nota", testo: richiesta });
+    if (!opp) {
+      // Contatto senza servizio: l'azienda resta «Da qualificare», con la chiamata di qualifica in agenda
+      registraAttivita({ aziendaId, referenteId, tipo: "Chiamata", testo: "Chiamare per qualificare la richiesta", data: chiamata, daFare: true });
+      return;
+    }
+    opp.aziendaId = aziendaId;
+    opp.referenteId = referenteId;
     stato.contatore += 1;
     opp.id = nuovoId("op");
     opp.codice = codiceRiferimento(stato.contatore);
@@ -976,7 +1154,9 @@ function salvaContatto(modulo) {
     registraAttivita({ aziendaId: opp.aziendaId, tipo: "Pipeline", testo: opp.servizio + ": nuovo contatto (" + opp.ore + " h/mese)" });
     promemoria = cadenza(opp, CONFIG.fasi[0], oggi());
     ultimaModificata = opp.id; // l'id nasce qui: la nuova scheda resta evidenziata nella Pipeline
-  }, { messaggio: () => "Contatto creato: " + nome + testoPromemoria(promemoria), fase: "contatto", vai: "pipeline" });
+  }, opp
+    ? { messaggio: () => "Contatto creato: " + nome + testoPromemoria(promemoria), fase: "contatto", vai: "pipeline" }
+    : { messaggio: "Contatto salvato. Prossima azione: chiamata di qualifica " + formattaGiorno(chiamata), vai: () => "cliente-" + aziendaId });
 }
 
 // Pulsanti che impostano subito la data del modulo (es. «Domani», «Tra una settimana»)
@@ -1005,7 +1185,7 @@ function apriFissaSopralluogo(o) {
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
         <button class="pulsante primario" type="submit">Fissa sopralluogo</button>
       </div>
-    </form>`, "Fissa sopralluogo");
+    </form>`);
 }
 
 function salvaSopralluogo(modulo) {
@@ -1069,19 +1249,22 @@ function apriFase(o, fase, { data = null, attivitaId = null } = {}) {
       </label>
       <p class="nota-piccola">È la data concordata con il cliente: la riceve anche il partner nel messaggio WhatsApp.</p>`;
   }
+  // Sopralluogo fatto: finestra larga con l'anteprima del punteggio, perché le ore confermate lo cambiano
+  const conAnteprima = fase.id === "sopralluogo";
+  const corpo = `
+    <label>${etichetta}
+      <input name="data" type="date" required min="${minimo}" max="${oggi()}" value="${valore}">
+    </label>
+    ${campi}`;
+  const pulsanti = `
+    <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
+    <button class="pulsante primario" type="submit">${fase.id === "contratto" ? "Conferma e vai all'allocazione" : "Conferma"}</button>`;
   apriFinestra(`
     <form class="modulo" id="modulo-fase" data-id="${esc(o.id)}" data-fase="${esc(fase.id)}" data-attivita="${esc(attivitaId || "")}" novalidate>
       <div class="finestra-testa"><h2>${esc(azione)} · ${esc(nomeCliente(o))}</h2>${badgePunteggio(p)}</div>
       <p class="nota-piccola">Registra un passo già avvenuto: controlla data e dati, poi conferma.</p>
-      <label>${etichetta}
-        <input name="data" type="date" required min="${minimo}" max="${oggi()}" value="${valore}">
-      </label>
-      ${campi}
-      <div class="azioni-finestra">
-        <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
-        <button class="pulsante primario" type="submit">${fase.id === "contratto" ? "Conferma e vai all'allocazione" : "Conferma"}</button>
-      </div>
-    </form>`, azione);
+      ${conAnteprima ? colonneConAnteprima(corpo) + azioniConPunteggio(pulsanti) : corpo + `<div class="azioni-finestra">${pulsanti}</div>`}
+    </form>`, { larga: conAnteprima });
   aggiornaModuloFase(document.getElementById("modulo-fase"));
 }
 
@@ -1112,6 +1295,7 @@ function aggiornaModuloFase(modulo, campo = null) {
     const tariffa = Number(modulo.tariffa.value) || 0;
     importo.textContent = "Importo: " + formattaEuro(o.ore * tariffa) + "/mese · " + formattaEuro(o.ore * tariffa * 12) + "/anno";
   }
+  aggiornaAnteprima(modulo);
 }
 
 // Conferma della finestra di fase: controlla i dati e registra la fase con la sua data
@@ -1192,7 +1376,7 @@ function apriPerso(id) {
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
         <button class="pulsante no" type="submit">Segna come perso</button>
       </div>
-    </form>`, "Segna come perso");
+    </form>`);
 }
 
 function salvaPerso(modulo) {
@@ -1215,14 +1399,14 @@ function apriRipristino() {
     <div class="azioni-finestra">
       <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
       <button class="pulsante primario" type="button" data-azione="conferma-ripristino">Ripristina</button>
-    </div>`, "Ripristino dati");
+    </div>`);
 }
 
 // =========================================================== AZIONI
 
 // Ogni modifica passa da qui: copia per «Annulla», modifica, salvataggio, ridisegno, avviso.
 // cambia() modifica lo stato; se restituisce false non succede nulla.
-// messaggio può essere una funzione, quando il testo dipende dalla modifica appena fatta.
+// messaggio e vai possono essere funzioni, quando dipendono dalla modifica appena fatta.
 function applica(cambia, { messaggio = "", evidenzia = null, fase = null, vai = null, annullabile = true } = {}) {
   const copia = { dati: clona(stato), fase: faseSelezionata, evidenzia, schermata: location.hash };
   if (cambia() === false) return false;
@@ -1230,6 +1414,7 @@ function applica(cambia, { messaggio = "", evidenzia = null, fase = null, vai = 
   if (finestra.open) chiudiFinestra();
   if (fase) faseSelezionata = fase;
   if (evidenzia) ultimaModificata = evidenzia;
+  if (typeof vai === "function") vai = vai(); // la schermata può dipendere dalla modifica (es. la scheda di un'azienda nuova)
   if (vai && vai !== (location.hash.slice(1) || "pipeline")) location.hash = vai;
   else disegna();
   mostraAvviso(typeof messaggio === "function" ? messaggio() : messaggio, annullabile ? copia : null);
@@ -1403,11 +1588,17 @@ const AZIONI = {
     evento.preventDefault();
     const meta = document.getElementById(el.dataset.id);
     if (meta) {
-      meta.scrollIntoView({ block: "start", behavior: "smooth" });
+      meta.scrollIntoView({ block: "start", behavior: comeScorrere() });
       meta.focus({ preventScroll: true });
     }
   },
   chiudi: () => chiudiFinestra(),
+  // «Usa questa azienda» nel riquadro «Forse esiste già»
+  "usa-azienda": (el) => {
+    const modulo = el.closest("form");
+    scegliAzienda(modulo, el.dataset.id);
+    modulo.ore.focus();
+  },
   "assegna-squadra": (el) => assegnaSquadra(el.dataset.id),
   proponi: (el) => proponi(el.dataset.id, el.dataset.partner),
   "risposta-si": (el) => rispostaPartner(el.dataset.id, "si"),
@@ -1458,7 +1649,7 @@ const AZIONI = {
 
 // Azioni che modificano i dati: un secondo clic ravvicinato viene ignorato
 const MODIFICANO_DATI = new Set(["avanza", "fatto", "fatto-fase", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
-  "elimina-referente", "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "annulla"]);
+  "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "annulla"]);
 let ultimoClicModifica = 0;
 
 // Doppio clic su un pulsante che apre una finestra: il secondo clic non deve premere un pulsante della finestra appena aperta
@@ -1472,6 +1663,7 @@ finestra.addEventListener("click", (evento) => {
 document.addEventListener("click", (evento) => {
   const el = evento.target.closest("[data-azione]");
   if (!el || !AZIONI[el.dataset.azione]) return;
+  ultimoComando = el; // la finestra che si apre ricorda chi l'ha aperta, per ridargli il focus
   // Dopo una modifica, il secondo clic di un doppio clic non apre nemmeno altro (es. il dettaglio della scheda spostata)
   if (evento.detail > 1 && Date.now() - ultimoClicModifica < 600) {
     evento.preventDefault();
@@ -1513,6 +1705,9 @@ document.addEventListener("submit", (evento) => {
 document.addEventListener("input", (evento) => {
   const modulo = evento.target.closest("#modulo-contatto, #modulo-opportunita");
   if (modulo) aggiornaAnteprima(modulo);
+  if (["ragioneSociale", "piva", "refTelefono", "refEmail"].includes(evento.target.name) && evento.target.closest("#modulo-contatto")) {
+    aggiornaAvvisoDoppione(evento.target.form);
+  }
   if (evento.target.closest("#modulo-fase")) aggiornaModuloFase(evento.target.form, evento.target);
   if (evento.target.closest("#filtri-clienti")) aggiornaElencoClienti();
 });
@@ -1528,17 +1723,17 @@ document.addEventListener("change", (evento) => {
   const campo = evento.target;
   if (campo.closest("#filtri-clienti")) return aggiornaElencoClienti();
   if (campo.form && campo.form.id === "modulo-fase") return aggiornaModuloFase(campo.form, campo);
+  // Privacy del referente: scegliendo una base giuridica la data diventa oggi, se non era già scritta
+  if (campo.form && campo.form.id === "modulo-referente" && campo.name === "base") {
+    if (campo.value !== "Da verificare" && !campo.form.dataPrivacy.value) campo.form.dataPrivacy.value = oggi();
+    return;
+  }
   if (!campo.form || !["modulo-contatto", "modulo-opportunita"].includes(campo.form.id)) return;
   // Cambiando servizio, la tariffa torna quella standard del nuovo servizio
   if (campo.name === "servizio") campo.form.tariffa.value = datiServizio(campo.value).tariffa;
   // Scegliendo un'azienda esistente si nascondono i campi della nuova azienda
-  if (campo.name === "azienda") {
-    const azienda = trovaAzienda(campo.value);
-    document.getElementById("gruppo-nuova-azienda").hidden = !!azienda;
-    document.getElementById("gruppo-referente").hidden = !azienda;
-    campo.form.referente.innerHTML = azienda ? opzioniReferenti(azienda.id) : "";
-    if (azienda) campo.form.comune.value = azienda.comune;
-  }
+  if (campo.name === "azienda") return scegliAzienda(campo.form, campo.value);
+  if (campo.name === "daCapire") aggiornaServizioDaCapire(campo.form);
   aggiornaAnteprima(campo.form);
 });
 
@@ -1600,6 +1795,14 @@ const SCHERMATE = {
   indicatori: disegnaIndicatori,
 };
 
+// Nome della schermata nel titolo della scheda del browser, es. "Clienti · Gate"
+const TITOLI = { pipeline: "Pipeline", clienti: "Clienti", allocazione: "Allocazione", indicatori: "Indicatori" };
+
+// Scorrimento morbido, oppure immediato per chi ha chiesto meno animazioni al sistema
+function comeScorrere() {
+  return matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+}
+
 // Legge la schermata dall'indirizzo: #pipeline, #clienti, #cliente-az3 ...
 function schermataAttuale() {
   const hash = location.hash.slice(1);
@@ -1607,9 +1810,13 @@ function schermataAttuale() {
   return SCHERMATE[hash] && hash !== "cliente" ? { nome: hash, menu: hash } : { nome: "pipeline", menu: "pipeline" };
 }
 
-// Ridisegna la schermata attuale a partire dallo stato
+// Ridisegna la schermata attuale a partire dallo stato.
+// Restituisce true se ha messo il focus sulla scheda appena modificata
 function disegna() {
   const { nome, parametro, menu } = schermataAttuale();
+  const titolo = nome === "cliente" ? trovaAzienda(parametro).ragioneSociale : TITOLI[nome];
+  document.title = titolo + " · Gate";
+  let focusSulla = false;
   let html;
   try {
     html = SCHERMATE[nome](parametro);
@@ -1646,20 +1853,28 @@ function disegna() {
   if (ultimaModificata) {
     const el = document.getElementById("scheda-" + ultimaModificata) || document.getElementById("commessa-" + ultimaModificata);
     if (el) {
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.scrollIntoView({ block: "center", behavior: comeScorrere() });
       // Il focus resta sulla scheda modificata (utile da tastiera e con lettore di schermo)
       const comando = el.querySelector("button, a");
-      if (comando && !finestra.open) comando.focus({ preventScroll: true });
+      if (comando && !finestra.open) {
+        comando.focus({ preventScroll: true });
+        focusSulla = true;
+      }
     }
     ultimaModificata = null;
   }
+  return focusSulla;
 }
 
 window.addEventListener("hashchange", () => {
   // L'avviso appena comparso (es. "Contatto creato" salvato da Clienti) resta visibile sulla nuova schermata
   if (Date.now() - avvisoMostratoIl > 1000) nascondiAvviso();
   window.scrollTo(0, 0);
-  disegna();
+  // Il focus va al titolo della nuova schermata (il lettore di schermo la annuncia), salvo una scheda appena modificata
+  if (!disegna() && !finestra.open) {
+    const h1 = document.querySelector("#schermata h1");
+    if (h1) h1.focus({ preventScroll: true });
+  }
 });
 
 // Due schede aperte insieme: quando l'altra salva, questa riprende i suoi dati (le finestre aperte restano)

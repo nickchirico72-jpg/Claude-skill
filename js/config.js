@@ -21,7 +21,7 @@ const CONFIG = {
   // Chiave con cui i dati vengono salvati nel browser (localStorage)
   chiaveSalvataggio: "gate-sviluppo-commerciale-v2",
   // Versione della struttura dei dati salvati: NON modificarla, la aggiorna chi cambia il codice (vedi migra() in dati.js)
-  versioneDati: 2,
+  versioneDati: 3,
 
   // ---------------------------------------------------------------- Pilota
   pilota: {
@@ -135,12 +135,19 @@ const CONFIG = {
       "Portale gare": 100,
       "Eventi e LinkedIn": 400,
       "Passaparola": 0,
+      "Contatto diretto": 0,   // telefonata o email ricevuta senza un canale preciso
     },
   },
 
   // Tipi di attività registrabili nella scheda cliente
   tipiAttivita: ["Chiamata", "Email", "WhatsApp", "Visita", "Nota"],
   canaliPreferiti: ["Telefono", "WhatsApp", "Email"],
+
+  // ------------------------------------------------------------- Privacy
+  // Da confermare con il consulente privacy di Gate: il prototipo serve solo a registrarle.
+  // La prima voce indica che la base giuridica non è ancora stata verificata: lasciala per prima.
+  basiGiuridiche: ["Da verificare", "Consenso", "Legittimo interesse (B2B)", "Contratto in corso"],
+  modiRaccolta: ["A voce", "Modulo del sito", "Email", "Biglietto da visita", "Altro"],
 
   // ------------------------------------------------- Obiettivi dei KPI
   obiettivi: {
@@ -194,7 +201,7 @@ const CONFIG = {
 
   // Aziende (clienti e potenziali clienti) con i loro referenti.
   // fonte = canale da cui è arrivato il contatto (vedi costiAcquisizione.fissiPerCanale).
-  // privacy = consenso al trattamento dei dati per finalità commerciali.
+  // privacy: true = consenso dato, false = da verificare (nei dati salvati diventa base giuridica, data, modo di raccolta e opposizione: vedi migra() in dati.js).
   aziende: [
     { id: "az1", ragioneSociale: "Studio Legale Alfa", piva: "00000000101", settore: "Uffici e studi professionali", comune: "Bari", fonte: "Passaparola",
       referenti: [

@@ -1596,9 +1596,186 @@ dialog::backdrop {
 .azioni-finestra {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 4px;
+}
+
+/* Nelle finestre i pulsanti restano sempre a vista in fondo, anche nei moduli lunghi */
+dialog .azioni-finestra {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 4px -22px -22px;
+  padding: 12px 22px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+}
+
+/* X di chiusura in alto a destra; il titolo le lascia spazio */
+.chiudi-finestra {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+#finestra-titolo,
+.blocco-titolo {
+  padding-right: 44px;
+}
+
+.blocco-titolo #finestra-titolo {
+  padding-right: 0;
+}
+
+.nota-obbligatorio {
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+/* «Hai modifiche non salvate»: compare sopra i pulsanti dopo il primo Esc */
+.avviso-chiusura {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: 6px;
+  color: var(--attenzione);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.avviso-chiusura .icona {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Punteggio breve nella barra dei pulsanti (sotto i 900 px) */
+.punteggio-breve {
+  display: inline-flex;
+  align-items: center;
+  margin-right: auto;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.punteggio-breve .badge {
+  margin-left: 4px;
+}
+
+/* Testo letto solo dai lettori di schermo */
+.solo-lettori {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.modulo-due-colonne {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modulo-campi {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Da 900 px: finestra larga, campi a sinistra e punteggio fisso a destra */
+@media (min-width: 900px) {
+  dialog.larga {
+    width: min(920px, calc(100vw - 24px));
+  }
+
+  .modulo-due-colonne {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .modulo-due-colonne.senza-anteprima {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .modulo-due-colonne #anteprima-punteggio {
+    position: sticky;
+    top: 12px;
+  }
+
+  /* Nella colonna stretta ogni criterio va su due righe: nome e punti, poi la spiegazione */
+  .modulo-due-colonne .criteri tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modulo-due-colonne .criteri tr:last-child {
+    border-bottom: 0;
+  }
+
+  .modulo-due-colonne .criteri td {
+    padding: 0;
+    border: 0;
+  }
+
+  .modulo-due-colonne .criteri td:nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 12px;
+  }
+
+  /* Il punteggio è già a destra: nella barra resta solo il testo per i lettori di schermo */
+  .punteggio-breve > [aria-hidden="true"] {
+    display: none;
+  }
+}
+
+/* Telefono: la finestra occupa tutto lo schermo, i pulsanti stanno in fondo */
+@media (max-width: 599px) {
+  dialog {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .finestra-contenuto {
+    min-height: 100%;
+    padding: 18px 16px 22px;
+  }
+
+  .finestra-contenuto > .modulo {
+    flex: 1;
+  }
+
+  dialog .azioni-finestra {
+    margin: auto -16px -22px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .chiudi-finestra {
+    top: 8px;
+    right: 8px;
+  }
+
+  /* Il pulsante rosso (es. «Cancella i dati personali») va su una riga sua, sotto Annulla e Salva */
+  dialog .azioni-finestra .pulsante.no.a-sinistra {
+    order: 1;
+    flex-basis: 100%;
+    margin-right: 0;
+  }
 }
 
 .modulo {
@@ -1666,10 +1843,59 @@ dialog::backdrop {
 
 .anteprima-testa {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-bottom: 6px;
+}
+
+.anteprima-titolo {
+  margin-bottom: 6px;
+  color: var(--accent-testo);
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badge-grande {
+  padding: 4px 12px;
+  font-size: 18px;
+}
+
+/* Suggerimento sotto un campo (es. «Chiedi: come ci ha conosciuto?») */
+.suggerimento {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* «Forse esiste già»: aziende simili già in archivio */
+.avviso-doppione {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--attenzione-sfondo);
+  color: var(--attenzione);
+  font-size: 13px;
+}
+
+.avviso-doppione p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.avviso-doppione p > span {
+  flex: 1 1 200px;
+}
+
+.avviso-doppione .icona {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .criteri {
@@ -2125,6 +2351,29 @@ dialog::backdrop {
   height: 16px;
 }
 
+/* Privacy da verificare o opposizione alle proposte: il pulsante funziona, ma con il bordo ambra e il segnale */
+.pulsante-contatto.attenzione {
+  position: relative;
+  padding-right: 18px;
+  border-color: var(--attenzione);
+}
+
+.segnale-privacy {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--attenzione-sfondo);
+  color: var(--attenzione);
+}
+
+.segnale-privacy .icona {
+  width: 10px;
+  height: 10px;
+}
+
 .pulsante-icona {
   display: inline-flex;
   align-items: center;
@@ -2289,7 +2538,7 @@ dialog::backdrop {
     padding: 0;
   }
 
-  .da-fare-azioni .pulsante-contatto span {
+  .da-fare-azioni .pulsante-contatto span:not(.segnale-privacy) {
     display: none;
   }
 
@@ -2401,4 +2650,9 @@ dialog::backdrop {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+/* Titolo della schermata: riceve il focus al cambio di schermata, senza il riquadro del focus */
+h1[tabindex="-1"]:focus {
+  outline: none;
 }

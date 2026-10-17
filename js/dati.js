@@ -72,8 +72,15 @@ function migra(d) {
   if (!d || typeof d !== "object" || Array.isArray(d)) return d;
   // Versione 2: i dati salvati prima che esistesse il numero di versione
   if (d.versione === undefined) d.versione = 2;
+  // Versione 3: la privacy del referente da sì/no diventa base giuridica, data, modo di raccolta e opposizione
+  if (d.versione === 2) {
+    (Array.isArray(d.referenti) ? d.referenti : []).forEach((r) => {
+      if (r && typeof r === "object") r.privacy = privacyVuota(r.privacy === true ? "Consenso" : "Da verificare");
+    });
+    d.versione = 3;
+  }
   // Ogni intervento che cambia la struttura dei dati aggiunge qui il suo passo, per esempio:
-  // if (d.versione === 2) { ...trasforma i dati...; d.versione = 3; }
+  // if (d.versione === 3) { ...trasforma i dati...; d.versione = 4; }
   return d;
 }
 
@@ -92,7 +99,10 @@ function strutturaValida(d) {
   const facoltativo = (x, controllo) => x == null || controllo(x); // campi aggiunti dopo: assenti o validi
   const propostaOk = (p) => isOggetto(p) && isId(p.partnerId) && isData(p.data) && ["attesa", "si", "no"].includes(p.esito);
   return d.aziende.every((a) => isOggetto(a) && isId(a.id) && isTesto(a.ragioneSociale) && a.ragioneSociale.trim() !== "") &&
-    d.referenti.every((r) => isOggetto(r) && isId(r.id) && aziendaEsiste(r.aziendaId)) &&
+    d.referenti.every((r) => isOggetto(r) && isId(r.id) && aziendaEsiste(r.aziendaId) &&
+      isOggetto(r.privacy) && isTesto(r.privacy.base) && (r.privacy.data === null || isData(r.privacy.data)) &&
+      isTesto(r.privacy.raccolta) && typeof r.privacy.opposizione === "boolean" &&
+      facoltativo(r.cancellato, (v) => typeof v === "boolean")) &&
     d.attivita.every((x) => isOggetto(x) && isId(x.id) && aziendaEsiste(x.aziendaId) && isData(x.data) && isTesto(x.testo) &&
       typeof x.daFare === "boolean" && (x.ora == null || x.ora === "" || (isTesto(x.ora) && /^\d{2}:\d{2}$/.test(x.ora))) &&
       facoltativo(x.opportunitaId, isId) && facoltativo(x.fase, isId) && facoltativo(x.automatica, (v) => typeof v === "boolean")) &&
@@ -220,6 +230,67 @@ function statoAzienda(aziendaId) {
   return "Da qualificare";
 }
 
+// ------------------------------------------------------------------- Privacy
+
+// Privacy di un referente: base giuridica, data, come sono stati raccolti i dati, opposizione alle proposte
+function privacyVuota(base = "Da verificare", data = null) {
+  return { base, data, raccolta: "", opposizione: false };
+}
+
+// Si può contattare per proposte commerciali: base giuridica verificata e nessuna opposizione
+function privacyOk(r) {
+  return !!r && !!r.privacy && r.privacy.base !== "Da verificare" && !r.privacy.opposizione;
+}
+
+// Perché i pulsanti di contatto mostrano l'avviso ("" se è tutto in regola)
+function avvisoPrivacy(r) {
+  if (privacyOk(r)) return "";
+  return r.privacy && r.privacy.opposizione ? "Non vuole proposte commerciali" : "Privacy da verificare";
+}
+
+// ------------------------------------------------------------------ Doppioni
+
+// Nome confrontabile: "Studio Legale Alfa S.r.l." e "studio legale alfa" diventano uguali
+function normalizzaNome(s) {
+  return String(s || "").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")         // accenti tolti
+    .replace(/[^a-z0-9]+/g, " ")                                // punteggiatura tolta
+    .replace(/\b(s r l s|s r l|srls|srl|s n c|snc|s a s|sas|s p a|spa|soc coop|coop)\b/g, " ") // forme societarie
+    .replace(/\s+/g, " ").trim();
+}
+
+// Aziende già in archivio che potrebbero essere la stessa: stesso nome, partita IVA, telefono o email di un referente.
+// Restituisce [{ azienda, motivi: ["stesso nome", ...] }]
+function possibiliDoppioni({ ragioneSociale = "", piva = "", telefono = "", email = "" }, escludiAziendaId = null) {
+  const nome = normalizzaNome(ragioneSociale);
+  const partitaIva = String(piva).replace(/\s/g, "");
+  const numero = numeroInternazionale(telefono);
+  const posta = String(email).trim().toLowerCase();
+  const trovati = [];
+  stato.aziende.filter((a) => a.id !== escludiAziendaId).forEach((a) => {
+    const refs = referentiDi(a.id);
+    const motivi = [];
+    if (nome && normalizzaNome(a.ragioneSociale) === nome) motivi.push("stesso nome");
+    if (partitaIva && a.piva === partitaIva) motivi.push("stessa partita IVA");
+    if (numero && refs.some((r) => r.telefono && numeroInternazionale(r.telefono) === numero)) motivi.push("stesso telefono");
+    if (posta && refs.some((r) => (r.email || "").toLowerCase() === posta)) motivi.push("stessa email");
+    if (motivi.length) trovati.push({ azienda: a, motivi });
+  });
+  return trovati;
+}
+
+// Controlla nome e partita IVA di un'azienda nuova o modificata: restituisce { campo, testo } se c'è un problema, altrimenti null
+function controllaAzienda({ ragioneSociale, piva }, escludiAziendaId = null) {
+  if (piva && !/^\d{11}$/.test(piva)) return { campo: "piva", testo: "La partita IVA ha 11 cifre" };
+  const altre = stato.aziende.filter((a) => a.id !== escludiAziendaId);
+  const stessaPiva = piva && altre.find((a) => a.piva === piva);
+  if (stessaPiva) return { campo: "piva", testo: "Questa partita IVA è già di " + stessaPiva.ragioneSociale };
+  const nome = normalizzaNome(ragioneSociale);
+  const stessoNome = nome && altre.find((a) => normalizzaNome(a.ragioneSociale) === nome);
+  if (stessoNome) return { campo: "ragioneSociale", testo: "Esiste già " + stessoNome.ragioneSociale };
+  return null;
+}
+
 // Registra un'attività nella cronologia dell'azienda
 function registraAttivita(dati) {
   stato.attivita.push({ id: nuovoId("at"), referenteId: null, daFare: false, data: oggi(), ...dati });
@@ -227,17 +298,27 @@ function registraAttivita(dati) {
 
 // ------------------------------------------------------ Contatto con un clic
 
-// Numero in formato internazionale per WhatsApp (solo cifre, prefisso 39 se manca)
+// Numero in formato internazionale per WhatsApp (solo cifre).
+// Un numero scritto con + o 00 tiene il suo prefisso ("+44 20 7946 0958" -> "442079460958"); agli altri si aggiunge il 39
 function numeroInternazionale(telefono) {
+  const estero = /^\s*(\+|00)/.test(String(telefono || ""));
   const cifre = String(telefono || "").replace(/\D/g, "").replace(/^00/, "");
   if (!cifre) return "";
+  if (estero) return cifre;
   return cifre.startsWith("39") && cifre.length > 10 ? cifre : "39" + cifre;
 }
 
-// "390000001011" -> "+39 000 000 1011"
+// Numero da salvare: con il + davanti, così un prefisso estero resta riconoscibile ("+442079460958")
+function telefonoDaSalvare(telefono) {
+  const n = numeroInternazionale(telefono);
+  return n ? "+" + n : "";
+}
+
+// "390000001011" -> "+39 000 000 1011"; un numero estero resta "+442079460958"
 function telefonoLeggibile(telefono) {
   const n = numeroInternazionale(telefono);
   if (!n) return "";
+  if (!n.startsWith("39")) return "+" + n;
   return "+" + n.slice(0, 2) + " " + n.slice(2, 5) + " " + n.slice(5, 8) + " " + n.slice(8);
 }
 
@@ -276,13 +357,14 @@ function esportaCsvClienti() {
     if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
     return '"' + s.replace(/"/g, '""') + '"';
   };
-  const righe = [["Ragione sociale", "P.IVA", "Settore", "Comune", "Fonte", "Stato", "Referente", "Ruolo", "Decisore", "Telefono", "Email", "Canale preferito", "Consenso privacy"]];
+  const righe = [["Ragione sociale", "P.IVA", "Settore", "Comune", "Fonte", "Stato", "Referente", "Ruolo", "Decisore", "Telefono", "Email", "Canale preferito",
+    "Base giuridica", "Data privacy", "Non vuole proposte"]];
   stato.aziende.forEach((a) => {
     const refs = referentiDi(a.id);
     (refs.length ? refs : [{}]).forEach((r) => righe.push([
       a.ragioneSociale, a.piva, a.settore, a.comune, a.fonte, statoAzienda(a.id),
       r.nome, r.ruolo, r.nome ? (r.decisore ? "Sì" : "No") : "", r.telefono ? telefonoLeggibile(r.telefono).replace("+", "00") : "", r.email, r.canale,
-      r.nome ? (r.privacy ? "Sì" : "No") : "",
+      r.privacy ? r.privacy.base : "", r.privacy ? formattaData(r.privacy.data) : "", r.privacy ? (r.privacy.opposizione ? "Sì" : "No") : "",
     ]));
   });
   // Il carattere iniziale ﻿ fa riconoscere a Excel le lettere accentate
