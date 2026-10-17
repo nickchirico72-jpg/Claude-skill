@@ -330,4 +330,19 @@ const CONFIG = {
     { azienda: "az18", tipo: "Visita", data: traGiorni(-10), testo: "Visita porta a porta: lasciata la brochure dei servizi." },
     { azienda: "az18", tipo: "Visita", data: traGiorni(7), testo: "Ripassare in agenzia", daFare: true },
   ],
+
+  // Le quattro domande: soglie dei consigli "Cosa conviene fare?" (ipotesi da tarare con Gate)
+  consigli: {
+    giorniAvvisoScadenzaOfferta: 3,   // sollecitare le offerte che scadono entro 3 giorni (o già scadute)
+    minimoPerditeStessoMotivo: 1,     // consigliare un rimedio quando almeno N trattative sono perse per lo stesso motivo
+    rapportoCanaleCaro: 1.5,          // un canale è "caro" se il suo costo per contratto supera di 1,5 volte il migliore
+  },
+  // Rimedio suggerito per ogni motivo di perdita
+  rimediPerdita: {
+    "Prezzo": "Rivedi la tariffa o proponi una frequenza ridotta",
+    "Tempi di avvio": "Proponi un avvio più rapido con un partner",
+    "Fuori zona": "Filtra prima i contatti fuori zona (punteggio C)",
+    "Capacità insufficiente": "Allarga la rete dei partner nelle zone sature",
+    "Nessuna risposta": "Fissa sempre una data di sollecito dopo l'offerta",
+  },
 };

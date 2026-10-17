@@ -119,7 +119,7 @@ function disegnaPipeline() {
     <section class="riepilogo riepilogo-pipeline" aria-label="Riepilogo">
       <div><span>In trattativa</span><strong>${aperte.length}</strong><small>su ${tutte.length} opportunità</small></div>
       <div title="Valore annuo di ogni trattativa × probabilità di chiusura della sua fase">
-        <span>Previsione ponderata</span><strong>${formattaEuro(previsione.ponderata)}</strong><small>su ${formattaEuro(previsione.pieno)} di valore annuo pieno</small></div>
+        <span>Previsione ponderata ${domanda("predittiva")}</span><strong>${formattaEuro(previsione.ponderata)}</strong><small>su ${formattaEuro(previsione.pieno)} di valore annuo pieno</small></div>
       <div><span>Coerenza</span><strong>
         <span class="badge badge-A">A ${classi.A}</span>
         <span class="badge badge-B">B ${classi.B}</span>
@@ -129,6 +129,7 @@ function disegnaPipeline() {
     </section>
 
     <div class="pannelli-pipeline">
+      ${sezioneConsigli()}
       ${sezioneDaFare()}
       ${sezioneDaSeguire()}
     </div>
@@ -306,6 +307,8 @@ function disegnaAllocazione() {
       titolo: "Chi esegue il servizio",
       istruzione: "Assegna ogni contratto firmato: prima a una squadra Gate con ore libere nella zona, altrimenti proponilo a un'impresa partner su WhatsApp.",
     })}
+
+    ${sezioneCapacitaFutura()}
 
     <ul class="regole" aria-label="Regole">
       <li>${icona("spunta")} Prima le squadre interne con ore libere nella zona</li>
@@ -561,11 +564,12 @@ function disegnaIndicatori() {
   return `
     ${intestazione({
       titolo: "Dai contatti ai contratti",
-      istruzione: "Leggi l'andamento del pilota: ogni indicatore mostra la formula e i numeri da cui nasce.",
+      istruzione: "Leggi il pilota con quattro domande: cosa è successo, perché, cosa succederà e cosa conviene fare.",
     })}
+    ${legendaDomande({ descrittiva: "domanda-descrittiva", diagnostica: "domanda-diagnostica", predittiva: "domanda-predittiva", prescrittiva: "domanda-prescrittiva" })}
 
     <section class="riquadro sintesi" aria-labelledby="titolo-sintesi">
-      <h2 id="titolo-sintesi" class="titolo-riquadro">Il pilota in sintesi</h2>
+      <h2 id="titolo-sintesi" class="titolo-riquadro">Il pilota in sintesi ${domanda("descrittiva")}</h2>
       <p class="sintesi-numero ${raggiunti === obiettivi.length ? "ok" : ""}">Obiettivi raggiunti: <strong>${raggiunti} su ${obiettivi.length}</strong></p>
       ${raggiunti < obiettivi.length ? `<ul class="sintesi-elenco">
         ${obiettivi.filter((o) => !o.raggiunto).map((o) => `
@@ -578,17 +582,17 @@ function disegnaIndicatori() {
     </section>
 
     <section class="sezione">
-      <h2>Efficacia <span class="sottotitolo">quanto il processo porta risultati</span></h2>
+      <h2 id="domanda-descrittiva">${domanda("descrittiva")} Efficacia <span class="sottotitolo">quanto il processo porta risultati</span></h2>
       <div class="griglia tre">${efficacia.join("")}</div>
     </section>
 
     <section class="sezione">
-      <h2>Efficienza <span class="sottotitolo">quanto costa acquisire e quanto rende</span></h2>
+      <h2>${domanda("descrittiva")} Efficienza <span class="sottotitolo">quanto costa acquisire e quanto rende</span></h2>
       <div class="griglia">${efficienza.join("")}</div>
     </section>
 
     <section class="sezione">
-      <h2>Funnel commerciale <span class="sottotitolo">contatti che hanno raggiunto ogni fase, persi compresi</span></h2>
+      <h2>${domanda("descrittiva")} Funnel commerciale <span class="sottotitolo">contatti che hanno raggiunto ogni fase, persi compresi</span></h2>
       <div class="riquadro">
         <div class="funnel">
           ${funnel.map((f) => {
@@ -610,7 +614,7 @@ function disegnaIndicatori() {
     </section>
 
     <section class="sezione">
-      <h2>Perché perdiamo <span class="sottotitolo">${quanti(perdite.reduce((s, m) => s + m.numero, 0), "trattativa persa", "trattative perse")}</span></h2>
+      <h2 id="domanda-diagnostica">${domanda("diagnostica")} Perché perdiamo <span class="sottotitolo">${quanti(perdite.reduce((s, m) => s + m.numero, 0), "trattativa persa", "trattative perse")}</span></h2>
       ${perdite.length ? `
         <div class="tabella-scorrevole">
           <table class="tabella">
@@ -627,7 +631,7 @@ function disegnaIndicatori() {
     </section>
 
     <section class="sezione">
-      <h2>Risultati per settore <span class="sottotitolo">settore pilota: ${CONFIG.pilota.settore.toLowerCase()}</span></h2>
+      <h2>${domanda("diagnostica")} Risultati per settore <span class="sottotitolo">settore pilota: ${CONFIG.pilota.settore.toLowerCase()}</span></h2>
       <div class="tabella-scorrevole">
         <table class="tabella">
           <thead><tr>
@@ -651,7 +655,7 @@ function disegnaIndicatori() {
     </section>
 
     <section class="sezione">
-      <h2>Risultati per canale di acquisizione <span class="sottotitolo">da dove arrivano i clienti e quanto costano</span></h2>
+      <h2>${domanda("diagnostica")} Risultati per canale di acquisizione <span class="sottotitolo">da dove arrivano i clienti e quanto costano</span></h2>
       <div class="tabella-scorrevole">
         <table class="tabella">
           <thead><tr>
@@ -671,7 +675,8 @@ function disegnaIndicatori() {
         </table>
       </div>
       <p class="nota-piccola" style="margin-top:8px">Contatti = opportunità + aziende ancora da qualificare del canale. Costi del canale = contatti × ${formattaEuro(CONFIG.costiAcquisizione.perContatto)} + sopralluoghi × ${formattaEuro(CONFIG.costiAcquisizione.perSopralluogo)} + offerte × ${formattaEuro(CONFIG.costiAcquisizione.perOfferta)} + spesa fissa del canale. Il canale è la fonte indicata nella scheda cliente.</p>
-    </section>`;
+    </section>
+    ${sezioniPrevisioneEConsigli()}`;
 }
 
 function tesseraKpi({ etichetta, valore, dettaglio, formula, obiettivo, raggiunto }) {
@@ -2018,3 +2023,38 @@ if (datiScartati) {
 }
 
 disegna();
+
+// ============================================ DOMANDE PREDITTIVA E PRESCRITTIVA
+
+// Allocazione: ore che serviranno se si firmano le offerte aperte (domanda predittiva)
+function sezioneCapacitaFutura() {
+  const zone = previsioneCapacita(stato.opportunita);
+  if (!zone.length) return "";
+  return `
+    <section class="riquadro capacita-futura" aria-label="Capacità futura">
+      <h2 class="titolo-riquadro">${domanda("predittiva")} <span class="sottotitolo">se si firmano le offerte aperte</span></h2>
+      <ul class="elenco-capacita">
+        ${zone.map((z) => `<li class="${z.mancano ? "manca" : ""}">
+          <strong>${esc(z.zona)}</strong>: servono ${z.ore} ore/mese, le squadre ne hanno ${z.libere} libere
+          ${z.mancano ? `<span class="chip chip-critico">mancano ${z.mancano} ore: servirà un partner</span>` : '<span class="chip chip-ok">capacità sufficiente</span>'}
+        </li>`).join("")}
+      </ul>
+    </section>`;
+}
+
+// Indicatori: previsione e tutti i consigli (domande predittiva e prescrittiva)
+function sezioniPrevisioneEConsigli() {
+  const p = previsionePonderata(stato.opportunita);
+  return `
+    <section class="sezione" id="domanda-predittiva">
+      <h2>${domanda("predittiva")} Previsione</h2>
+      <div class="riquadro">
+        <p>Ricavi annui attesi dalle trattative aperte: <strong>${formattaEuro(p.ponderata)}</strong> su ${formattaEuro(p.pieno)} di valore pieno
+          (${quanti(p.aperte, "trattativa", "trattative")}, ognuna pesata con la probabilità di chiusura della sua fase).</p>
+        ${previsioneCapacita(stato.opportunita).map((z) => `<p class="nota-piccola">${esc(z.zona)}: le offerte aperte chiederebbero ${z.ore} ore/mese contro ${z.libere} libere${z.mancano ? " — mancano " + z.mancano + " ore" : ""}.</p>`).join("")}
+      </div>
+    </section>
+    <section class="sezione" id="domanda-prescrittiva">
+      ${sezioneConsigli(8)}
+    </section>`;
+}

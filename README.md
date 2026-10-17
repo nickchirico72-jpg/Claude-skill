@@ -54,6 +54,15 @@ Il portale per i partner compare solo come anteprima, etichettata "evoluzione fu
 - **Indicatori con tutti i contatti.** I contatti sono le opportunità più le aziende ancora da qualificare (per esempio 16 + 2 = 18): così funnel, KPI e risultati per canale contano anche chi non ha ancora un'opportunità.
 - **Da telefono.** Navigazione in basso, campi a 16 px (l'iPhone non ingrandisce la pagina), tabelle che diventano schede, pulsanti alti almeno 44 px. Focus visibile, contatori e punteggi leggibili dai lettori di schermo; una prova con un lettore di schermo reale e su iPhone resta da fare.
 
+## Le quattro domande dell'analisi
+
+Ogni sezione del CRM dice a quale domanda risponde, con un'etichetta colorata:
+
+1. **Cosa è successo?** (descrittiva): KPI, funnel, pilota in sintesi.
+2. **Perché è successo?** (diagnostica): perché perdiamo, risultati per settore e per canale, criteri del punteggio A/B/C.
+3. **Cosa succederà?** (predittiva): previsione ponderata dei ricavi, ore che serviranno alle squadre se si firmano le offerte aperte.
+4. **Cosa conviene fare?** (prescrittiva): consigli proattivi nella Pipeline e negli Indicatori, per esempio "Sollecita Poliambulatorio Zeta · Perché: offerta scaduta". Ogni consiglio nasce da una regola leggibile (`js/analisi.js`, soglie in `config.js`), non da una scatola nera.
+
 ## Come avviarlo
 
 - **In locale:** scarica la cartella e apri `index.html` con un doppio clic. Non serve installare nulla.
@@ -104,6 +113,7 @@ js/dati.js          salvataggio nel browser, collegamenti tra aziende/referenti/
 js/allocazione.js   regole di allocazione: squadre, partner, DURC, messaggio WhatsApp
 js/punteggio.js     stime economiche e punteggio di coerenza A/B/C
 js/kpi.js           5 KPI, obiettivi del pilota, funnel, motivi di perdita, risultati per settore e canale
+js/analisi.js       le quattro domande: etichette, previsione della capacità, consigli "Cosa conviene fare?"
 js/clienti.js       schermata Clienti: elenco con ricerca e filtri, scheda cliente, referenti, attività, privacy
 js/app.js           schermate Pipeline, Allocazione e Indicatori, finestre e clic
 ```
