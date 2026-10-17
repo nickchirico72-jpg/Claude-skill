@@ -35,10 +35,11 @@ function rigaDaFare(x, conAzienda) {
   const pulsante = fase
     ? `<button class="pulsante primario piccolo" type="button" data-azione="fatto-fase" data-id="${esc(x.id)}">${icona("spunta")} ${CONFIG.fasi[CONFIG.fasi.indexOf(fase) - 1].azione}</button>`
     : `<button class="pulsante secondario piccolo" type="button" data-azione="fatto" data-id="${esc(x.id)}">${icona("spunta")} Fatto</button>`;
+  const testo = esc(x.tipo) + " · " + esc(x.testo) + (x.ora ? " · ore " + esc(x.ora) : "");
   return `
     <li class="da-fare">
       <div class="da-fare-testo">
-        <p>${scadenza(x.data)} <strong>${esc(x.tipo)}</strong> · ${esc(x.testo)}${x.ora ? " · ore " + esc(x.ora) : ""}</p>
+        <p title="${testo}">${scadenza(x.data)} <span><strong>${esc(x.tipo)}</strong> · ${esc(x.testo)}${x.ora ? " · ore " + esc(x.ora) : ""}</span></p>
         ${conAzienda ? `<p class="nota-piccola"><a class="link" href="#cliente-${esc(azienda.id)}">${esc(azienda.ragioneSociale)}</a>${ref ? " · " + esc(ref.nome) : ""}</p>` : ""}
       </div>
       <div class="da-fare-azioni">
@@ -48,17 +49,30 @@ function rigaDaFare(x, conAzienda) {
     </li>`;
 }
 
-// Riquadro "Da fare" in cima alla Pipeline: attività scadute e di oggi
+// Elenco limitato a 3 righe, con «Mostra tutte (N)» / «Mostra meno» (lo stato è in elenchiAperti, app.js)
+function elencoLimitato(id, righe) {
+  const aperto = elenchiAperti[id];
+  return {
+    righe: aperto ? righe : righe.slice(0, 3),
+    pulsante: righe.length > 3
+      ? `<button class="pulsante-testo positivo" type="button" data-azione="mostra-tutto" data-id="${id}" aria-expanded="${aperto}">${aperto ? "Mostra meno" : "Mostra tutte (" + righe.length + ")"}</button>`
+      : "",
+  };
+}
+
+// Riquadro "Da fare oggi" in cima alla Pipeline: attività scadute e di oggi
 function sezioneDaFare() {
   const tutte = attivitaDaFare();
   const entroOggi = tutte.filter((x) => x.data <= oggi());
   const prossime = tutte.length - entroOggi.length;
+  const elenco = elencoLimitato("da-fare", entroOggi);
+  const piede = elenco.pulsante + (prossime ? `<span>Nei prossimi giorni: ${prossime} attività. Le trovi nelle schede dei clienti.</span>` : "");
   return `
-    <section class="riquadro da-fare-riquadro" aria-label="Da fare oggi">
+    <section class="riquadro da-fare-riquadro" id="da-fare" aria-label="Da fare oggi">
       <h2 class="titolo-riquadro">${icona("calendario")} Da fare oggi <span class="conteggio">${entroOggi.length}</span></h2>
-      ${entroOggi.length ? `<ul class="elenco-da-fare">${entroOggi.map((x) => rigaDaFare(x, true)).join("")}</ul>`
+      ${entroOggi.length ? `<ul class="elenco-da-fare">${elenco.righe.map((x) => rigaDaFare(x, true)).join("")}</ul>`
         : '<p class="nota-piccola">Nessuna attività in scadenza oggi.</p>'}
-      ${prossime ? `<p class="nota-piccola">Nei prossimi giorni: ${prossime} attività. Le trovi nelle schede dei clienti.</p>` : ""}
+      ${piede ? `<p class="piede-riquadro">${piede}</p>` : ""}
     </section>`;
 }
 
@@ -71,26 +85,29 @@ function trattativeDaSeguire() {
 
 // Riquadro "Da seguire" accanto a "Da fare oggi"
 function sezioneDaSeguire() {
-  const elenco = trattativeDaSeguire();
+  const tutte = trattativeDaSeguire();
+  const elenco = elencoLimitato("da-seguire", tutte);
   return `
-    <section class="riquadro da-fare-riquadro" id="da-seguire" aria-label="Da seguire">
-      <h2 class="titolo-riquadro">${icona("attenzione")} Da seguire <span class="conteggio">${elenco.length}</span></h2>
-      ${elenco.length ? `<ul class="elenco-da-fare">${elenco.map(({ o, s }) => `
+    <section class="riquadro da-fare-riquadro" id="da-seguire" tabindex="-1" aria-label="Da seguire">
+      <h2 class="titolo-riquadro">${icona("attenzione")} Da seguire <span class="conteggio">${tutte.length}</span></h2>
+      ${tutte.length ? `<ul class="elenco-da-fare">${elenco.righe.map(({ o, s }) => `
         <li class="da-fare">
           <div class="da-fare-testo">
             <p><a class="link" href="#cliente-${esc(o.aziendaId)}">${esc(nomeCliente(o))}</a>
-              <span class="nota-piccola">${CONFIG.fasi[faseRaggiunta(o)].nome} da ${giorni(s.giorniInFase)} · ${formattaEuro(valoreAnnuo(o))}/anno</span></p>
-            <p class="riga-chip">
+              <span class="nota-piccola">· ${CONFIG.fasi[faseRaggiunta(o)].nome}${s.ferma ? "" : " da " + giorni(s.giorniInFase)} · ${formattaEuro(valoreAnnuo(o))}/anno</span></p>
+            <p class="nota-piccola">
               ${s.ferma ? `<span class="chip chip-critico">Ferma da ${giorni(s.giorniInFase)}</span>` : ""}
-              ${s.prossima ? `<span class="nota-piccola">Prossima: ${esc(accorcia(s.prossima.testo, 40))}</span> ${scadenza(s.prossima.data)}`
+              ${s.prossima ? `${scadenza(s.prossima.data)} <span>Prossima: ${esc(s.prossima.testo)}</span>`
                 : '<span class="chip chip-attenzione">Nessuna prossima azione</span>'}
             </p>
           </div>
           <div class="da-fare-azioni">
-            <button class="pulsante secondario piccolo" type="button" data-azione="prossima-azione" data-id="${esc(o.aziendaId)}">${icona("calendario")} Fissa la prossima azione</button>
+            <button class="pulsante secondario piccolo" type="button" data-azione="prossima-azione" data-id="${esc(o.aziendaId)}">${icona("calendario")}
+              <span class="testo-lungo">Fissa la prossima azione</span><span class="testo-corto">Fissala</span></button>
           </div>
         </li>`).join("")}</ul>`
         : '<p class="nota-piccola">Ogni trattativa aperta ha una prossima azione e nessuna è ferma.</p>'}
+      ${elenco.pulsante ? `<p class="piede-riquadro">${elenco.pulsante}</p>` : ""}
     </section>`;
 }
 
@@ -130,11 +147,11 @@ function pulsantiContatto(r, compatti) {
   const numero = numeroInternazionale(r.telefono);
   const canali = [];
   if (numero) {
-    canali.push({ nome: "Telefono", html: `<a class="pulsante-contatto" href="tel:+${numero}" title="Chiama ${esc(r.nome)}">${icona("telefono")}<span>Chiama</span></a>` });
-    canali.push({ nome: "WhatsApp", html: `<a class="pulsante-contatto" href="https://wa.me/${numero}" target="_blank" rel="noopener" title="Scrivi su WhatsApp a ${esc(r.nome)}">${icona("messaggio")}<span>WhatsApp</span></a>` });
+    canali.push({ nome: "Telefono", html: `<a class="pulsante-contatto" href="tel:+${numero}" title="Chiama ${esc(r.nome)}" aria-label="Chiama ${esc(r.nome)}">${icona("telefono")}<span>Chiama</span></a>` });
+    canali.push({ nome: "WhatsApp", html: `<a class="pulsante-contatto" href="https://wa.me/${numero}" target="_blank" rel="noopener" title="Scrivi su WhatsApp a ${esc(r.nome)}" aria-label="WhatsApp a ${esc(r.nome)}">${icona("messaggio")}<span>WhatsApp</span></a>` });
   }
   if (r.email) {
-    canali.push({ nome: "Email", html: `<a class="pulsante-contatto" href="mailto:${esc(r.email)}" title="Scrivi un'email a ${esc(r.nome)}">${icona("email")}<span>Email</span></a>` });
+    canali.push({ nome: "Email", html: `<a class="pulsante-contatto" href="mailto:${esc(r.email)}" title="Scrivi un'email a ${esc(r.nome)}" aria-label="Email a ${esc(r.nome)}">${icona("email")}<span>Email</span></a>` });
   }
   if (compatti) {
     const preferito = canali.find((c) => c.nome === r.canale) || canali[0];
@@ -150,7 +167,6 @@ function disegnaClienti() {
   stato.aziende.forEach((a) => conteggi[statoAzienda(a.id)]++);
   return `
     ${intestazione({
-      occhiello: "Clienti",
       titolo: "Aziende e referenti",
       istruzione: "Cerca un'azienda e apri la sua scheda per chiamare i referenti, registrare un contatto e fissare la prossima azione.",
       azione: `<div class="azioni-intestazione">

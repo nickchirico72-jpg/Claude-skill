@@ -224,7 +224,8 @@ textarea {
 }
 
 .contenuto {
-  max-width: 1360px;
+  max-width: 1600px;
+  margin-inline: auto;
 }
 
 @media (min-width: 900px) {
@@ -309,22 +310,88 @@ textarea {
   }
 
   .principale {
-    padding: 28px 40px 40px;
+    padding: 20px 28px 40px;
+  }
+}
+
+/* Barra laterale stretta tra 900 e 1439 px: icona e nome restano visibili, la descrizione va nel title del link */
+@media (min-width: 900px) and (max-width: 1439px) {
+  .app {
+    grid-template-columns: 88px minmax(0, 1fr);
+    background: linear-gradient(to right, var(--sidebar-background) 88px, transparent 88px);
+  }
+
+  .barra-laterale {
+    padding: 20px 8px;
+  }
+
+  .marchio {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .marchio-srl,
+  .marchio-modulo,
+  .nav-descrizione {
+    display: none;
+  }
+
+  .nav-voce {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 4px;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .nav-conteggio {
+    position: absolute;
+    top: 4px;
+    right: 12px;
+  }
+
+  .barra-nota {
+    align-self: center;
+    margin-left: 0;
+    padding: 4px 8px;
+    font-size: 10px;
   }
 }
 
 /* Fascia che dichiara i dati fittizi */
+/* (colore neutro: l'arancione resta solo per le scadenze) */
 .nota-dati {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 20px;
-  padding: 8px 12px;
+  margin-bottom: 12px;
+  padding: 6px 12px;
   border-radius: 8px;
-  background: var(--attenzione-sfondo);
-  color: var(--attenzione);
-  font-size: 13px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 12.5px;
   font-weight: 600;
+}
+
+.nota-dati .icona {
+  width: 16px;
+  height: 16px;
+}
+
+/* Testo lungo su schermi larghi, testo breve su telefono */
+.testo-corto {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .testo-lungo {
+    display: none;
+  }
+
+  .testo-corto {
+    display: inline;
+  }
 }
 
 /* ---------------------------------------------- Intestazione di pagina */
@@ -333,8 +400,19 @@ textarea {
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px 16px;
+  margin-bottom: 12px;
+}
+
+/* Il testo prende lo spazio libero, il pulsante resta a destra e non si stringe */
+.intestazione > div {
+  flex: 1 1 480px;
+  min-width: 0;
+}
+
+.azioni-intestazione,
+.intestazione > .pulsante {
+  flex-shrink: 0;
 }
 
 .occhiello {
@@ -352,15 +430,9 @@ textarea {
 }
 
 .istruzione {
-  margin-top: 6px;
+  margin-top: 4px;
   color: var(--muted-foreground);
   font-size: 15px;
-}
-
-@media (min-width: 900px) {
-  .intestazione h1 {
-    font-size: 30px;
-  }
 }
 
 /* ------------------------------------------------------------ Pulsanti */
@@ -516,25 +588,41 @@ textarea {
 }
 
 /* ------------------------------------------------------------ Pipeline */
+/* Riepilogo a 4 riquadri: 2 x 2 su telefono, una riga da 640 px */
 .riepilogo {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
-.riepilogo div {
-  padding: 10px 14px;
+@media (min-width: 640px) {
+  .riepilogo {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.riepilogo > * {
+  min-width: 0;
+  padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
+  color: inherit;
+  text-decoration: none;
 }
 
-.riepilogo span {
+/* Il riquadro «Da seguire» porta all'elenco */
+.riepilogo > a:hover {
+  border-color: var(--primary);
+}
+
+.riepilogo > * > span {
   display: block;
   color: var(--muted-foreground);
   font-size: 12px;
   font-weight: 600;
+  line-height: 1.35;
 }
 
 .riepilogo strong {
@@ -542,9 +630,47 @@ textarea {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  min-height: 25px;
   font-family: Sora, system-ui, sans-serif;
   font-size: 18px;
+  line-height: 1.35;
   color: var(--secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.riepilogo strong .chip {
+  font-size: 14px;
+}
+
+.riepilogo small {
+  display: block;
+  line-height: 1.35;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Pipeline: su telefono prima le cose da fare, poi riepilogo e schede */
+.pagina-pipeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.pagina-pipeline > * {
+  min-width: 0;
+}
+
+.pagina-pipeline > .intestazione { order: 1; }
+.pagina-pipeline > .pannelli-pipeline { order: 2; }
+.pagina-pipeline > .riepilogo { order: 3; }
+.pagina-pipeline > .selettore-fasi { order: 4; }
+.pagina-pipeline > .tabellone { order: 5; }
+
+@media (min-width: 900px) {
+  .pagina-pipeline > .riepilogo { order: 2; }
+  .pagina-pipeline > .pannelli-pipeline { order: 3; }
 }
 
 /* Selettore delle fasi: visibile su schermi stretti */
@@ -594,33 +720,66 @@ textarea {
   display: block;
 }
 
+/* Testata di colonna: nome, metodo e numero su una riga; sotto il valore totale e ponderato */
 .colonna-testa {
+  margin-bottom: 8px;
+  padding: 2px 4px 0;
+}
+
+.colonna-titolo {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  min-width: 0;
 }
 
-.colonna-testa h2 {
+.colonna-titolo h2 {
+  min-width: 0;
+  overflow: hidden;
   font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+.colonna-valore {
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Etichetta del metodo Gate: visibile solo da 1440 px, altrimenti nel title del nome della colonna */
 .metodo {
+  display: none;
   color: var(--accent-testo);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.colonna-testa .conteggio {
+@media (min-width: 1440px) {
+  .metodo {
+    display: inline;
+  }
+}
+
+.colonna-titolo .conteggio {
+  flex-shrink: 0;
   margin-left: auto;
 }
 
 .colonna-corpo {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+}
+
+.mostra-altre {
+  width: 100%;
+  margin-top: 8px;
 }
 
 @media (min-width: 640px) {
@@ -639,13 +798,13 @@ textarea {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     align-items: start;
-    gap: 12px;
+    gap: 8px;
   }
 
   .tabellone .colonna {
     display: block;
     min-height: 240px;
-    padding: 10px;
+    padding: 6px;
     border-radius: var(--radius);
     background: var(--muted);
   }
@@ -664,11 +823,12 @@ textarea {
   }
 }
 
+/* Scheda opportunità: nome > valore > stato > azione, ogni riga su una riga sola */
 .scheda {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 12px;
+  gap: 5px;
+  padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
@@ -681,11 +841,21 @@ textarea {
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 2px;
+}
+
+.scheda .scheda-alto {
+  flex-wrap: nowrap;
+}
+
+.scheda-alto .badge {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .scheda-nome {
+  display: -webkit-box;
   min-width: 0;
+  overflow: hidden;
   padding: 0;
   border: 0;
   background: none;
@@ -695,7 +865,11 @@ textarea {
   font-weight: 600;
   line-height: 1.3;
   text-align: left;
+  text-decoration: underline dotted hsl(210 15% 42% / 0.6);
+  text-underline-offset: 3px;
   cursor: pointer;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .scheda-nome:hover {
@@ -704,83 +878,157 @@ textarea {
 }
 
 .scheda-meta {
+  overflow: hidden;
   color: var(--muted-foreground);
   font-size: 12.5px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.scheda-valore {
-  margin: 2px 0 8px;
-  font-size: 13px;
+/* Settore fuori dal pilota o servizio non più in elenco */
+.scheda-avvisi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.scheda-avvisi .chip {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scheda-cifre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.scheda-cifre strong {
+  color: var(--secondary);
+  white-space: nowrap;
+}
+
+.scheda-cifre small {
+  color: var(--muted-foreground);
+  font-size: 12px;
   font-weight: 600;
+}
+
+.scheda-cifre .chip,
+.scheda-avvisi .chip {
+  padding: 1px 7px;
+  font-size: 11.5px;
+}
+
+/* Righe di stato: icona allineata a sinistra e testo su una riga, colore solo per il significato */
+.scheda-stati {
+  display: grid;
+  gap: 2px;
+}
+
+.scheda-riga {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.scheda-riga .icona {
+  width: 14px;
+  height: 14px;
+}
+
+.scheda-riga-testo {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scheda-riga strong {
+  color: var(--secondary);
+  font-weight: 700;
+}
+
+.scheda-riga.ok .icona,
+.scheda-riga.ok strong {
+  color: var(--ok);
+}
+
+.scheda-riga.attenzione .icona,
+.scheda-riga.attenzione strong {
+  color: var(--attenzione);
+}
+
+.scheda-riga.critico .icona,
+.scheda-riga.critico strong {
+  color: var(--critico);
 }
 
 .scheda-azioni {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 2px;
-  margin-top: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.scheda-azioni .pulsante {
+  flex: 1;
+  min-width: 0;
+  padding: 0 10px;
+  white-space: nowrap;
 }
 
 .scheda-azioni .pulsante-testo {
-  align-self: center;
+  flex-shrink: 0;
 }
 
-.scheda-stato {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.scheda-stato.ok {
-  color: var(--ok);
-}
-
-.scheda-stato.attesa,
-.scheda-stato.da-fare {
-  color: var(--attenzione);
-}
-
-.scheda-nota {
-  color: var(--muted-foreground);
-  font-size: 12.5px;
-}
-
-/* Sopralluogo fissato o validità dell'offerta */
-.scheda-info {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--secondary);
-}
-
-.scheda-info .icona {
-  width: 15px;
-  height: 15px;
-}
-
-/* Prossima azione e trattativa ferma */
-.scheda-stato-trattativa {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 6px;
-  margin-bottom: 6px;
-  font-size: 12.5px;
-}
-
-.stato-testo {
-  min-width: 0;
-  color: var(--muted-foreground);
-}
-
-.scheda-stato-trattativa .pulsante-testo {
+/* «Nessuna prossima azione» è anche il pulsante per fissarla */
+.scheda-riga-pulsante {
+  width: 100%;
   padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.scheda-riga-pulsante strong {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.scheda-riga-pulsante .fissala {
+  flex-shrink: 0;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Nel tabellone a 5 colonne le schede sono strette: pulsanti senza icona, «Fissala» sta nel testo sottolineato */
+@media (min-width: 1280px) {
+  .scheda-azioni .pulsante {
+    min-height: 32px;
+  }
+
+  .scheda-azioni .pulsante .icona,
+  .scheda-riga-pulsante .fissala {
+    display: none;
+  }
 }
 
 .vuoto {
@@ -806,7 +1054,13 @@ textarea {
   }
 
   .scheda-nome {
-    padding: 6px 0;
+    padding: 4px 0;
+  }
+
+  /* «Fissala» resta alto 44 px senza allargare la riga */
+  .scheda-riga-pulsante {
+    min-height: 44px;
+    margin-block: -12px;
   }
 
   .modulo .spunta {
@@ -1904,27 +2158,40 @@ dialog::backdrop {
 /* Da fare oggi e Da seguire: affiancati sugli schermi larghi */
 .pannelli-pipeline {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0 24px;
 }
 
 @media (min-width: 1100px) {
   .pannelli-pipeline {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
   }
 }
 
 /* Da fare */
 .da-fare-riquadro {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  padding: 10px 16px;
 }
 
 .titolo-riquadro {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
-  font-size: 16px;
+  margin-bottom: 2px;
+  font-size: 15px;
+}
+
+/* «Mostra tutte (N)» e «Nei prossimi giorni» in fondo al riquadro */
+.piede-riquadro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 16px;
+  padding-top: 2px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 12.5px;
 }
 
 .titolo-riquadro .conteggio {
@@ -1934,18 +2201,17 @@ dialog::backdrop {
 .elenco-da-fare {
   display: flex;
   flex-direction: column;
-  margin: 0 0 8px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .da-fare {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 16px;
-  padding: 10px 0;
+  gap: 12px;
+  padding: 4px 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -1953,23 +2219,83 @@ dialog::backdrop {
   border-bottom: 0;
 }
 
+/* Testo su una riga con i puntini (su telefono al massimo due righe) */
 .da-fare-testo {
+  flex: 1 1 auto;
   min-width: 0;
-  flex: 1 1 280px;
-  font-size: 14px;
+  font-size: 13.5px;
+  line-height: 1.4;
 }
 
-.da-fare-testo p:first-child {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
+.da-fare-testo .chip {
+  padding: 0 7px;
+  line-height: 18px;
+  vertical-align: top;
+  margin-top: 1px;
+}
+
+.piede-riquadro .pulsante-testo {
+  padding: 2px 0;
+}
+
+.da-fare-testo p {
+  overflow: hidden;
+  font-size: 13.5px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.da-fare-testo p.nota-piccola {
+  font-size: 13px;
 }
 
 .da-fare-azioni {
   display: flex;
-  flex-wrap: wrap;
+  flex-shrink: 0;
   gap: 6px;
+}
+
+@media (max-width: 639px) {
+  .da-fare-testo p {
+    display: -webkit-box;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
+
+/* Telefoni stretti: i pulsanti vanno sotto il testo, così le etichette non si tagliano */
+@media (max-width: 399px) {
+  .da-fare {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+
+  .da-fare-testo {
+    flex-basis: 100%;
+  }
+
+  .da-fare-azioni {
+    margin-left: auto;
+  }
+}
+
+/* Su telefono il contatto in elenco è solo icona (con aria-label), «Fatto» ha il testo: entrambi 44 x 44 */
+@media (max-width: 899px) {
+  .da-fare-azioni .pulsante-contatto {
+    justify-content: center;
+    width: 44px;
+    padding: 0;
+  }
+
+  .da-fare-azioni .pulsante-contatto span {
+    display: none;
+  }
+
+  .da-fare-azioni .pulsante.piccolo {
+    min-width: 44px;
+  }
 }
 
 .da-fare-azioni .pulsante-contatto,

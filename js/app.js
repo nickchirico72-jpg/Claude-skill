@@ -8,6 +8,8 @@
 let stato = carica();
 let faseSelezionata = "contatto"; // fase mostrata su schermi stretti
 let ultimaModificata = null;      // scheda da evidenziare dopo un'azione
+let espanse = {};                 // colonne della Pipeline mostrate per intero (oltre le 20 schede)
+let elenchiAperti = { "da-fare": false, "da-seguire": false }; // «Mostra tutte» di Da fare oggi e Da seguire
 
 // ================================================================== ICONE
 
@@ -34,11 +36,12 @@ function icona(nome) {
 
 // ====================================================== PEZZI RIUTILIZZABILI
 
-function intestazione({ occhiello, titolo, istruzione, azione = "" }) {
+// Intestazione di pagina; l'occhiello è facoltativo (non serve dove ripeterebbe il menu)
+function intestazione({ occhiello = "", titolo, istruzione, azione = "" }) {
   return `
     <header class="intestazione">
       <div>
-        <p class="occhiello">${occhiello}</p>
+        ${occhiello ? `<p class="occhiello">${occhiello}</p>` : ""}
         <h1>${titolo}</h1>
         <p class="istruzione">${istruzione}</p>
       </div>
@@ -67,35 +70,57 @@ function tabellaCriteri(p) {
 
 // ================================================================ PIPELINE
 
+const LIMITE_COLONNA = 20; // schede mostrate per colonna prima di «Mostra altre N»
+
+// Ordine delle schede in una colonna: le trattative ferme da più tempo in alto;
+// tra i contratti prima quelli da assegnare; tra i persi i più recenti
+function ordinaColonna(id, elenco) {
+  if (id === "perso") return elenco.sort((a, b) => b.perso.data.localeCompare(a.perso.data));
+  if (id === "contratto") return elenco.sort((a, b) => !!a.allocazione - !!b.allocazione || b.storico.contratto.localeCompare(a.storico.contratto));
+  return elenco.sort((a, b) => dataFaseAttuale(a).localeCompare(dataFaseAttuale(b)) || nomeCliente(a).localeCompare(nomeCliente(b)));
+}
+
+// Seconda riga della testata di colonna: valore annuo totale e ponderato con la probabilità della fase
+function valoreColonna(id, elenco) {
+  const totale = formattaEuro(elenco.reduce((s, o) => s + valoreAnnuo(o), 0));
+  if (id === "perso") return totale + " persi";
+  if (id === "contratto") return totale + " firmati";
+  return totale + " · ponderato " + formattaEuro(elenco.reduce((s, o) => s + ricaviAttesi(o), 0));
+}
+
 function disegnaPipeline() {
   const tutte = stato.opportunita;
   const punteggi = new Map(tutte.map((o) => [o.id, calcolaPunteggio(o, tutte)]));
   const aperte = tutte.filter(trattativaAperta);
   const classi = { A: 0, B: 0, C: 0 };
   aperte.forEach((o) => classi[punteggi.get(o.id).classe]++);
+  const valorePieno = aperte.reduce((s, o) => s + valoreAnnuo(o), 0);
+  const ponderata = aperte.reduce((s, o) => s + ricaviAttesi(o), 0);
+  const daSeguire = trattativeDaSeguire().length;
 
   // Colonne: le 5 fasi più "Perso"
   const colonne = CONFIG.fasi.map((f) => ({ id: f.id, nome: f.nome, metodo: f.metodo }));
   colonne.push({ id: "perso", nome: "Perso" });
-  const perColonna = (id) => tutte
-    .filter((o) => faseAttuale(o) === id)
-    .sort((a, b) => dataFaseAttuale(b).localeCompare(dataFaseAttuale(a)));
+  const perColonna = (id) => ordinaColonna(id, tutte.filter((o) => faseAttuale(o) === id));
 
   return `
+    <div class="pagina-pipeline">
     ${intestazione({
-      occhiello: "Pipeline commerciale",
       titolo: "Opportunità commerciali",
-      istruzione: "Registra ogni passo quando è avvenuto e tieni sempre una prossima azione. Il punteggio A/B/C dice quanto è coerente con capacità e margini.",
+      istruzione: "Registra ogni passo con un clic e tieni sempre una prossima azione. A/B/C indica la coerenza con capacità e margini.",
       azione: `<button class="pulsante accento" type="button" data-azione="nuovo">${icona("piu")} Nuovo contatto</button>`,
     })}
 
-    <section class="riepilogo" aria-label="Riepilogo">
-      <div><span>In trattativa</span><strong>${aperte.length}</strong></div>
-      <div><span>Valore annuo in trattativa</span><strong>${formattaEuro(aperte.reduce((s, o) => s + valoreAnnuo(o), 0))}</strong></div>
-      <div><span>Coerenza delle trattative</span><strong>
+    <section class="riepilogo riepilogo-pipeline" aria-label="Riepilogo">
+      <div><span>In trattativa</span><strong>${aperte.length}</strong><small>su ${tutte.length} opportunità</small></div>
+      <div title="Valore annuo di ogni trattativa × probabilità di chiusura della sua fase">
+        <span>Previsione ponderata</span><strong>${formattaEuro(ponderata)}</strong><small>su ${formattaEuro(valorePieno)} di valore annuo pieno</small></div>
+      <div><span>Coerenza</span><strong>
         <span class="badge badge-A">A ${classi.A}</span>
         <span class="badge badge-B">B ${classi.B}</span>
-        <span class="badge badge-C">C ${classi.C}</span></strong></div>
+        <span class="badge badge-C">C ${classi.C}</span></strong><small>trattative aperte per classe</small></div>
+      <a href="#da-seguire" data-azione="scorri" data-id="da-seguire"><span>Da seguire</span>
+        <strong>${daSeguire ? `<span class="chip chip-attenzione">${daSeguire}</span>` : "0"}</strong><small>senza prossima azione o ferme</small></a>
     </section>
 
     <div class="pannelli-pipeline">
@@ -113,92 +138,143 @@ function disegnaPipeline() {
     <div class="tabellone">
       ${colonne.map((c) => {
         const elenco = perColonna(c.id);
+        // Al massimo 20 schede; la scheda appena modificata si vede sempre
+        const mostrate = espanse[c.id] ? elenco : elenco.slice(0, LIMITE_COLONNA);
+        const modificata = elenco.find((o) => o.id === ultimaModificata);
+        if (modificata && !mostrate.includes(modificata)) mostrate.push(modificata);
+        const altre = elenco.length - mostrate.length;
         return `
           <section class="colonna colonna-${c.id} ${c.id === faseSelezionata ? "attiva" : ""}" aria-label="${c.nome}">
             <header class="colonna-testa">
-              <h2>${c.nome}</h2>
-              ${c.metodo ? `<span class="metodo" title="Passo del metodo Gate">${c.metodo}</span>` : ""}
-              <span class="conteggio">${elenco.length}</span>
+              <div class="colonna-titolo">
+                <h2${c.metodo ? ` title="Passo del metodo Gate: ${c.metodo}"` : ""}>${c.nome}</h2>
+                ${c.metodo ? `<span class="metodo">${c.metodo}</span>` : ""}
+                <span class="conteggio">${elenco.length}</span>
+              </div>
+              <p class="colonna-valore">${valoreColonna(c.id, elenco)}</p>
             </header>
             <div class="colonna-corpo">
-              ${elenco.length ? elenco.map((o) => schedaOpportunita(o, punteggi.get(o.id))).join("")
+              ${elenco.length ? mostrate.map((o) => schedaOpportunita(o, punteggi.get(o.id))).join("")
                 : '<p class="vuoto">Nessuna opportunità in questa fase.</p>'}
             </div>
+            ${altre > 0 ? `<button class="pulsante secondario piccolo mostra-altre" type="button" data-azione="mostra-tutte" data-id="${c.id}">Mostra altre ${altre}</button>` : ""}
           </section>`;
       }).join("")}
+    </div>
     </div>`;
 }
 
+// Una riga della scheda: icona, testo su una riga sola (con i puntini se serve), eventuale pulsante in coda.
+// tono: "critico", "attenzione", "ok" oppure "" (neutro); colora l'icona e la parte in grassetto
+function rigaScheda(nomeIcona, html, tono = "", { titolo = "", coda = "" } = {}) {
+  return `<p class="scheda-riga ${tono}"${titolo ? ` title="${esc(titolo)}"` : ""}>${icona(nomeIcona)}<span class="scheda-riga-testo">${html}</span>${coda}</p>`;
+}
+
+// Scheda compatta: nome e A/B/C, comune · ore · servizio, valore e margine, stato, azioni
 function schedaOpportunita(o, p) {
   const fase = faseAttuale(o);
-  let fondo;
+  const nome = esc(nomeCliente(o));
+  const alto = `
+    <div class="scheda-alto">
+      <button class="scheda-nome" type="button" data-azione="dettaglio" data-id="${esc(o.id)}" title="Apri il dettaglio di ${nome}">${nome}</button>
+      ${badgePunteggio(p)}
+    </div>`;
+
+  // I persi restano compatti: nome e motivo
   if (fase === "perso") {
-    fondo = `<p class="scheda-nota">Perso il ${formattaData(o.perso.data)} · ${esc(o.perso.motivo)}</p>`;
-  } else if (fase === "contratto") {
-    fondo = statoCommessa(o);
+    return `
+      <article class="scheda scheda-persa ${o.id === ultimaModificata ? "evidenziata" : ""}" id="scheda-${esc(o.id)}">
+        ${alto}
+        <p class="scheda-meta">Perso il ${formattaData(o.perso.data).slice(0, 5)} · ${esc(o.perso.motivo)}</p>
+      </article>`;
+  }
+
+  const meta = esc(o.comune) + " · " + Number(o.ore) + " h/mese · " + esc(o.servizio);
+  const margine = marginePercentuale(o, stato.opportunita);
+  const soglie = CONFIG.punteggio.margine;
+  const tonoMargine = margine >= soglie.obiettivo ? "chip-ok" : margine >= soglie.minimo ? "chip-attenzione" : "chip-critico";
+  const settore = settoreDi(o);
+  const avvisi = [
+    datiServizio(o.servizio).fuoriElenco ? '<span class="chip chip-critico">Servizio non più in elenco: usa Modifica</span>' : "",
+    settore !== CONFIG.pilota.settore ? `<span class="chip" title="Settore fuori dal pilota">Fuori pilota: ${esc(settore)}</span>` : "",
+  ].join("");
+
+  let stati;
+  let azioni;
+  if (fase === "contratto") {
+    stati = statoCommessa(o);
+    azioni = o.allocazione ? "" : `<a class="pulsante primario piccolo" href="#allocazione">Vai all'allocazione ${icona("freccia")}</a>`;
   } else {
     // In Qualificato, prima si fissa il sopralluogo in agenda; poi si registra che è stato fatto
     const fissato = fase === "qualificato" ? sopralluogoFissato(o) : null;
+    stati = infoFase(o, fissato) + rigaStatoTrattativa(o, fissato);
     const pulsante = fase === "qualificato" && !fissato
       ? `<button class="pulsante primario piccolo" type="button" data-azione="fissa-sopralluogo" data-id="${esc(o.id)}">${icona("calendario")} Fissa sopralluogo</button>`
       : `<button class="pulsante primario piccolo" type="button" data-azione="avanza" data-id="${esc(o.id)}" title="Registra che è già avvenuto">${icona("spunta")} ${CONFIG.fasi[faseRaggiunta(o)].azione}</button>`;
-    fondo = `
-      ${infoFase(o, fissato)}
-      ${rigaStatoTrattativa(o)}
-      <div class="scheda-azioni">
-        ${pulsante}
-        <button class="pulsante-testo" type="button" data-azione="perso" data-id="${esc(o.id)}">Segna come perso</button>
-      </div>`;
+    azioni = pulsante + `<button class="pulsante-testo" type="button" data-azione="perso" data-id="${esc(o.id)}" title="Segna come perso">Perso</button>`;
   }
+
   return `
     <article class="scheda ${o.id === ultimaModificata ? "evidenziata" : ""}" id="scheda-${esc(o.id)}">
-      <div class="scheda-alto">
-        <button class="scheda-nome" type="button" data-azione="dettaglio" data-id="${esc(o.id)}" title="Apri il dettaglio">${esc(nomeCliente(o))}</button>
-        ${badgePunteggio(p)}
-      </div>
-      <p class="scheda-meta">${esc(settoreDi(o))} · ${esc(o.comune)}</p>
-      <p class="scheda-meta">${esc(o.servizio)} · ${Number(o.ore)} h/mese</p>
-      <p class="scheda-valore">${formattaEuro(valoreAnnuo(o))}/anno · margine ${formattaPercentuale(marginePercentuale(o, stato.opportunita))}</p>
-      ${fondo}
+      ${alto}
+      <p class="scheda-meta" title="${meta}">${meta}</p>
+      ${avvisi ? `<p class="scheda-avvisi">${avvisi}</p>` : ""}
+      <p class="scheda-cifre"><strong>${formattaEuro(valoreAnnuo(o))}<small>/anno</small></strong>
+        <span class="chip ${tonoMargine}" title="Margine stimato">margine ${formattaPercentuale(margine)}</span></p>
+      ${stati ? `<div class="scheda-stati">${stati}</div>` : ""}
+      ${azioni ? `<div class="scheda-azioni">${azioni}</div>` : ""}
     </article>`;
 }
 
 // Informazioni della fase: sopralluogo fissato (Qualificato) o validità dell'offerta (Offerta)
 function infoFase(o, fissato) {
   if (fissato) {
-    return `<p class="scheda-info">${icona("calendario")} Sopralluogo ${formattaGiorno(fissato.data)}${fissato.ora ? " · ore " + esc(fissato.ora) : ""}</p>`;
+    return rigaScheda("calendario", `Sopralluogo <strong>${formattaGiorno(fissato.data)}${fissato.ora ? " · ore " + esc(fissato.ora) : ""}</strong>`);
   }
   if (faseAttuale(o) === "offerta" && o.scadenzaOfferta) {
+    const giorno = formattaData(o.scadenzaOfferta).slice(0, 5);
     return o.scadenzaOfferta < oggi()
-      ? `<p class="scheda-info"><span class="chip chip-critico">${icona("attenzione")} Offerta scaduta il ${formattaData(o.scadenzaOfferta).slice(0, 5)}</span></p>`
-      : `<p class="scheda-info">Valida fino al ${formattaData(o.scadenzaOfferta).slice(0, 5)}</p>`;
+      ? rigaScheda("attenzione", `<strong>Offerta scaduta il ${giorno}</strong>`, "critico")
+      : rigaScheda("calendario", `Valida fino al <strong>${giorno}</strong>`);
   }
   return "";
 }
 
-// Riga di stato di una trattativa aperta: prossima azione (o «Fissala») e trattativa ferma
-function rigaStatoTrattativa(o) {
+// Quando cade la prossima azione, in breve, con il tono del colore
+function quandoBreve(data) {
+  if (data < oggi()) return { testo: "In ritardo", tono: "critico" };
+  if (data === oggi()) return { testo: "Oggi", tono: "attenzione" };
+  if (data === traGiorni(1)) return { testo: "Domani", tono: "" };
+  return { testo: data <= traGiorni(7) ? formattaGiorno(data) : formattaData(data).slice(0, 5), tono: "" };
+}
+
+// Righe di stato di una trattativa aperta: ferma da troppo tempo, poi la prossima azione (o «Fissala»).
+// Se la prossima azione è il sopralluogo già mostrato sopra, non si ripete
+function rigaStatoTrattativa(o, fissato = null) {
   const s = statoTrattativa(o);
-  const prossima = s.prossima
-    ? `${scadenza(s.prossima.data)} <span class="stato-testo" title="${esc(s.prossima.testo)}">${esc(accorcia(s.prossima.testo, 40))}</span>`
-    : `<span class="chip chip-attenzione">Nessuna prossima azione</span>
-       <button class="pulsante-testo positivo" type="button" data-azione="prossima-azione" data-id="${esc(o.aziendaId)}">Fissala</button>`;
-  return `<p class="scheda-stato-trattativa">${s.ferma ? `<span class="chip chip-critico">Ferma da ${giorni(s.giorniInFase)}</span>` : ""}${prossima}</p>`;
+  const ferma = s.ferma ? rigaScheda("orologio", `<strong>Ferma da ${giorni(s.giorniInFase)}</strong>`, "critico") : "";
+  if (!s.prossima) {
+    // Tutta la riga è il pulsante: nelle colonne strette «Fissala» si nasconde e resta il testo sottolineato
+    return ferma + `<button class="scheda-riga scheda-riga-pulsante attenzione" type="button" data-azione="prossima-azione" data-id="${esc(o.aziendaId)}" title="Fissa la prossima azione">
+      ${icona("attenzione")}<span class="scheda-riga-testo"><strong>Nessuna prossima azione</strong></span><span class="fissala">Fissala</span></button>`;
+  }
+  if (fissato && s.prossima.id === fissato.id) return ferma;
+  const q = quandoBreve(s.prossima.data);
+  return ferma + rigaScheda("freccia", `<strong>${q.testo}</strong> · ${esc(s.prossima.testo)}`, q.tono,
+    { titolo: "Prossima azione: " + formattaData(s.prossima.data) + " · " + s.prossima.testo });
 }
 
 // Riga di stato per i contratti: assegnato, in attesa del partner o da assegnare
 function statoCommessa(o) {
   if (o.allocazione) {
-    const nome = o.allocazione.tipo === "squadra"
-      ? nomeSquadra(o.allocazione.id)
-      : "Partner: " + nomePartner(o.allocazione.id);
-    return `<p class="scheda-stato ok">${icona("spunta")} ${esc(nome)}</p>`;
+    return o.allocazione.tipo === "squadra"
+      ? rigaScheda("spunta", `<strong>${esc(nomeSquadra(o.allocazione.id))}</strong>`, "ok")
+      : rigaScheda("spunta", `Partner: <strong>${esc(nomePartner(o.allocazione.id))}</strong>`, "ok");
   }
   const attesa = propostaInAttesa(o);
-  const testo = attesa ? "In attesa di risposta da " + nomePartner(attesa.partnerId) : "Da assegnare";
-  return `
-    <p class="scheda-stato ${attesa ? "attesa" : "da-fare"}">${icona("orologio")} ${esc(testo)}</p>
-    <a class="pulsante primario piccolo" href="#allocazione">Vai all'allocazione ${icona("freccia")}</a>`;
+  return attesa
+    ? rigaScheda("orologio", `In attesa di <strong>${esc(nomePartner(attesa.partnerId))}</strong>`, "attenzione da-assegnare", { titolo: "In attesa di risposta da " + nomePartner(attesa.partnerId) })
+    : rigaScheda("orologio", "<strong>Da assegnare</strong>", "attenzione da-assegnare");
 }
 
 // ============================================================= ALLOCAZIONE
@@ -222,7 +298,6 @@ function disegnaAllocazione() {
 
   return `
     ${intestazione({
-      occhiello: "Allocazione della capacità",
       titolo: "Chi esegue il servizio",
       istruzione: "Assegna ogni contratto firmato: prima a una squadra Gate con ore libere nella zona, altrimenti proponilo a un'impresa partner su WhatsApp.",
     })}
@@ -474,7 +549,6 @@ function disegnaIndicatori() {
 
   return `
     ${intestazione({
-      occhiello: "Indicatori di performance",
       titolo: "Dai contatti ai contratti",
       istruzione: "Leggi l'andamento del pilota: ogni indicatore mostra la formula e i numeri da cui nasce.",
     })}
@@ -1311,6 +1385,27 @@ const AZIONI = {
   fase: (el) => {
     faseSelezionata = el.dataset.id;
     disegna();
+  },
+  // «Mostra altre N» in fondo a una colonna della Pipeline
+  "mostra-tutte": (el) => {
+    espanse[el.dataset.id] = true;
+    disegna();
+  },
+  // «Mostra tutte (N)» / «Mostra meno» in Da fare oggi e Da seguire
+  "mostra-tutto": (el) => {
+    elenchiAperti[el.dataset.id] = !elenchiAperti[el.dataset.id];
+    disegna();
+    const pulsante = document.querySelector(`[data-azione="mostra-tutto"][data-id="${el.dataset.id}"]`);
+    if (pulsante) pulsante.focus({ preventScroll: true });
+  },
+  // Collegamento a una sezione della stessa schermata (es. il riquadro «Da seguire»)
+  scorri: (el, evento) => {
+    evento.preventDefault();
+    const meta = document.getElementById(el.dataset.id);
+    if (meta) {
+      meta.scrollIntoView({ block: "start", behavior: "smooth" });
+      meta.focus({ preventScroll: true });
+    }
   },
   chiudi: () => chiudiFinestra(),
   "assegna-squadra": (el) => assegnaSquadra(el.dataset.id),
