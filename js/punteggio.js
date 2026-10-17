@@ -29,7 +29,7 @@ function calcolaPunteggio(opp, opportunita) {
   const criteri = [];
 
   // 1. Settore pilota
-  const pilota = opp.settore === CONFIG.pilota.settore;
+  const pilota = settoreDi(opp) === CONFIG.pilota.settore;
   criteri.push({ nome: "Settore pilota", valore: pilota ? 1 : p.settoreFuoriPilota, peso: p.pesi.settore,
     nota: pilota ? "Settore del pilota" : "Fuori dal settore del pilota" });
 
@@ -75,8 +75,9 @@ function calcolaPunteggio(opp, opportunita) {
     nota: formattaEuro(valore) + " all'anno" });
 
   // 6. Decisore identificato
-  criteri.push({ nome: "Decisore identificato", valore: opp.decisore ? 1 : 0, peso: p.pesi.decisore,
-    nota: opp.decisore ? "Sì" : "Non ancora" });
+  const decisore = decisoreDi(opp);
+  criteri.push({ nome: "Decisore identificato", valore: decisore ? 1 : 0, peso: p.pesi.decisore,
+    nota: decisore ? (decisore.nome ? "Sì: " + decisore.nome : "Sì") : "Non ancora" });
 
   // Totale e classe
   criteri.forEach((c) => (c.punti = Math.round(c.valore * c.peso)));

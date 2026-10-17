@@ -1,65 +1,13 @@
 /*
  * APPLICAZIONE
- * Stato salvato nel browser, le tre schermate (Pipeline, Allocazione, Indicatori),
- * le finestre di dialogo e la gestione dei clic.
+ * Le schermate Pipeline, Allocazione e Indicatori, le finestre di dialogo,
+ * la gestione dei clic e il disegno della pagina. La schermata Clienti è in clienti.js,
+ * il salvataggio dei dati in dati.js.
  */
-
-// =================================================================== STATO
-
-// Codice di riferimento progressivo, es. GT-2026-017 (diventa il codice della commessa alla firma)
-function codiceCommessa(numero) {
-  return "GT-" + new Date().getFullYear() + "-" + String(numero).padStart(3, "0");
-}
-
-// Copia i dati di esempio della configurazione nello stato iniziale
-function datiIniziali() {
-  const opportunita = CONFIG.opportunita.map((esempio, i) => ({
-    id: "op" + (i + 1),
-    codice: codiceCommessa(i + 1),
-    tariffa: null,
-    perso: null,
-    allocazione: null,
-    proposte: [],
-    ...JSON.parse(JSON.stringify(esempio)),
-  }));
-  return { opportunita, contatore: opportunita.length };
-}
-
-// Legge i dati salvati nel browser; se non ci sono, usa gli esempi
-function carica() {
-  try {
-    const salvato = JSON.parse(localStorage.getItem(CONFIG.chiaveSalvataggio));
-    if (datiValidi(salvato)) return salvato;
-  } catch (e) {
-    // Salvataggio non disponibile (es. navigazione privata): si usano gli esempi
-  }
-  return datiIniziali();
-}
-
-// Controlla che i dati salvati siano coerenti con config.js (es. dopo aver cambiato squadre o partner)
-function datiValidi(d) {
-  return !!d && Array.isArray(d.opportunita) && typeof d.contatore === "number" &&
-    d.opportunita.every((o) => o && o.id && o.storico && o.storico.contatto && CONFIG.servizi[o.servizio] &&
-      CONFIG.settori.includes(o.settore) && CONFIG.comuni.some((c) => c.nome === o.comune) &&
-      (!o.allocazione || (o.allocazione.tipo === "squadra" ? trovaSquadra(o.allocazione.id) : trovaPartner(o.allocazione.id))) &&
-      (o.proposte || []).every((p) => trovaPartner(p.partnerId)));
-}
-
-function salva() {
-  try {
-    localStorage.setItem(CONFIG.chiaveSalvataggio, JSON.stringify(stato));
-  } catch (e) {
-    // Se il browser non permette di salvare, il prototipo funziona comunque
-  }
-}
 
 let stato = carica();
 let faseSelezionata = "contatto"; // fase mostrata su schermi stretti
 let ultimaModificata = null;      // scheda da evidenziare dopo un'azione
-
-function trova(id) {
-  return stato.opportunita.find((o) => o.id === id);
-}
 
 // ================================================================== ICONE
 
@@ -71,6 +19,12 @@ const ICONE = {
   attenzione: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/>',
   messaggio: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   orologio: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  telefono: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
+  email: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+  indietro: '<path d="M19 12H5M12 19l-7-7 7-7"/>',
+  matita: '<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>',
+  calendario: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  cerca: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
 };
 
 function icona(nome) {
@@ -144,6 +98,8 @@ function disegnaPipeline() {
         <span class="badge badge-C">C ${classi.C}</span></strong></div>
     </section>
 
+    ${sezioneDaFare()}
+
     <nav class="selettore-fasi" aria-label="Scegli la fase da vedere">
       ${colonne.map((c) => `
         <button class="fase-pulsante" type="button" data-azione="fase" data-id="${c.id}" aria-pressed="${c.id === faseSelezionata}">
@@ -193,10 +149,10 @@ function schedaOpportunita(o, p) {
   return `
     <article class="scheda ${o.id === ultimaModificata ? "evidenziata" : ""}" id="scheda-${o.id}">
       <div class="scheda-alto">
-        <button class="scheda-nome" type="button" data-azione="dettaglio" data-id="${o.id}" title="Apri il dettaglio">${esc(o.cliente)}</button>
+        <button class="scheda-nome" type="button" data-azione="dettaglio" data-id="${o.id}" title="Apri il dettaglio">${esc(nomeCliente(o))}</button>
         ${badgePunteggio(p)}
       </div>
-      <p class="scheda-meta">${esc(o.settore)} · ${esc(o.comune)}</p>
+      <p class="scheda-meta">${esc(settoreDi(o))} · ${esc(o.comune)}</p>
       <p class="scheda-meta">${esc(o.servizio)} · ${o.ore} h/mese</p>
       <p class="scheda-valore">${formattaEuro(valoreAnnuo(o))}/anno · margine ${formattaPercentuale(marginePercentuale(o, stato.opportunita))}</p>
       ${fondo}
@@ -267,7 +223,7 @@ function disegnaAllocazione() {
                 const interna = o.allocazione.tipo === "squadra";
                 const chi = interna ? trovaSquadra(o.allocazione.id).nome : trovaPartner(o.allocazione.id).nome;
                 return `<tr>
-                  <td>${o.codice}</td><td>${esc(o.cliente)}</td><td>${esc(o.servizio)}</td><td>${esc(o.comune)}</td>
+                  <td>${o.codice}</td><td><a class="link" href="#cliente-${o.aziendaId}">${esc(nomeCliente(o))}</a></td><td>${esc(o.servizio)}</td><td>${esc(o.comune)}</td>
                   <td class="num">${o.ore}</td>
                   <td>${chi}<br><span class="nota-piccola">${interna ? "Squadra interna" : "Impresa partner"}</span></td>
                   <td class="num">${formattaPercentuale(marginePercentuale(o, tutte))}</td>
@@ -297,7 +253,7 @@ function disegnaAllocazione() {
             <tbody>
               ${registro.map((r) => `<tr>
                 <td>${formattaData(r.data)}</td>
-                <td>${r.opp.codice} · ${esc(r.opp.cliente)}</td>
+                <td>${r.opp.codice} · ${esc(nomeCliente(r.opp))}</td>
                 <td>${trovaPartner(r.partnerId).nome}</td>
                 <td>${esiti[r.esito]}</td>
               </tr>`).join("")}
@@ -384,7 +340,7 @@ function schedaCommessa(o) {
       <header class="commessa-testa">
         <div>
           <p class="commessa-codice">${o.codice}</p>
-          <h3>${esc(o.cliente)}</h3>
+          <h3><a class="link-titolo" href="#cliente-${o.aziendaId}">${esc(nomeCliente(o))}</a></h3>
         </div>
         <p class="commessa-dati">${esc(o.servizio)} · ${esc(o.comune)} (${zona}) · ${o.ore} h/mese · firmato il ${formattaData(o.storico.contratto)}</p>
       </header>
@@ -470,7 +426,7 @@ function disegnaIndicatori() {
       etichetta: "Costo di acquisizione",
       valore: k.contratti ? formattaEuro(k.costoAcquisizione) : "n.d.",
       dettaglio: "per ogni contratto firmato",
-      formula: `(${k.contatti} contatti × ${formattaEuro(c.perContatto)} + ${k.sopralluoghi} sopralluoghi × ${formattaEuro(c.perSopralluogo)} + ${k.offerte} offerte × ${formattaEuro(c.perOfferta)} + ${formattaEuro(c.fissiCampagna)} di campagna) ÷ ${k.contratti} contratti = ${formattaEuro(k.costiCommerciali)} ÷ ${k.contratti} = ${k.contratti ? formattaEuro(k.costoAcquisizione) : "n.d."}`,
+      formula: `(${k.contatti} contatti × ${formattaEuro(c.perContatto)} + ${k.sopralluoghi} sopralluoghi × ${formattaEuro(c.perSopralluogo)} + ${k.offerte} offerte × ${formattaEuro(c.perOfferta)} + ${formattaEuro(costiFissiTotali())} di costi dei canali) ÷ ${k.contratti} contratti = ${formattaEuro(k.costiCommerciali)} ÷ ${k.contratti} = ${k.contratti ? formattaEuro(k.costoAcquisizione) : "n.d."}`,
       obiettivo: "≤ " + formattaEuro(ob.costoAcquisizioneMax),
       raggiunto: k.contratti > 0 && k.costoAcquisizione <= ob.costoAcquisizioneMax,
     }),
@@ -550,6 +506,29 @@ function disegnaIndicatori() {
         </table>
       </div>
       <p class="nota-piccola" style="margin-top:8px">Conversione = contratti ÷ contatti del settore. Quota A = opportunità con punteggio A sul totale del settore.</p>
+    </section>
+
+    <section class="sezione">
+      <h2>Risultati per canale di acquisizione <span class="sottotitolo">da dove arrivano i clienti e quanto costano</span></h2>
+      <div class="tabella-scorrevole">
+        <table class="tabella">
+          <thead><tr>
+            <th>Canale</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Conversione</th>
+            <th class="num">Costi del canale</th><th class="num">Costo di acquisizione</th>
+          </tr></thead>
+          <tbody>
+            ${risultatiPerCanale(tutte).map((r) => `<tr>
+              <td>${r.fonte}</td>
+              <td class="num">${r.contatti}</td>
+              <td class="num">${r.contratti}</td>
+              <td class="num">${r.contatti ? formattaPercentuale(r.conversione) : "–"}</td>
+              <td class="num">${formattaEuro(r.costi)}</td>
+              <td class="num">${r.costoAcquisizione === null ? "nessun contratto" : formattaEuro(r.costoAcquisizione)}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+      <p class="nota-piccola" style="margin-top:8px">Costi del canale = contatti × ${formattaEuro(CONFIG.costiAcquisizione.perContatto)} + sopralluoghi × ${formattaEuro(CONFIG.costiAcquisizione.perSopralluogo)} + offerte × ${formattaEuro(CONFIG.costiAcquisizione.perOfferta)} + spesa fissa del canale. Il canale è la fonte indicata nella scheda cliente.</p>
     </section>`;
 }
 
@@ -586,126 +565,207 @@ function apriDettaglio(id) {
   const o = trova(id);
   const p = calcolaPunteggio(o, stato.opportunita);
   const s = CONFIG.punteggio.soglie;
+  const ref = trovaReferente(o.referenteId);
   const passi = CONFIG.fasi.filter((f) => o.storico[f.id])
     .map((f) => `<li>${f.nome}: ${formattaData(o.storico[f.id])}</li>`).join("");
   apriFinestra(`
-    <div class="finestra-testa"><h2>${esc(o.cliente)}</h2>${badgePunteggio(p)}</div>
-    <p class="nota-piccola">${esc(o.settore)} · ${esc(o.comune)} · ${esc(o.servizio)} · ${o.ore} h/mese · tariffa ${formattaEuro(tariffaOraria(o))}/ora · rif. ${o.codice}<br>
-      Referente: ${esc(o.referente) || "non indicato"}</p>
+    <div class="finestra-testa"><h2>${esc(nomeCliente(o))}</h2>${badgePunteggio(p)}</div>
+    <p class="nota-piccola">${esc(o.servizio)} · ${o.ore} h/mese · tariffa ${formattaEuro(tariffaOraria(o))}/ora · sede di lavoro: ${esc(o.comune)} · rif. ${o.codice}<br>
+      Referente: ${ref ? esc(ref.nome) + (ref.ruolo ? " (" + esc(ref.ruolo) + ")" : "") : "non indicato"}</p>
     <h3>Punteggio di coerenza: ${p.totale} su 100 (classe ${p.classe})</h3>
     ${tabellaCriteri(p)}
-    <p class="nota-piccola">Classe A da ${s.A} punti, B da ${s.B}, C sotto ${s.B}. </p>
+    <p class="nota-piccola">Classe A da ${s.A} punti, B da ${s.B}, C sotto ${s.B}.</p>
     <h3>Storico</h3>
     <ol class="storico">${passi}${o.perso ? `<li>Perso: ${formattaData(o.perso.data)} · ${esc(o.perso.motivo)}</li>` : ""}</ol>
     ${o.motivazioneC ? `<p class="nota-c">Offerta inviata nonostante il punteggio C. Motivazione: ${esc(o.motivazioneC)}</p>` : ""}
-    <div class="azioni-finestra"><button class="pulsante primario" type="button" data-azione="chiudi">Chiudi</button></div>`,
+    <div class="azioni-finestra">
+      <a class="pulsante secondario" href="#cliente-${o.aziendaId}" data-azione="chiudi">Apri la scheda cliente</a>
+      <button class="pulsante primario" type="button" data-azione="chiudi">Chiudi</button>
+    </div>`,
     "Dettaglio opportunità");
 }
 
-// Modulo "Nuovo contatto" con anteprima del punteggio
-function apriNuovoContatto() {
+const opzioni = (valori, scelto) =>
+  valori.map((v) => `<option value="${esc(v)}" ${v === scelto ? "selected" : ""}>${esc(v)}</option>`).join("");
+
+const opzioniComuni = (scelto) =>
+  CONFIG.comuni.map((c) => `<option value="${esc(c.nome)}" ${c.nome === scelto ? "selected" : ""}>${esc(c.nome)}${c.km ? " (" + c.km + " km)" : ""}</option>`).join("");
+
+// Modulo "Nuovo contatto": azienda (nuova o esistente), referente e opportunità, con anteprima del punteggio
+function apriNuovoContatto(aziendaId = "") {
   const servizi = Object.keys(CONFIG.servizi);
-  const opzioni = (valori, scelto) => valori.map((v) => `<option value="${esc(v)}" ${v === scelto ? "selected" : ""}>${esc(v)}</option>`).join("");
+  const aziende = [...stato.aziende].sort((x, y) => x.ragioneSociale.localeCompare(y.ragioneSociale));
+  const scelta = trovaAzienda(aziendaId);
   apriFinestra(`
     <form class="modulo" id="modulo-contatto" novalidate>
       <div>
-        <h2>Nuovo contatto</h2>
-        <p class="nota-piccola">Compila i dati essenziali: il punteggio di coerenza si aggiorna mentre scrivi.</p>
+        <h2>${scelta ? "Nuova opportunità" : "Nuovo contatto"}</h2>
+        <p class="nota-piccola">Scegli il cliente o creane uno nuovo, poi indica il servizio: il punteggio di coerenza si aggiorna mentre scrivi.</p>
       </div>
-      <label>Ragione sociale del cliente
-        <input name="cliente" required autocomplete="off" placeholder="Es. Studio Commercialisti Omega">
+      <label>Azienda
+        <select name="azienda" id="campo-azienda">
+          <option value="">+ Nuova azienda</option>
+          ${aziende.map((a) => `<option value="${a.id}" ${a.id === aziendaId ? "selected" : ""}>${esc(a.ragioneSociale)}</option>`).join("")}
+        </select>
       </label>
-      <div class="riga-doppia">
-        <label>Settore
-          <select name="settore">${opzioni(CONFIG.settori, CONFIG.pilota.settore)}</select>
+
+      <fieldset class="gruppo" id="gruppo-nuova-azienda" ${scelta ? "hidden" : ""}>
+        <legend>Dati della nuova azienda</legend>
+        <label>Ragione sociale
+          <input name="ragioneSociale" id="campo-ragione" autocomplete="off" placeholder="Es. Studio Commercialisti Omega">
         </label>
-        <label>Comune
-          <select name="comune">${CONFIG.comuni.map((c) => `<option value="${esc(c.nome)}">${esc(c.nome)}${c.km ? " (" + c.km + " km)" : ""}</option>`).join("")}</select>
-        </label>
-      </div>
-      <div class="riga-doppia">
-        <label>Servizio richiesto
-          <select name="servizio">${opzioni(servizi, servizi[0])}</select>
-        </label>
-        <label>Ore al mese (stima)
-          <input name="ore" type="number" inputmode="numeric" min="1" step="1" required placeholder="Es. 60">
-        </label>
-      </div>
-      <div class="riga-doppia">
-        <label>Tariffa oraria (€)
-          <input name="tariffa" type="number" inputmode="decimal" min="1" step="0.5" value="${CONFIG.servizi[servizi[0]].tariffa}">
-        </label>
-        <label>Referente
-          <input name="referente" autocomplete="off" placeholder="Nome e ruolo">
-        </label>
-      </div>
-      <label class="spunta"><input name="decisore" type="checkbox"> Decisore identificato</label>
+        <div class="riga-doppia">
+          <label>Settore <select name="settore">${opzioni(CONFIG.settori, CONFIG.pilota.settore)}</select></label>
+          <label>Fonte del contatto <select name="fonte">${opzioni(fonti(), fonti()[0])}</select></label>
+        </div>
+        <div class="riga-doppia">
+          <label>Referente (nome e cognome) <input name="refNome" autocomplete="off" placeholder="Es. Dott.ssa Anna Verdi"></label>
+          <label>Ruolo <input name="refRuolo" autocomplete="off" placeholder="Es. Socia titolare"></label>
+        </div>
+        <div class="riga-doppia">
+          <label>Telefono <input name="refTelefono" type="tel" inputmode="tel" autocomplete="off" placeholder="Es. 333 123 4567"></label>
+          <label>Email <input name="refEmail" type="email" inputmode="email" autocomplete="off" placeholder="nome@azienda.it"></label>
+        </div>
+        <label class="spunta"><input name="refDecisore" type="checkbox"> È il decisore</label>
+        <label class="spunta"><input name="refPrivacy" type="checkbox"> Ha dato il consenso privacy per essere ricontattato</label>
+      </fieldset>
+
+      <label id="gruppo-referente" ${scelta ? "" : "hidden"}>Referente per questa opportunità
+        <select name="referente">${scelta ? opzioniReferenti(scelta.id) : ""}</select>
+      </label>
+
+      <fieldset class="gruppo">
+        <legend>Servizio richiesto</legend>
+        <div class="riga-doppia">
+          <label>Servizio <select name="servizio">${opzioni(servizi, servizi[0])}</select></label>
+          <label>Sede di lavoro (comune) <select name="comune">${opzioniComuni(scelta ? scelta.comune : "Bari")}</select></label>
+        </div>
+        <div class="riga-doppia">
+          <label>Ore al mese (stima)
+            <input name="ore" type="number" inputmode="numeric" min="1" step="1" required placeholder="Es. 60">
+          </label>
+          <label>Tariffa oraria (€)
+            <input name="tariffa" type="number" inputmode="decimal" min="1" step="0.5" value="${CONFIG.servizi[servizi[0]].tariffa}">
+          </label>
+        </div>
+      </fieldset>
       <div class="anteprima" id="anteprima-punteggio" aria-live="polite"></div>
       <div class="azioni-finestra">
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
-        <button class="pulsante primario" type="submit">Salva contatto</button>
+        <button class="pulsante primario" type="submit">Salva</button>
       </div>
     </form>`, "Nuovo contatto");
   aggiornaAnteprima();
 }
 
-// Legge il modulo e restituisce un'opportunità (non ancora salvata)
+function opzioniReferenti(aziendaId) {
+  const refs = referentiDi(aziendaId);
+  if (!refs.length) return '<option value="">Nessun referente registrato</option>';
+  const principale = refs.find((r) => r.decisore) || refs[0];
+  return refs.map((r) => `<option value="${r.id}" ${r.id === principale.id ? "selected" : ""}>${esc(r.nome)}${r.ruolo ? " · " + esc(r.ruolo) : ""}${r.decisore ? " (decisore)" : ""}</option>`).join("");
+}
+
+// Legge il modulo: nuova azienda e nuovo referente (se servono) e l'opportunità
 function leggiModulo(modulo) {
   const d = new FormData(modulo);
+  const testo = (nome) => String(d.get(nome) || "").trim();
   const servizio = d.get("servizio");
   const tariffa = Number(d.get("tariffa"));
-  return {
-    cliente: String(d.get("cliente")).trim(),
+  const aziendaId = d.get("azienda");
+  const nuovaAzienda = aziendaId ? null : {
+    ragioneSociale: testo("ragioneSociale"),
+    piva: "",
     settore: d.get("settore"),
+    comune: d.get("comune"),
+    fonte: d.get("fonte"),
+    note: "",
+    creata: oggi(),
+  };
+  const nuovoReferente = aziendaId || !testo("refNome") ? null : {
+    nome: testo("refNome"),
+    ruolo: testo("refRuolo"),
+    telefono: testo("refTelefono"),
+    email: testo("refEmail"),
+    canale: testo("refTelefono") ? "Telefono" : "Email",
+    decisore: d.get("refDecisore") === "on",
+    privacy: d.get("refPrivacy") === "on",
+  };
+  const opp = {
+    aziendaId,
+    referenteId: aziendaId ? d.get("referente") || null : null,
     comune: d.get("comune"),
     servizio,
     ore: Math.round(Number(d.get("ore"))) || 0,
     // La tariffa si salva solo se diversa da quella standard del servizio
     tariffa: tariffa > 0 && tariffa !== CONFIG.servizi[servizio].tariffa ? tariffa : null,
-    decisore: d.get("decisore") === "on",
-    referente: String(d.get("referente")).trim(),
     storico: { contatto: oggi() },
     perso: null,
     allocazione: null,
     proposte: [],
   };
+  return { opp, nuovaAzienda, nuovoReferente };
 }
 
 function aggiornaAnteprima() {
   const modulo = document.getElementById("modulo-contatto");
   const box = document.getElementById("anteprima-punteggio");
   if (!modulo || !box) return;
-  const o = leggiModulo(modulo);
-  if (o.ore <= 0) {
+  const { opp, nuovaAzienda, nuovoReferente } = leggiModulo(modulo);
+  if (opp.ore <= 0) {
     box.innerHTML = '<p class="nota-piccola">Inserisci le ore al mese per calcolare il punteggio di coerenza.</p>';
     return;
   }
-  const p = calcolaPunteggio(o, stato.opportunita);
+  // Per l'anteprima l'azienda nuova non è ancora salvata: la si passa direttamente
+  if (nuovaAzienda) {
+    opp._azienda = nuovaAzienda;
+    opp._decisore = nuovoReferente && nuovoReferente.decisore ? nuovoReferente : null;
+  }
+  const p = calcolaPunteggio(opp, stato.opportunita);
   box.innerHTML = `
     <p class="anteprima-testa">Punteggio di coerenza ${badgePunteggio(p)}
-      <span class="nota-piccola">${formattaEuro(valoreAnnuo(o))} all'anno</span></p>
+      <span class="nota-piccola">${formattaEuro(valoreAnnuo(opp))} all'anno</span></p>
     ${tabellaCriteri(p)}`;
 }
 
+function segnalaCampo(campo, messaggio) {
+  campo.setCustomValidity(messaggio);
+  campo.reportValidity();
+  campo.setCustomValidity("");
+}
+
 function salvaContatto(modulo) {
-  const o = leggiModulo(modulo);
-  if (!o.cliente || o.ore <= 0) {
-    const campo = !o.cliente ? modulo.cliente : modulo.ore;
-    campo.setCustomValidity(!o.cliente ? "Scrivi la ragione sociale" : "Inserisci le ore al mese");
-    campo.reportValidity();
-    campo.setCustomValidity("");
-    return;
+  const { opp, nuovaAzienda, nuovoReferente } = leggiModulo(modulo);
+  if (nuovaAzienda) {
+    const nome = nuovaAzienda.ragioneSociale;
+    if (!nome) return segnalaCampo(modulo.ragioneSociale, "Scrivi la ragione sociale");
+    const doppione = stato.aziende.find((a) => a.ragioneSociale.toLowerCase() === nome.toLowerCase());
+    if (doppione) return segnalaCampo(modulo.ragioneSociale, "Esiste già un'azienda con questo nome: sceglila dall'elenco Azienda");
+  }
+  if (opp.ore <= 0) return segnalaCampo(modulo.ore, "Inserisci le ore al mese");
+
+  if (nuovaAzienda) {
+    nuovaAzienda.id = nuovoId("az");
+    stato.aziende.push(nuovaAzienda);
+    opp.aziendaId = nuovaAzienda.id;
+    if (nuovoReferente) {
+      nuovoReferente.id = nuovoId("rf");
+      nuovoReferente.aziendaId = nuovaAzienda.id;
+      stato.referenti.push(nuovoReferente);
+      opp.referenteId = nuovoReferente.id;
+    }
   }
   stato.contatore += 1;
-  o.id = "op" + Date.now();
-  o.codice = codiceCommessa(stato.contatore);
-  stato.opportunita.push(o);
+  opp.id = nuovoId("op");
+  opp.codice = codiceRiferimento(stato.contatore);
+  stato.opportunita.push(opp);
+  registraAttivita({ aziendaId: opp.aziendaId, tipo: "Pipeline", testo: opp.servizio + ": nuovo contatto (" + opp.ore + " h/mese)" });
   salva();
   chiudiFinestra();
   faseSelezionata = "contatto";
-  ultimaModificata = o.id;
-  disegna();
-  mostraAvviso("Contatto creato: " + o.cliente);
+  ultimaModificata = opp.id;
+  if (schermataAttuale().nome !== "pipeline") location.hash = "pipeline";
+  else disegna();
+  mostraAvviso("Contatto creato: " + nomeCliente(opp));
 }
 
 // Conferma motivata per inviare un'offerta a un cliente C
@@ -715,7 +775,7 @@ function apriConfermaC(o) {
   apriFinestra(`
     <form class="modulo" id="modulo-conferma-c" data-id="${o.id}">
       <div class="finestra-testa"><h2>Cliente fuori dai criteri del pilota</h2>${badgePunteggio(p)}</div>
-      <p>${esc(o.cliente)} ha un punteggio di coerenza ${p.totale} su 100 (classe C). I punti deboli:</p>
+      <p>${esc(nomeCliente(o))} ha un punteggio di coerenza ${p.totale} su 100 (classe C). I punti deboli:</p>
       <ul class="storico">${deboli.map((c) => `<li><strong>${c.nome}</strong>: ${esc(c.nota)} (${c.punti}/${c.peso})</li>`).join("")}</ul>
       <label>Per inviare comunque l'offerta, scrivi la motivazione (resterà registrata)
         <textarea name="motivazione" required minlength="5" placeholder="Es. cliente strategico per entrare nel settore"></textarea>
@@ -733,7 +793,7 @@ function apriPerso(id) {
   apriFinestra(`
     <form class="modulo" id="modulo-perso" data-id="${o.id}">
       <h2>Segna come perso</h2>
-      <p>${esc(o.cliente)} uscirà dalla pipeline attiva, ma resterà nei conteggi degli indicatori.</p>
+      <p>${esc(nomeCliente(o))} uscirà dalla pipeline attiva, ma resterà nei conteggi degli indicatori.</p>
       <label>Motivo
         <select name="motivo">${CONFIG.motiviPerdita.map((m) => `<option>${esc(m)}</option>`).join("")}</select>
       </label>
@@ -771,13 +831,14 @@ function avanza(id) {
 
 function registraFase(o, fase) {
   o.storico[fase.id] = oggi();
+  registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": fase «" + fase.nome + "»" });
   salva();
   faseSelezionata = fase.id;
   ultimaModificata = o.id;
   disegna();
   mostraAvviso(fase.id === "contratto"
     ? "Contratto firmato. Ora assegna la commessa in Allocazione."
-    : o.cliente + " passa a «" + fase.nome + "»");
+    : nomeCliente(o) + " passa a «" + fase.nome + "»");
 }
 
 function assegnaSquadra(id) {
@@ -785,6 +846,7 @@ function assegnaSquadra(id) {
   const squadra = squadraDisponibile(o, stato.opportunita);
   if (!squadra) return;
   o.allocazione = { tipo: "squadra", id: squadra.id, data: oggi() };
+  registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": commessa assegnata a " + squadra.nome });
   salva();
   disegna();
   mostraAvviso("Commessa assegnata a " + squadra.nome);
@@ -796,6 +858,7 @@ function proponi(id, partnerId) {
   if (!propostaInAttesa(o)) {
     o.proposte = o.proposte || [];
     o.proposte.push({ partnerId, data: oggi(), esito: "attesa" });
+    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": proposta su WhatsApp al partner " + trovaPartner(partnerId).nome });
   }
   salva();
   ultimaModificata = o.id;
@@ -818,6 +881,7 @@ function rispostaPartner(id, esito) {
       mostraAvviso(partner.nome + " non è più idoneo (" + req.testo + "): proponi al partner successivo");
     } else {
       o.allocazione = { tipo: "partner", id: partner.id, data: oggi() };
+      registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": commessa assegnata al partner " + partner.nome });
       mostraAvviso("Commessa assegnata a " + partner.nome + " — il cliente resta di Gate");
     }
   } else {
@@ -845,6 +909,10 @@ const AZIONI = {
   "risposta-si": (el) => rispostaPartner(el.dataset.id, "si"),
   "risposta-no": (el) => rispostaPartner(el.dataset.id, "no"),
   ripristina: () => apriRipristino(),
+  "esporta-backup": () => esportaBackup(),
+  "esporta-csv": () => esportaCsvClienti(),
+  "importa-backup": () => document.getElementById("file-backup").click(),
+  ...AZIONI_CLIENTI,
   "conferma-ripristino": () => {
     stato = datiIniziali();
     salva();
@@ -884,30 +952,50 @@ document.addEventListener("submit", (evento) => {
     o.motivazioneC = testo;
     chiudiFinestra();
     registraFase(o, CONFIG.fasi.find((f) => f.id === "offerta"));
+  } else if (GESTORI_MODULI[modulo.id]) {
+    // Moduli della schermata Clienti (clienti.js)
+    GESTORI_MODULI[modulo.id](modulo);
   } else if (modulo.id === "modulo-perso") {
     const o = trova(modulo.dataset.id);
     o.perso = { data: oggi(), motivo: modulo.motivo.value };
+    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": opportunità persa (" + o.perso.motivo + ")" });
     salva();
     chiudiFinestra();
     faseSelezionata = "perso";
     ultimaModificata = o.id;
     disegna();
-    mostraAvviso("Opportunità segnata come persa: " + o.cliente);
+    mostraAvviso("Opportunità segnata come persa: " + nomeCliente(o));
   }
 });
 
-// Anteprima del punteggio mentre si compila il modulo
+// Anteprima del punteggio mentre si compila il modulo; ricerca nell'elenco clienti
 document.addEventListener("input", (evento) => {
   if (evento.target.closest("#modulo-contatto")) aggiornaAnteprima();
+  if (evento.target.closest("#filtri-clienti")) aggiornaElencoClienti();
 });
 
-// Cambiando servizio, la tariffa torna quella standard del nuovo servizio
+// Importazione di un backup scelto dall'utente
+document.getElementById("file-backup").addEventListener("change", (evento) => {
+  const file = evento.target.files[0];
+  evento.target.value = "";
+  if (file) importaBackup(file);
+});
+
 document.addEventListener("change", (evento) => {
   const campo = evento.target;
-  if (campo.name === "servizio" && campo.form && campo.form.id === "modulo-contatto") {
-    campo.form.tariffa.value = CONFIG.servizi[campo.value].tariffa;
-    aggiornaAnteprima();
+  if (campo.closest("#filtri-clienti")) return aggiornaElencoClienti();
+  if (!campo.form || campo.form.id !== "modulo-contatto") return;
+  // Cambiando servizio, la tariffa torna quella standard del nuovo servizio
+  if (campo.name === "servizio") campo.form.tariffa.value = CONFIG.servizi[campo.value].tariffa;
+  // Scegliendo un'azienda esistente si nascondono i campi della nuova azienda
+  if (campo.name === "azienda") {
+    const azienda = trovaAzienda(campo.value);
+    document.getElementById("gruppo-nuova-azienda").hidden = !!azienda;
+    document.getElementById("gruppo-referente").hidden = !azienda;
+    campo.form.referente.innerHTML = azienda ? opzioniReferenti(azienda.id) : "";
+    if (azienda) campo.form.comune.value = azienda.comune;
   }
+  aggiornaAnteprima();
 });
 
 // ========================================================= AVVISI E DISEGNO
@@ -923,25 +1011,36 @@ function mostraAvviso(testo) {
 
 const SCHERMATE = {
   pipeline: disegnaPipeline,
+  clienti: disegnaClienti,
+  cliente: disegnaSchedaCliente, // scheda di un'azienda: #cliente-<id>
   allocazione: disegnaAllocazione,
   indicatori: disegnaIndicatori,
 };
 
+// Legge la schermata dall'indirizzo: #pipeline, #clienti, #cliente-az3 ...
 function schermataAttuale() {
-  const nome = location.hash.slice(1);
-  return SCHERMATE[nome] ? nome : "pipeline";
+  const hash = location.hash.slice(1);
+  if (hash.startsWith("cliente-") && trovaAzienda(hash.slice(8))) return { nome: "cliente", parametro: hash.slice(8), menu: "clienti" };
+  return SCHERMATE[hash] && hash !== "cliente" ? { nome: hash, menu: hash } : { nome: "pipeline", menu: "pipeline" };
 }
 
 // Ridisegna la schermata attuale a partire dallo stato
 function disegna() {
-  const nome = schermataAttuale();
-  document.getElementById("schermata").innerHTML = SCHERMATE[nome]();
+  const { nome, parametro, menu } = schermataAttuale();
+  document.getElementById("schermata").innerHTML = SCHERMATE[nome](parametro);
 
   // Voce di menu attiva
   document.querySelectorAll("[data-vai]").forEach((a) => {
-    if (a.dataset.vai === nome) a.setAttribute("aria-current", "page");
+    if (a.dataset.vai === menu) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
   });
+
+  // Numero di attività in scadenza accanto alla voce "Clienti"
+  const scadute = attivitaDaFare().filter((x) => x.data <= oggi()).length;
+  const conteggioClienti = document.getElementById("conteggio-clienti");
+  conteggioClienti.textContent = scadute;
+  conteggioClienti.hidden = scadute === 0;
+  conteggioClienti.setAttribute("aria-label", scadute + " attività da fare entro oggi");
 
   // Numero di commesse da assegnare accanto alla voce "Allocazione"
   const daAssegnare = stato.opportunita.filter((o) => o.storico.contratto && !o.perso && !o.allocazione).length;

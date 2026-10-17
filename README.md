@@ -19,21 +19,25 @@ C'è anche un vincolo: acquisire solo clienti coerenti con la capacità operativ
 
 ## La soluzione
 
-Tre schermate, nell'ordine del processo:
+Quattro schermate:
 
 | Schermata | Cosa fa |
 |---|---|
 | **Pipeline** | Le opportunità avanzano con un clic nelle fasi Contatto → Qualificato → Sopralluogo → Offerta → Contratto (più Perso). Ogni opportunità ha un **punteggio di coerenza A/B/C** su 6 criteri: settore pilota, distanza da Bari, capacità disponibile, margine stimato, dimensione della commessa, decisore identificato. Un'opportunità C passa a Offerta solo con una motivazione scritta. |
+| **Clienti** | L'anagrafica: aziende con i loro **referenti** (ruolo, decisore, telefono, email, canale preferito, consenso privacy), pulsanti **Chiama / WhatsApp / Email** con un clic, **cronologia delle attività** (chiamate, email, visite, note) e **prossime azioni** con data. Ogni azienda ha la sua **fonte** (sito web, porta a porta, intermediario, portale gare, eventi e LinkedIn, passaparola). Le attività in scadenza compaiono in "Da fare oggi" nella Pipeline. |
 | **Allocazione** | Ogni contratto firmato va prima a una **squadra interna** con ore libere nella zona. Se non c'è capacità, il coordinatore lo propone a un'**impresa partner** con un messaggio **WhatsApp precompilato** (link wa.me). Il partner risponde SÌ o NO senza usare nessuna app; se risponde NO, il sistema propone il partner successivo. Sono ammesse solo imprese con DURC regolare, nessun lavoratore autonomo. Il cliente resta di Gate, che firma il contratto e controlla la qualità. |
-| **Indicatori** | I 5 KPI richiesti da Gate, divisi in **efficacia** (contatti qualificati, sopralluoghi, conversione delle offerte) ed **efficienza** (costo di acquisizione, margine atteso), ciascuno con la formula e i numeri. Poi il funnel commerciale e i risultati per settore. |
+| **Indicatori** | I 5 KPI richiesti da Gate, divisi in **efficacia** (contatti qualificati, sopralluoghi, conversione delle offerte) ed **efficienza** (costo di acquisizione, margine atteso), ciascuno con la formula e i numeri. Poi il funnel commerciale, i risultati per settore e i **risultati per canale di acquisizione**, cioè quale canale porta contratti e a che costo. |
 
 Il portale per i partner compare solo come anteprima, etichettata "evoluzione futura".
 
+![Clienti](docs/screenshot/clienti-desktop.png)
+![Scheda cliente](docs/screenshot/scheda-cliente-desktop.png)
 ![Allocazione della capacità](docs/screenshot/allocazione-desktop.png)
 ![Indicatori di performance](docs/screenshot/indicatori-desktop.png)
 
 <p>
   <img src="docs/screenshot/pipeline-mobile.png" alt="Pipeline da telefono" width="260">
+  <img src="docs/screenshot/scheda-cliente-mobile.png" alt="Scheda cliente da telefono" width="260">
   <img src="docs/screenshot/allocazione-mobile.png" alt="Allocazione da telefono" width="260">
 </p>
 
@@ -42,7 +46,22 @@ Il portale per i partner compare solo come anteprima, etichettata "evoluzione fu
 - **In locale:** scarica la cartella e apri `index.html` con un doppio clic. Non serve installare nulla.
 - **Online, con GitHub Pages:** nel repository vai in *Settings → Pages*, scegli *Deploy from a branch*, seleziona il branch e la cartella `/ (root)` e salva. Dopo un minuto il sito è disponibile all'indirizzo che GitHub mostra in quella pagina.
 
-I dati restano nel browser di chi usa il prototipo (localStorage): non c'è nessun server. Per ripartire dai dati di esempio c'è il pulsante **"Ripristina dati di esempio"** in fondo alla pagina.
+I dati restano nel browser di chi usa il prototipo (localStorage): non c'è nessun server. In fondo alla pagina ci sono tre pulsanti:
+- **Salva backup**: scarica tutti i dati in un file `.json`;
+- **Carica backup**: ripristina i dati da quel file, anche su un altro computer;
+- **Ripristina dati di esempio**: riparte dai dati fittizi.
+
+Nella schermata Clienti, **Esporta per Excel** scarica aziende e referenti in un file CSV.
+
+## Gate può usarlo davvero?
+
+Sì, per il pilota e da una persona alla volta. Il coordinatore commerciale può registrare clienti, referenti, attività e trattative reali, salvare il backup ogni sera e passarlo a un collega, ed esportare l'elenco per Excel.
+
+Il prototipo però non condivide i dati tra più utenti: ogni browser ha la sua copia. Per un uso da parte di tutto l'ufficio servono due passi successivi:
+1. **un archivio condiviso online** con accesso tramite login (per esempio un database gestito) al posto del salvataggio nel browser;
+2. **il collegamento al gestionale di Gate**, così che un contratto firmato diventi direttamente una commessa nelle sezioni Contratti e Pianificazione Personale.
+
+Prima di inserire dati personali reali va verificato con Gate il rispetto del GDPR: informativa, consenso e luogo dove sono conservati i dati.
 
 ## Stack
 
@@ -57,10 +76,12 @@ index.html          struttura della pagina e menu
 css/stile.css       palette e font del sito Gate (variabili in cima al file)
 js/config.js        IPOTESI E DATI DI ESEMPIO: l'unico file da modificare con i dati reali
 js/formato.js       formattazione di euro, percentuali e date
+js/dati.js          salvataggio nel browser, collegamenti tra aziende/referenti/opportunità, backup ed esportazione
 js/allocazione.js   regole di allocazione: squadre, partner, DURC, messaggio WhatsApp
 js/punteggio.js     stime economiche e punteggio di coerenza A/B/C
 js/kpi.js           5 KPI, funnel e risultati per settore
-js/app.js           schermate, finestre, clic e salvataggio nel browser
+js/clienti.js       schermata Clienti: elenco, scheda cliente, referenti, attività, "Da fare"
+js/app.js           schermate Pipeline, Allocazione e Indicatori, finestre e clic
 ```
 
 ## Come sostituire i dati con quelli reali
@@ -73,7 +94,8 @@ Tutto si trova in `js/config.js`, con un commento per ogni voce:
 - **costi commerciali** per il costo di acquisizione e **obiettivi** dei KPI;
 - **comuni e zone**, **squadre** (ore di capacità e già impegnate), **partner** (tipo, zone, servizi, scadenza DURC, telefono);
 - **testo del messaggio WhatsApp**;
-- **opportunità di esempio**.
+- **aziende con i referenti**, **opportunità** e **attività** di esempio;
+- **canali di acquisizione** con la loro spesa e i **tipi di attività**.
 
 Dopo aver cambiato le opportunità di esempio, premi "Ripristina dati di esempio" per caricarle. Prima di una demo dal vivo conviene mettere come telefono di un partner il numero di un membro del team, così il messaggio WhatsApp arriva davvero.
 

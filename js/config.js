@@ -19,7 +19,7 @@ function traGiorni(n) {
 
 const CONFIG = {
   // Chiave con cui i dati vengono salvati nel browser (localStorage)
-  chiaveSalvataggio: "gate-sviluppo-commerciale-v1",
+  chiaveSalvataggio: "gate-sviluppo-commerciale-v2",
 
   // ---------------------------------------------------------------- Pilota
   pilota: {
@@ -115,8 +115,20 @@ const CONFIG = {
     perContatto: 20,          // € di tempo commerciale per ogni contatto gestito
     perSopralluogo: 80,       // € per ogni sopralluogo (tempo + trasferta)
     perOfferta: 120,          // € per preparare ogni offerta
-    fissiCampagna: 1500,      // € di campagna del pilota (materiali, eventi, LinkedIn)
+    // € spesi nel pilota per ogni canale di acquisizione (materiali, eventi, provvigioni...)
+    fissiPerCanale: {
+      "Sito web": 300,
+      "Porta a porta": 200,
+      "Intermediario": 500,
+      "Portale gare": 100,
+      "Eventi e LinkedIn": 400,
+      "Passaparola": 0,
+    },
   },
+
+  // Tipi di attività registrabili nella scheda cliente
+  tipiAttivita: ["Chiamata", "Email", "WhatsApp", "Visita", "Nota"],
+  canaliPreferiti: ["Telefono", "WhatsApp", "Email"],
 
   // ------------------------------------------------- Obiettivi dei KPI
   obiettivi: {
@@ -168,63 +180,121 @@ const CONFIG = {
       zone: ["Bari città", "Area Nord"], servizi: ["Pulizia Professionale"], durcScadenza: traGiorni(300) },
   ],
 
-  // Opportunità commerciali.
+  // Aziende (clienti e potenziali clienti) con i loro referenti.
+  // fonte = canale da cui è arrivato il contatto (vedi costiAcquisizione.fissiPerCanale).
+  // privacy = consenso al trattamento dei dati per finalità commerciali.
+  aziende: [
+    { id: "az1", ragioneSociale: "Studio Legale Alfa", piva: "00000000101", settore: "Uffici e studi professionali", comune: "Bari", fonte: "Passaparola",
+      referenti: [
+        { nome: "Avv. Laura Ferri", ruolo: "Socia titolare", decisore: true, telefono: "390000001011", email: "l.ferri@example.com", canale: "Telefono", privacy: true },
+        { nome: "Giulia Neri", ruolo: "Segreteria", decisore: false, telefono: "390000001012", email: "segreteria.alfa@example.com", canale: "Email", privacy: true },
+      ] },
+    { id: "az2", ragioneSociale: "Studio Notarile Kappa", piva: "00000000102", settore: "Uffici e studi professionali", comune: "Bitonto", fonte: "Sito web",
+      referenti: [
+        { nome: "Notaio Paolo Conte", ruolo: "Titolare", decisore: true, telefono: "390000001021", email: "p.conte@example.com", canale: "Email", privacy: true },
+        { nome: "Sara Gallo", ruolo: "Segreteria", decisore: false, telefono: "390000001022", email: "info.kappa@example.com", canale: "Telefono", privacy: true },
+      ] },
+    { id: "az3", ragioneSociale: "Studio Associato Beta", piva: "00000000103", settore: "Uffici e studi professionali", comune: "Bari", fonte: "Eventi e LinkedIn",
+      referenti: [{ nome: "Dott. Andrea Lupo", ruolo: "Socio amministratore", decisore: true, telefono: "390000001031", email: "a.lupo@example.com", canale: "WhatsApp", privacy: true }] },
+    { id: "az4", ragioneSociale: "Centro Uffici Gamma", piva: "00000000104", settore: "Uffici e studi professionali", comune: "Modugno", fonte: "Intermediario",
+      referenti: [{ nome: "Ing. Marta Riva", ruolo: "Facility manager", decisore: true, telefono: "390000001041", email: "m.riva@example.com", canale: "Telefono", privacy: true }] },
+    { id: "az5", ragioneSociale: "Poliambulatorio Zeta", piva: "00000000105", settore: "Sanità privata", comune: "Bari", fonte: "Sito web",
+      referenti: [
+        { nome: "Dott. Luca Sala", ruolo: "Direttore sanitario", decisore: true, telefono: "390000001051", email: "l.sala@example.com", canale: "Email", privacy: true },
+        { nome: "Elena Moro", ruolo: "Amministrazione", decisore: false, telefono: "390000001052", email: "amministrazione.zeta@example.com", canale: "Email", privacy: true },
+      ] },
+    { id: "az6", ragioneSociale: "Studio Dentistico Lambda", piva: "00000000106", settore: "Sanità privata", comune: "Bari", fonte: "Porta a porta",
+      referenti: [{ nome: "Dott.ssa Chiara Fois", ruolo: "Titolare", decisore: true, telefono: "390000001061", email: "c.fois@example.com", canale: "Telefono", privacy: true }] },
+    { id: "az7", ragioneSociale: "Agenzia Delta Assicurazioni", piva: "00000000107", settore: "Uffici e studi professionali", comune: "Bari", fonte: "Porta a porta",
+      referenti: [{ nome: "Davide Testa", ruolo: "Responsabile di sede", decisore: false, telefono: "390000001071", email: "d.testa@example.com", canale: "Telefono", privacy: true }] },
+    { id: "az8", ragioneSociale: "Magazzino Omicron", piva: "00000000108", settore: "GDO e logistica", comune: "Modugno", fonte: "Portale gare",
+      referenti: [{ nome: "Fabio Greco", ruolo: "Responsabile logistica", decisore: true, telefono: "390000001081", email: "f.greco@example.com", canale: "Email", privacy: true }] },
+    { id: "az9", ragioneSociale: "Coworking Iota", piva: "00000000109", settore: "Uffici e studi professionali", comune: "Bari", fonte: "Eventi e LinkedIn",
+      referenti: [{ nome: "Valeria Costa", ruolo: "Community manager", decisore: true, telefono: "390000001091", email: "v.costa@example.com", canale: "WhatsApp", privacy: true }] },
+    { id: "az10", ragioneSociale: "Studio Tecnico Epsilon", piva: "00000000110", settore: "Uffici e studi professionali", comune: "Triggiano", fonte: "Passaparola",
+      referenti: [{ nome: "Ing. Roberto Fini", ruolo: "Titolare", decisore: true, telefono: "390000001101", email: "r.fini@example.com", canale: "Telefono", privacy: true }] },
+    { id: "az11", ragioneSociale: "Officine Theta", piva: "00000000111", settore: "Industria", comune: "Molfetta", fonte: "Intermediario",
+      referenti: [{ nome: "Silvia Rota", ruolo: "Ufficio acquisti", decisore: false, telefono: "390000001111", email: "acquisti.theta@example.com", canale: "Email", privacy: true }] },
+    { id: "az12", ragioneSociale: "Ente di Formazione Mu", piva: "00000000112", settore: "Enti pubblici", comune: "Bari", fonte: "Portale gare",
+      referenti: [{ nome: "Mario Piras", ruolo: "Ufficio economato", decisore: false, telefono: "390000001121", email: "economato.mu@example.com", canale: "Email", privacy: true }] },
+    { id: "az13", ragioneSociale: "Studio Commercialisti Nu", piva: "00000000113", settore: "Uffici e studi professionali", comune: "Casamassima", fonte: "Sito web",
+      referenti: [{ nome: "Dott. Paolo Serra", ruolo: "Titolare", decisore: true, telefono: "390000001131", email: "p.serra@example.com", canale: "Telefono", privacy: true }] },
+    { id: "az14", ragioneSociale: "Studio Architetti Pi", piva: "00000000114", settore: "Uffici e studi professionali", comune: "Bari", fonte: "Eventi e LinkedIn",
+      referenti: [{ nome: "Irene Valli", ruolo: "Segreteria", decisore: false, telefono: "390000001141", email: "studio.pi@example.com", canale: "Email", privacy: false }] },
+    { id: "az15", ragioneSociale: "Supermercato Eta", piva: "00000000115", settore: "GDO e logistica", comune: "Altamura", fonte: "Porta a porta",
+      referenti: [{ nome: "Giorgio Pace", ruolo: "Direttore di punto vendita", decisore: true, telefono: "390000001151", email: "g.pace@example.com", canale: "Telefono", privacy: true }] },
+    { id: "az16", ragioneSociale: "Laboratorio Sigma", piva: "00000000116", settore: "Industria", comune: "Gioia del Colle", fonte: "Intermediario",
+      referenti: [{ nome: "Nadia Leone", ruolo: "Ufficio acquisti", decisore: false, telefono: "390000001161", email: "n.leone@example.com", canale: "Email", privacy: true }] },
+    { id: "az17", ragioneSociale: "Studio Medico Tau", piva: "00000000117", settore: "Sanità privata", comune: "Valenzano", fonte: "Sito web",
+      referenti: [{ nome: "Dott. Enrico Bassi", ruolo: "Titolare", decisore: true, telefono: "390000001171", email: "e.bassi@example.com", canale: "Telefono", privacy: true }] },
+    { id: "az18", ragioneSociale: "Agenzia Immobiliare Rho", piva: "00000000118", settore: "Uffici e studi professionali", comune: "Bari", fonte: "Porta a porta",
+      referenti: [{ nome: "Simona Ricci", ruolo: "Titolare", decisore: true, telefono: "390000001181", email: "s.ricci@example.com", canale: "WhatsApp", privacy: false }] },
+  ],
+
+  // Opportunità commerciali: una trattativa per un servizio con un'azienda.
+  // comune = sede di lavoro dove si svolge il servizio.
   // storico: fasi raggiunte con la data. Le opportunità perse hanno anche "perso".
   // allocazione: a chi è stata affidata la commessa (solo per i contratti).
   opportunita: [
-    { cliente: "Studio Legale Alfa", settore: "Uffici e studi professionali", comune: "Bari",
-      servizio: "Pulizia Professionale", ore: 48, decisore: true, referente: "Avv. titolare",
+    { azienda: "az1", comune: "Bari", servizio: "Pulizia Professionale", ore: 48,
       storico: { contatto: traGiorni(-82), qualificato: traGiorni(-78), sopralluogo: traGiorni(-70), offerta: traGiorni(-62), contratto: traGiorni(-41) },
       allocazione: { tipo: "squadra", id: "sq1", data: traGiorni(-40) } },
-    { cliente: "Studio Notarile Kappa", settore: "Uffici e studi professionali", comune: "Bitonto",
-      servizio: "Pulizia Professionale", ore: 36, decisore: true, referente: "Segreteria dello studio",
+    { azienda: "az2", comune: "Bitonto", servizio: "Pulizia Professionale", ore: 36,
       storico: { contatto: traGiorni(-75), qualificato: traGiorni(-71), sopralluogo: traGiorni(-60), offerta: traGiorni(-52), contratto: traGiorni(-30) },
       allocazione: { tipo: "partner", id: "pa2", data: traGiorni(-28) },
       proposte: [{ partnerId: "pa2", data: traGiorni(-29), esito: "si" }] },
-    { cliente: "Studio Associato Beta", settore: "Uffici e studi professionali", comune: "Bari",
-      servizio: "Pulizia Professionale", ore: 32, decisore: true, referente: "Socio amministratore",
+    { azienda: "az3", comune: "Bari", servizio: "Pulizia Professionale", ore: 32,
       storico: { contatto: traGiorni(-50), qualificato: traGiorni(-47), sopralluogo: traGiorni(-40), offerta: traGiorni(-33), contratto: traGiorni(-3) } },
-    { cliente: "Centro Uffici Gamma", settore: "Uffici e studi professionali", comune: "Modugno",
-      servizio: "Pulizia Professionale", ore: 120, decisore: true, referente: "Facility manager",
+    { azienda: "az4", comune: "Modugno", servizio: "Pulizia Professionale", ore: 120,
       storico: { contatto: traGiorni(-44), qualificato: traGiorni(-41), sopralluogo: traGiorni(-30), offerta: traGiorni(-20) } },
-    { cliente: "Poliambulatorio Zeta", settore: "Sanità privata", comune: "Bari",
-      servizio: "Pulizia Professionale", ore: 90, decisore: true, referente: "Direttore sanitario",
+    { azienda: "az5", comune: "Bari", servizio: "Pulizia Professionale", ore: 90,
       storico: { contatto: traGiorni(-58), qualificato: traGiorni(-55), sopralluogo: traGiorni(-45), offerta: traGiorni(-35) } },
-    { cliente: "Studio Dentistico Lambda", settore: "Sanità privata", comune: "Bari",
-      servizio: "Pulizia Professionale", ore: 16, decisore: true, referente: "Titolare",
+    { azienda: "az6", comune: "Bari", servizio: "Pulizia Professionale", ore: 16,
       storico: { contatto: traGiorni(-66), qualificato: traGiorni(-63), sopralluogo: traGiorni(-57), offerta: traGiorni(-50) },
       perso: { data: traGiorni(-36), motivo: "Prezzo" } },
-    { cliente: "Agenzia Delta Assicurazioni", settore: "Uffici e studi professionali", comune: "Bari",
-      servizio: "Pulizia Professionale", ore: 24, decisore: false, referente: "Responsabile di sede",
+    { azienda: "az7", comune: "Bari", servizio: "Pulizia Professionale", ore: 24,
       storico: { contatto: traGiorni(-30), qualificato: traGiorni(-26), sopralluogo: traGiorni(-12) } },
-    { cliente: "Magazzino Omicron", settore: "GDO e logistica", comune: "Modugno",
-      servizio: "Logistica", ore: 160, decisore: true, referente: "Responsabile logistica",
+    { azienda: "az8", comune: "Modugno", servizio: "Logistica", ore: 160,
       storico: { contatto: traGiorni(-34), qualificato: traGiorni(-30), sopralluogo: traGiorni(-15) } },
-    { cliente: "Coworking Iota", settore: "Uffici e studi professionali", comune: "Bari",
-      servizio: "Pulizia Professionale", ore: 40, decisore: true, referente: "Community manager",
+    { azienda: "az9", comune: "Bari", servizio: "Pulizia Professionale", ore: 40,
       storico: { contatto: traGiorni(-25), qualificato: traGiorni(-21), sopralluogo: traGiorni(-9) } },
-    { cliente: "Studio Tecnico Epsilon", settore: "Uffici e studi professionali", comune: "Triggiano",
-      servizio: "Pulizia Professionale", ore: 20, decisore: true, referente: "Ing. titolare",
+    { azienda: "az10", comune: "Triggiano", servizio: "Pulizia Professionale", ore: 20,
       storico: { contatto: traGiorni(-18), qualificato: traGiorni(-14) } },
-    { cliente: "Officine Theta", settore: "Industria", comune: "Molfetta",
-      servizio: "Manutenzioni", ore: 40, decisore: false, referente: "Ufficio acquisti",
+    { azienda: "az11", comune: "Molfetta", servizio: "Manutenzioni", ore: 40,
       storico: { contatto: traGiorni(-22), qualificato: traGiorni(-16) } },
-    { cliente: "Ente di Formazione Mu", settore: "Enti pubblici", comune: "Bari",
-      servizio: "Giardinaggio", ore: 30, decisore: false, referente: "Ufficio economato",
+    { azienda: "az12", comune: "Bari", servizio: "Giardinaggio", ore: 30,
       storico: { contatto: traGiorni(-48), qualificato: traGiorni(-44) },
       perso: { data: traGiorni(-31), motivo: "Tempi di avvio" } },
-    { cliente: "Studio Commercialisti Nu", settore: "Uffici e studi professionali", comune: "Casamassima",
-      servizio: "Pulizia Professionale", ore: 28, decisore: true, referente: "Dott. titolare",
+    { azienda: "az13", comune: "Casamassima", servizio: "Pulizia Professionale", ore: 28,
       storico: { contatto: traGiorni(-6) } },
-    { cliente: "Studio Architetti Pi", settore: "Uffici e studi professionali", comune: "Bari",
-      servizio: "Pulizia Professionale", ore: 12, decisore: false, referente: "Segreteria",
+    { azienda: "az14", comune: "Bari", servizio: "Pulizia Professionale", ore: 12,
       storico: { contatto: traGiorni(-4) } },
-    { cliente: "Supermercato Eta", settore: "GDO e logistica", comune: "Altamura",
-      servizio: "Pest Control", ore: 6, decisore: true, referente: "Direttore di punto vendita",
+    { azienda: "az15", comune: "Altamura", servizio: "Pest Control", ore: 6,
       storico: { contatto: traGiorni(-9) } },
-    { cliente: "Laboratorio Sigma", settore: "Industria", comune: "Gioia del Colle",
-      servizio: "Pulizia Professionale", ore: 70, decisore: false, referente: "Ufficio acquisti",
+    { azienda: "az16", comune: "Gioia del Colle", servizio: "Pulizia Professionale", ore: 70,
       storico: { contatto: traGiorni(-40) },
       perso: { data: traGiorni(-33), motivo: "Fuori zona" } },
+  ],
+
+  // Attività registrate (chiamate, email, visite, note) e attività da fare (promemoria).
+  attivita: [
+    { azienda: "az1", tipo: "Nota", data: traGiorni(-35), testo: "Servizio avviato: controllo qualità previsto dopo il primo mese." },
+    { azienda: "az1", tipo: "Visita", data: traGiorni(5), testo: "Controllo qualità con il cliente", daFare: true },
+    { azienda: "az4", tipo: "Chiamata", data: traGiorni(-15), testo: "Follow-up sull'offerta: il cliente chiede i tempi di avvio." },
+    { azienda: "az4", tipo: "Chiamata", data: traGiorni(0), testo: "Richiamare per l'esito dell'offerta", daFare: true },
+    { azienda: "az5", tipo: "Email", data: traGiorni(-35), testo: "Inviata l'offerta per pulizia e sanificazione degli ambulatori." },
+    { azienda: "az5", tipo: "Email", data: traGiorni(-2), testo: "Sollecitare la risposta all'offerta", daFare: true },
+    { azienda: "az6", tipo: "Chiamata", data: traGiorni(-36), testo: "Il cliente ha scelto un'offerta più economica." },
+    { azienda: "az7", tipo: "Visita", data: traGiorni(-12), testo: "Sopralluogo: uffici su due piani, circa 380 mq." },
+    { azienda: "az7", tipo: "Chiamata", data: traGiorni(3), testo: "Individuare il decisore (direzione regionale)", daFare: true },
+    { azienda: "az9", tipo: "Visita", data: traGiorni(-9), testo: "Sopralluogo: open space e tre sale riunioni." },
+    { azienda: "az9", tipo: "Nota", data: traGiorni(0), testo: "Preparare l'offerta", daFare: true },
+    { azienda: "az13", tipo: "Nota", data: traGiorni(-6), testo: "Richiesta arrivata dal modulo «Richiedi un preventivo» del sito." },
+    { azienda: "az13", tipo: "Chiamata", data: traGiorni(1), testo: "Prima telefonata di qualifica", daFare: true },
+    { azienda: "az14", tipo: "Chiamata", data: traGiorni(-4), testo: "Interessati a una pulizia settimanale; manca il consenso privacy." },
+    { azienda: "az17", tipo: "Nota", data: traGiorni(-2), testo: "Richiesta dal sito, ancora da qualificare." },
+    { azienda: "az17", tipo: "Chiamata", data: traGiorni(0), testo: "Chiamare per qualificare la richiesta", daFare: true },
+    { azienda: "az18", tipo: "Visita", data: traGiorni(-10), testo: "Visita porta a porta: lasciata la brochure dei servizi." },
+    { azienda: "az18", tipo: "Visita", data: traGiorni(7), testo: "Ripassare in agenzia", daFare: true },
   ],
 };

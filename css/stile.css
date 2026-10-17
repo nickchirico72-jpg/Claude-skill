@@ -89,6 +89,11 @@ textarea {
   outline-offset: 2px;
 }
 
+/* Gli elementi nascosti restano nascosti anche se hanno un display proprio */
+[hidden] {
+  display: none !important;
+}
+
 .icona {
   width: 18px;
   height: 18px;
@@ -158,7 +163,7 @@ textarea {
   left: 0;
   z-index: 30;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--sidebar-background);
   border-top: 1px solid var(--sidebar-accent);
@@ -1484,4 +1489,389 @@ dialog::backdrop {
     min-width: 18px;
     padding: 1px 5px;
   }
+}
+
+/* ================================================================ CLIENTI */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chip .icona {
+  width: 13px;
+  height: 13px;
+}
+
+.chip-ok {
+  background: var(--ok-sfondo);
+  color: var(--ok);
+}
+
+.chip-info {
+  background: hsl(195 55% 35% / 0.12);
+  color: var(--primary-scuro);
+}
+
+.chip-attenzione {
+  background: var(--attenzione-sfondo);
+  color: var(--attenzione);
+}
+
+.chip-critico {
+  background: var(--critico-sfondo);
+  color: var(--critico);
+}
+
+.riga-chip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.azioni-intestazione,
+.azioni-pie {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.link-indietro {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link-titolo {
+  color: var(--secondary);
+  font-family: Sora, system-ui, sans-serif;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link-titolo:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.cliente .link-titolo {
+  min-width: 0;
+  font-size: 15px;
+}
+
+.pulsante-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Filtri dell'elenco clienti */
+.filtri {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 760px) {
+  .filtri {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.filtri select,
+.campo-cerca {
+  min-height: 44px;
+  border: 1px solid var(--input);
+  border-radius: 8px;
+  background: var(--card);
+  font-size: 15px;
+}
+
+.filtri select {
+  padding: 0 10px;
+}
+
+.campo-cerca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: var(--muted-foreground);
+}
+
+.campo-cerca input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  border: 0;
+  background: none;
+  outline: none;
+  color: var(--foreground);
+}
+
+.campo-cerca:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.cliente {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cliente-referente {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 13.5px;
+}
+
+.cliente-prossima {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+/* Pulsanti Chiama / WhatsApp / Email */
+.contatti {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.pulsante-contatto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--primary-scuro);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pulsante-contatto:hover {
+  background: var(--muted);
+}
+
+.pulsante-contatto .icona {
+  width: 16px;
+  height: 16px;
+}
+
+.pulsante-icona {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.pulsante-icona:hover {
+  color: var(--primary);
+}
+
+@media (max-width: 899px) {
+  .pulsante-contatto,
+  .pulsante-icona {
+    min-height: 44px;
+    height: 44px;
+  }
+
+  .pulsante-icona {
+    width: 44px;
+  }
+}
+
+/* Da fare */
+.da-fare-riquadro {
+  margin-bottom: 16px;
+}
+
+.titolo-riquadro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.titolo-riquadro .conteggio {
+  background: var(--muted);
+}
+
+.elenco-da-fare {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.da-fare {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.da-fare:last-child {
+  border-bottom: 0;
+}
+
+.da-fare-testo {
+  min-width: 0;
+  flex: 1 1 280px;
+  font-size: 14px;
+}
+
+.da-fare-testo p:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.da-fare-azioni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.da-fare-azioni .pulsante-contatto,
+.da-fare-azioni .pulsante.piccolo {
+  margin: 0;
+}
+
+/* Scheda cliente */
+.scheda-cliente {
+  display: grid;
+  gap: 0 24px;
+}
+
+@media (min-width: 1100px) {
+  .scheda-cliente {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.colonna-scheda {
+  min-width: 0;
+}
+
+.griglia-referenti {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .griglia-referenti {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.referente h3 {
+  min-width: 0;
+  font-size: 15px;
+}
+
+.aggiungi {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 80px;
+  border-style: dashed;
+  box-shadow: none;
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.aggiungi:hover {
+  background: var(--muted);
+}
+
+.cronologia {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cronologia li {
+  padding: 10px 0 10px 14px;
+  border-left: 2px solid var(--accent);
+  font-size: 14px;
+}
+
+.cronologia li.automatica {
+  border-left-color: var(--border);
+  color: var(--muted-foreground);
+}
+
+.cronologia-testa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+}
+
+/* Gruppi di campi nel modulo "Nuovo contatto" */
+.gruppo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.gruppo legend {
+  padding: 0 6px;
+  color: var(--accent-testo);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }

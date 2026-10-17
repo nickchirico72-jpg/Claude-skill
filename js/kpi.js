@@ -49,7 +49,7 @@ function calcolaKpi(opportunita) {
   const contratti = contaRaggiunte(opportunita, "contratto");
 
   const c = CONFIG.costiAcquisizione;
-  const costiCommerciali = contatti * c.perContatto + sopralluoghi * c.perSopralluogo + offerte * c.perOfferta + c.fissiCampagna;
+  const costiCommerciali = contatti * c.perContatto + sopralluoghi * c.perSopralluogo + offerte * c.perOfferta + costiFissiTotali();
 
   const margine = opportunita.reduce((s, o) => s + margineAtteso(o, opportunita), 0);
   const ricavi = opportunita.reduce((s, o) => s + ricaviAttesi(o), 0);
@@ -80,7 +80,7 @@ function calcolaFunnel(opportunita) {
 // Risultati per settore
 function risultatiPerSettore(opportunita) {
   return CONFIG.settori.map((settore) => {
-    const gruppo = opportunita.filter((o) => o.settore === settore);
+    const gruppo = opportunita.filter((o) => settoreDi(o) === settore);
     const firmati = gruppo.filter((o) => o.storico.contratto);
     return {
       settore,
@@ -91,6 +91,30 @@ function risultatiPerSettore(opportunita) {
       valoreContratti: firmati.reduce((s, o) => s + valoreAnnuo(o), 0),
       margineAtteso: gruppo.reduce((s, o) => s + margineAtteso(o, opportunita), 0),
       quotaA: rapporto(gruppo.filter((o) => calcolaPunteggio(o, opportunita).classe === "A").length, gruppo.length),
+    };
+  });
+}
+
+// Somma dei costi fissi di tutti i canali di acquisizione
+function costiFissiTotali() {
+  return Object.values(CONFIG.costiAcquisizione.fissiPerCanale).reduce((s, v) => s + v, 0);
+}
+
+// Risultati per canale di acquisizione (fonte dell'azienda): quale canale porta contratti e a che costo
+function risultatiPerCanale(opportunita) {
+  const c = CONFIG.costiAcquisizione;
+  return fonti().map((fonte) => {
+    const gruppo = opportunita.filter((o) => (aziendaDi(o) || {}).fonte === fonte);
+    const conta = (id) => contaRaggiunte(gruppo, id);
+    const contratti = conta("contratto");
+    const costi = gruppo.length * c.perContatto + conta("sopralluogo") * c.perSopralluogo + conta("offerta") * c.perOfferta + c.fissiPerCanale[fonte];
+    return {
+      fonte,
+      contatti: gruppo.length,
+      contratti,
+      conversione: rapporto(contratti, gruppo.length),
+      costi,
+      costoAcquisizione: contratti ? costi / contratti : null,
     };
   });
 }
