@@ -4,9 +4,14 @@
  * operativa e la marginalità attesa di Gate. Pesi e soglie sono in config.js.
  */
 
+// Tariffa e costi del servizio; se il servizio non è più in config.js, valori a zero (senza bloccare nulla)
+function datiServizio(nome) {
+  return CONFIG.servizi[nome] || { tariffa: 0, costoInterno: 0, costoPartner: 0, fuoriElenco: true };
+}
+
 // Tariffa oraria dell'opportunità (se non indicata, quella standard del servizio)
 function tariffaOraria(opp) {
-  return opp.tariffa || CONFIG.servizi[opp.servizio].tariffa;
+  return opp.tariffa || datiServizio(opp.servizio).tariffa;
 }
 
 // Ricavi previsti in un anno = ore al mese x 12 x tariffa oraria
@@ -16,10 +21,13 @@ function valoreAnnuo(opp) {
 
 // Margine % = 1 - costo del lavoro / tariffa - spese dirette.
 // Il costo del lavoro dipende da chi esegue: squadra interna o partner.
+// Senza tariffa o con un servizio non più in elenco (costi sconosciuti) il margine vale 0.
 function marginePercentuale(opp, opportunita) {
-  const costi = CONFIG.servizi[opp.servizio];
+  const costi = datiServizio(opp.servizio);
+  const tariffa = tariffaOraria(opp);
+  if (costi.fuoriElenco || !tariffa) return 0;
   const costo = esecutorePrevisto(opp, opportunita) === "squadra" ? costi.costoInterno : costi.costoPartner;
-  return 1 - costo / tariffaOraria(opp) - CONFIG.speseDirettePercentuale;
+  return 1 - rapporto(costo, tariffa) - CONFIG.speseDirettePercentuale;
 }
 
 // Calcola il punteggio: ogni criterio vale da 0 a 1 e viene moltiplicato per il suo peso
@@ -43,7 +51,7 @@ function calcolaPunteggio(opp, opportunita) {
   if (opp.allocazione) {
     const interna = opp.allocazione.tipo === "squadra";
     capacita = interna ? 1 : 0.5;
-    notaCapacita = "Assegnata a " + (interna ? trovaSquadra(opp.allocazione.id).nome : trovaPartner(opp.allocazione.id).nome);
+    notaCapacita = "Assegnata a " + (interna ? nomeSquadra(opp.allocazione.id) : nomePartner(opp.allocazione.id));
   } else {
     const squadra = squadraDisponibile(opp, opportunita);
     if (squadra) {

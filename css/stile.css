@@ -382,6 +382,12 @@ textarea {
   transition: background-color 0.15s, box-shadow 0.15s;
 }
 
+/* Niente attesa del doppio tocco su telefono: il clic parte subito */
+.pulsante,
+.pulsante-testo {
+  touch-action: manipulation;
+}
+
 .pulsante.primario {
   background: var(--primary);
   color: var(--primary-foreground);
@@ -1442,6 +1448,10 @@ dialog::backdrop {
   left: 16px;
   right: 16px;
   z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 12px 16px;
   border-radius: 10px;
   background: var(--secondary);
@@ -1452,12 +1462,56 @@ dialog::backdrop {
   opacity: 0;
   transform: translateY(12px);
   pointer-events: none;
-  transition: opacity 0.2s, transform 0.2s;
+  /* Nascosto anche alla tastiera: "Annulla" non si raggiunge con Tab quando l'avviso non si vede */
+  visibility: hidden;
+  transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
 }
 
 .avviso.visibile {
   opacity: 1;
   transform: none;
+  visibility: visible;
+}
+
+/* "Annulla" nell'avviso: solo il pulsante riceve i clic, il resto dell'avviso non copre la pagina */
+.avviso button {
+  pointer-events: auto;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Avviso fisso in cima alla pagina: dati salvati non letti o non salvati */
+.avviso-fisso {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.avviso-fisso-riga {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--critico-sfondo);
+  color: var(--critico);
+  font-weight: 600;
+}
+
+.avviso-fisso-riga p {
+  flex: 1 1 220px;
+}
+
+.avviso-fisso-riga .pulsante-icona {
+  color: var(--critico);
 }
 
 @media (min-width: 900px) {
@@ -1544,6 +1598,26 @@ dialog::backdrop {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.azioni-pie {
+  align-items: center;
+}
+
+/* Promemoria "Ultimo backup" prima dei pulsanti del piè di pagina */
+.stato-backup {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-right: 4px;
+}
+
+/* Su telefono il promemoria sta su una riga sua, sopra i pulsanti */
+@media (max-width: 639px) {
+  .stato-backup {
+    width: 100%;
+  }
 }
 
 .link-indietro {

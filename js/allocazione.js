@@ -26,6 +26,18 @@ function trovaPartner(id) {
   return CONFIG.partner.find((p) => p.id === id);
 }
 
+// Nome della squadra, anche se nel frattempo è stata tolta da config.js
+function nomeSquadra(id) {
+  const s = trovaSquadra(id);
+  return s ? s.nome : "Squadra non più in elenco";
+}
+
+// Nome del partner, anche se nel frattempo è stato tolto da config.js
+function nomePartner(id) {
+  const p = trovaPartner(id);
+  return p ? p.nome : "Partner non più in elenco";
+}
+
 // La squadra può eseguire questo servizio in questa zona?
 function squadraCopre(squadra, opp) {
   return squadra.zone.includes(infoComune(opp.comune).zona) && squadra.servizi.includes(opp.servizio);

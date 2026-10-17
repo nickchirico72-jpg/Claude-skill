@@ -142,18 +142,18 @@ function schedaOpportunita(o, p) {
     const azione = CONFIG.fasi[faseRaggiunta(o)].azione;
     fondo = `
       <div class="scheda-azioni">
-        <button class="pulsante primario piccolo" type="button" data-azione="avanza" data-id="${o.id}">${azione} ${icona("freccia")}</button>
-        <button class="pulsante-testo" type="button" data-azione="perso" data-id="${o.id}">Segna come perso</button>
+        <button class="pulsante primario piccolo" type="button" data-azione="avanza" data-id="${esc(o.id)}">${azione} ${icona("freccia")}</button>
+        <button class="pulsante-testo" type="button" data-azione="perso" data-id="${esc(o.id)}">Segna come perso</button>
       </div>`;
   }
   return `
-    <article class="scheda ${o.id === ultimaModificata ? "evidenziata" : ""}" id="scheda-${o.id}">
+    <article class="scheda ${o.id === ultimaModificata ? "evidenziata" : ""}" id="scheda-${esc(o.id)}">
       <div class="scheda-alto">
-        <button class="scheda-nome" type="button" data-azione="dettaglio" data-id="${o.id}" title="Apri il dettaglio">${esc(nomeCliente(o))}</button>
+        <button class="scheda-nome" type="button" data-azione="dettaglio" data-id="${esc(o.id)}" title="Apri il dettaglio">${esc(nomeCliente(o))}</button>
         ${badgePunteggio(p)}
       </div>
       <p class="scheda-meta">${esc(settoreDi(o))} · ${esc(o.comune)}</p>
-      <p class="scheda-meta">${esc(o.servizio)} · ${o.ore} h/mese</p>
+      <p class="scheda-meta">${esc(o.servizio)} · ${Number(o.ore)} h/mese</p>
       <p class="scheda-valore">${formattaEuro(valoreAnnuo(o))}/anno · margine ${formattaPercentuale(marginePercentuale(o, stato.opportunita))}</p>
       ${fondo}
     </article>`;
@@ -163,14 +163,14 @@ function schedaOpportunita(o, p) {
 function statoCommessa(o) {
   if (o.allocazione) {
     const nome = o.allocazione.tipo === "squadra"
-      ? trovaSquadra(o.allocazione.id).nome
-      : "Partner: " + trovaPartner(o.allocazione.id).nome;
-    return `<p class="scheda-stato ok">${icona("spunta")} ${nome}</p>`;
+      ? nomeSquadra(o.allocazione.id)
+      : "Partner: " + nomePartner(o.allocazione.id);
+    return `<p class="scheda-stato ok">${icona("spunta")} ${esc(nome)}</p>`;
   }
   const attesa = propostaInAttesa(o);
-  const testo = attesa ? "In attesa di risposta da " + trovaPartner(attesa.partnerId).nome : "Da assegnare";
+  const testo = attesa ? "In attesa di risposta da " + nomePartner(attesa.partnerId) : "Da assegnare";
   return `
-    <p class="scheda-stato ${attesa ? "attesa" : "da-fare"}">${icona("orologio")} ${testo}</p>
+    <p class="scheda-stato ${attesa ? "attesa" : "da-fare"}">${icona("orologio")} ${esc(testo)}</p>
     <a class="pulsante primario piccolo" href="#allocazione">Vai all'allocazione ${icona("freccia")}</a>`;
 }
 
@@ -221,11 +221,11 @@ function disegnaAllocazione() {
             <tbody>
               ${assegnate.map((o) => {
                 const interna = o.allocazione.tipo === "squadra";
-                const chi = interna ? trovaSquadra(o.allocazione.id).nome : trovaPartner(o.allocazione.id).nome;
+                const chi = interna ? nomeSquadra(o.allocazione.id) : nomePartner(o.allocazione.id);
                 return `<tr>
-                  <td>${o.codice}</td><td><a class="link" href="#cliente-${o.aziendaId}">${esc(nomeCliente(o))}</a></td><td>${esc(o.servizio)}</td><td>${esc(o.comune)}</td>
-                  <td class="num">${o.ore}</td>
-                  <td>${chi}<br><span class="nota-piccola">${interna ? "Squadra interna" : "Impresa partner"}</span></td>
+                  <td>${esc(o.codice)}</td><td><a class="link" href="#cliente-${esc(o.aziendaId)}">${esc(nomeCliente(o))}</a></td><td>${esc(o.servizio)}</td><td>${esc(o.comune)}</td>
+                  <td class="num">${Number(o.ore)}</td>
+                  <td>${esc(chi)}<br><span class="nota-piccola">${interna ? "Squadra interna" : "Impresa partner"}</span></td>
                   <td class="num">${formattaPercentuale(marginePercentuale(o, tutte))}</td>
                 </tr>`;
               }).join("")}
@@ -253,8 +253,8 @@ function disegnaAllocazione() {
             <tbody>
               ${registro.map((r) => `<tr>
                 <td>${formattaData(r.data)}</td>
-                <td>${r.opp.codice} · ${esc(nomeCliente(r.opp))}</td>
-                <td>${trovaPartner(r.partnerId).nome}</td>
+                <td>${esc(r.opp.codice)} · ${esc(nomeCliente(r.opp))}</td>
+                <td>${esc(nomePartner(r.partnerId))}</td>
                 <td>${esiti[r.esito]}</td>
               </tr>`).join("")}
             </tbody>
@@ -290,8 +290,8 @@ function schedaCommessa(o) {
     passo = `
       <div class="passo passo-squadra">
         <p class="passo-titolo">${icona("spunta")} Squadra interna disponibile</p>
-        <p><strong>${squadra.nome}</strong> · ${squadra.caposquadra} · ${oreLibereSquadra(squadra, stato.opportunita, o.id)} ore libere al mese (ne servono ${o.ore})</p>
-        <button class="pulsante primario" type="button" data-azione="assegna-squadra" data-id="${o.id}">Assegna a ${squadra.nome}</button>
+        <p><strong>${esc(squadra.nome)}</strong> · ${esc(squadra.caposquadra)} · ${oreLibereSquadra(squadra, stato.opportunita, o.id)} ore libere al mese (ne servono ${Number(o.ore)})</p>
+        <button class="pulsante primario" type="button" data-azione="assegna-squadra" data-id="${esc(o.id)}">Assegna a ${esc(squadra.nome)}</button>
       </div>`;
   } else {
     // 2. Nessuna squadra: si propone a un partner, uno alla volta
@@ -299,50 +299,51 @@ function schedaCommessa(o) {
     const attesa = propostaInAttesa(o);
     let corpo;
     if (attesa) {
+      // Se il partner è stato tolto da config.js si può solo registrare il NO e passare al successivo
       const partner = trovaPartner(attesa.partnerId);
       corpo = `
-        <p class="passo-titolo">${icona("orologio")} In attesa di risposta da ${partner.nome}</p>
+        <p class="passo-titolo">${icona("orologio")} In attesa di risposta da ${esc(nomePartner(attesa.partnerId))}</p>
         <p class="nota-piccola">Proposta inviata il ${formattaData(attesa.data)}. Registra qui la risposta arrivata su WhatsApp:</p>
         <div class="pulsanti-risposta">
-          <button class="pulsante si" type="button" data-azione="risposta-si" data-id="${o.id}">${icona("spunta")} Ha risposto SÌ</button>
-          <button class="pulsante no" type="button" data-azione="risposta-no" data-id="${o.id}">${icona("x")} Ha risposto NO</button>
+          ${partner ? `<button class="pulsante si" type="button" data-azione="risposta-si" data-id="${esc(o.id)}">${icona("spunta")} Ha risposto SÌ</button>` : ""}
+          <button class="pulsante no" type="button" data-azione="risposta-no" data-id="${esc(o.id)}">${icona("x")} Ha risposto NO</button>
         </div>
-        <a class="link" href="${linkWhatsApp(o, partner)}" target="_blank" rel="noopener">Riapri il messaggio su WhatsApp</a>`;
+        ${partner ? `<a class="link" href="${esc(linkWhatsApp(o, partner))}" target="_blank" rel="noopener">Riapri il messaggio su WhatsApp</a>` : ""}`;
     } else {
       const partner = prossimoPartner(o);
       if (partner) {
         corpo = `
-          <p class="passo-titolo">Partner proposto: ${partner.nome}</p>
-          <p class="nota-piccola">${requisitiPartner(partner).testo} · zone: ${partner.zone.join(", ")}</p>
+          <p class="passo-titolo">Partner proposto: ${esc(partner.nome)}</p>
+          <p class="nota-piccola">${requisitiPartner(partner).testo} · zone: ${esc(partner.zone.join(", "))}</p>
           <blockquote class="messaggio"><span class="messaggio-titolo">Messaggio precompilato</span>${esc(testoWhatsApp(o, partner)).replace(/\n/g, "<br>")}</blockquote>
-          <a class="pulsante whatsapp" href="${linkWhatsApp(o, partner)}" target="_blank" rel="noopener"
-             data-azione="proponi" data-id="${o.id}" data-partner="${partner.id}">${icona("messaggio")} Proponi su WhatsApp</a>`;
+          <a class="pulsante whatsapp" href="${esc(linkWhatsApp(o, partner))}" target="_blank" rel="noopener"
+             data-azione="proponi" data-id="${esc(o.id)}" data-partner="${esc(partner.id)}">${icona("messaggio")} Proponi su WhatsApp</a>`;
       } else if (rifiuti.length) {
         corpo = `
           <p class="passo-titolo avviso">${icona("attenzione")} Tutti i partner idonei hanno risposto NO</p>
-          <p class="nota-piccola">Valuta con il cliente un rinvio dell'avvio o cerca un nuovo partner con DURC regolare in ${zona}.</p>`;
+          <p class="nota-piccola">Valuta con il cliente un rinvio dell'avvio o cerca un nuovo partner con DURC regolare in ${esc(zona)}.</p>`;
       } else {
         corpo = `
-          <p class="passo-titolo avviso">${icona("attenzione")} Nessun partner idoneo in ${zona}</p>
+          <p class="passo-titolo avviso">${icona("attenzione")} Nessun partner idoneo in ${esc(zona)}</p>
           <p class="nota-piccola">Valuta con il cliente un rinvio dell'avvio o cerca un partner con DURC regolare in questa zona.</p>`;
       }
     }
     passo = `
       <div class="passo passo-partner">
-        <p class="avviso-capacita">${icona("attenzione")} Nessuna squadra interna in ${zona} ha ${o.ore} ore libere al mese per ${o.servizio.toLowerCase()}.</p>
-        ${rifiuti.length ? `<ul class="rifiuti">${rifiuti.map((r) => `<li>${icona("x")} ${trovaPartner(r.partnerId).nome} ha risposto NO il ${formattaData(r.data)}</li>`).join("")}</ul>` : ""}
+        <p class="avviso-capacita">${icona("attenzione")} Nessuna squadra interna in ${esc(zona)} ha ${Number(o.ore)} ore libere al mese per ${esc(o.servizio.toLowerCase())}.</p>
+        ${rifiuti.length ? `<ul class="rifiuti">${rifiuti.map((r) => `<li>${icona("x")} ${esc(nomePartner(r.partnerId))} ha risposto NO il ${formattaData(r.data)}</li>`).join("")}</ul>` : ""}
         ${corpo}
       </div>`;
   }
 
   return `
-    <article class="riquadro commessa ${o.id === ultimaModificata ? "evidenziata" : ""}" id="commessa-${o.id}">
+    <article class="riquadro commessa ${o.id === ultimaModificata ? "evidenziata" : ""}" id="commessa-${esc(o.id)}">
       <header class="commessa-testa">
         <div>
-          <p class="commessa-codice">${o.codice}</p>
-          <h3><a class="link-titolo" href="#cliente-${o.aziendaId}">${esc(nomeCliente(o))}</a></h3>
+          <p class="commessa-codice">${esc(o.codice)}</p>
+          <h3><a class="link-titolo" href="#cliente-${esc(o.aziendaId)}">${esc(nomeCliente(o))}</a></h3>
         </div>
-        <p class="commessa-dati">${esc(o.servizio)} · ${esc(o.comune)} (${zona}) · ${o.ore} h/mese · firmato il ${formattaData(o.storico.contratto)}</p>
+        <p class="commessa-dati">${esc(o.servizio)} · ${esc(o.comune)} (${esc(zona)}) · ${Number(o.ore)} h/mese · firmato il ${formattaData(o.storico.contratto)}</p>
       </header>
       ${passo}
     </article>`;
@@ -478,7 +479,7 @@ function disegnaIndicatori() {
         </div>
         <p class="nota-piccola" style="margin-top:10px">
           → = conversione dalla fase precedente.
-          Perse: ${perse.length}${perse.length ? " (" + Object.entries(motivi).map(([m, q]) => m.toLowerCase() + " " + q).join(", ") + ")" : ""}.
+          Perse: ${perse.length}${perse.length ? " (" + Object.entries(motivi).map(([m, q]) => esc(m.toLowerCase()) + " " + q).join(", ") + ")" : ""}.
           Commesse firmate: ${firmati.length}, di cui ${interne} a squadre interne, ${aPartner} a partner, ${firmati.length - interne - aPartner} da assegnare.
         </p>
       </div>
@@ -570,7 +571,7 @@ function apriDettaglio(id) {
     .map((f) => `<li>${f.nome}: ${formattaData(o.storico[f.id])}</li>`).join("");
   apriFinestra(`
     <div class="finestra-testa"><h2>${esc(nomeCliente(o))}</h2>${badgePunteggio(p)}</div>
-    <p class="nota-piccola">${esc(o.servizio)} · ${o.ore} h/mese · tariffa ${formattaEuro(tariffaOraria(o))}/ora · sede di lavoro: ${esc(o.comune)} · rif. ${o.codice}<br>
+    <p class="nota-piccola">${esc(o.servizio)} · ${Number(o.ore)} h/mese · tariffa ${formattaEuro(tariffaOraria(o))}/ora · sede di lavoro: ${esc(o.comune)} · rif. ${esc(o.codice)}<br>
       Referente: ${ref ? esc(ref.nome) + (ref.ruolo ? " (" + esc(ref.ruolo) + ")" : "") : "non indicato"}</p>
     <h3>Punteggio di coerenza: ${p.totale} su 100 (classe ${p.classe})</h3>
     ${tabellaCriteri(p)}
@@ -579,17 +580,25 @@ function apriDettaglio(id) {
     <ol class="storico">${passi}${o.perso ? `<li>Perso: ${formattaData(o.perso.data)} · ${esc(o.perso.motivo)}</li>` : ""}</ol>
     ${o.motivazioneC ? `<p class="nota-c">Offerta inviata nonostante il punteggio C. Motivazione: ${esc(o.motivazioneC)}</p>` : ""}
     <div class="azioni-finestra">
-      <a class="pulsante secondario" href="#cliente-${o.aziendaId}" data-azione="chiudi">Apri la scheda cliente</a>
+      <a class="pulsante secondario" href="#cliente-${esc(o.aziendaId)}" data-azione="chiudi">Apri la scheda cliente</a>
       <button class="pulsante primario" type="button" data-azione="chiudi">Chiudi</button>
     </div>`,
     "Dettaglio opportunità");
 }
 
-const opzioni = (valori, scelto) =>
-  valori.map((v) => `<option value="${esc(v)}" ${v === scelto ? "selected" : ""}>${esc(v)}</option>`).join("");
+// Opzioni di una select; il valore salvato che non è più in config.js resta, con "(non più in elenco)"
+function opzioni(valori, scelto) {
+  const mancante = scelto && !valori.includes(scelto)
+    ? `<option value="${esc(scelto)}" selected>${esc(scelto)} (non più in elenco)</option>` : "";
+  return valori.map((v) => `<option value="${esc(v)}" ${v === scelto ? "selected" : ""}>${esc(v)}</option>`).join("") + mancante;
+}
 
-const opzioniComuni = (scelto) =>
-  CONFIG.comuni.map((c) => `<option value="${esc(c.nome)}" ${c.nome === scelto ? "selected" : ""}>${esc(c.nome)}${c.km ? " (" + c.km + " km)" : ""}</option>`).join("");
+// Opzioni dei comuni con la distanza da Bari, con la stessa regola per i comuni tolti da config.js
+function opzioniComuni(scelto) {
+  const mancante = scelto && !CONFIG.comuni.some((c) => c.nome === scelto)
+    ? `<option value="${esc(scelto)}" selected>${esc(scelto)} (non più in elenco)</option>` : "";
+  return CONFIG.comuni.map((c) => `<option value="${esc(c.nome)}" ${c.nome === scelto ? "selected" : ""}>${esc(c.nome)}${c.km ? " (" + c.km + " km)" : ""}</option>`).join("") + mancante;
+}
 
 // Modulo "Nuovo contatto": azienda (nuova o esistente), referente e opportunità, con anteprima del punteggio
 function apriNuovoContatto(aziendaId = "") {
@@ -605,7 +614,7 @@ function apriNuovoContatto(aziendaId = "") {
       <label>Azienda
         <select name="azienda" id="campo-azienda">
           <option value="">+ Nuova azienda</option>
-          ${aziende.map((a) => `<option value="${a.id}" ${a.id === aziendaId ? "selected" : ""}>${esc(a.ragioneSociale)}</option>`).join("")}
+          ${aziende.map((a) => `<option value="${esc(a.id)}" ${a.id === aziendaId ? "selected" : ""}>${esc(a.ragioneSociale)}</option>`).join("")}
         </select>
       </label>
 
@@ -662,7 +671,7 @@ function opzioniReferenti(aziendaId) {
   const refs = referentiDi(aziendaId);
   if (!refs.length) return '<option value="">Nessun referente registrato</option>';
   const principale = refs.find((r) => r.decisore) || refs[0];
-  return refs.map((r) => `<option value="${r.id}" ${r.id === principale.id ? "selected" : ""}>${esc(r.nome)}${r.ruolo ? " · " + esc(r.ruolo) : ""}${r.decisore ? " (decisore)" : ""}</option>`).join("");
+  return refs.map((r) => `<option value="${esc(r.id)}" ${r.id === principale.id ? "selected" : ""}>${esc(r.nome)}${r.ruolo ? " · " + esc(r.ruolo) : ""}${r.decisore ? " (decisore)" : ""}</option>`).join("");
 }
 
 // Legge il modulo: nuova azienda e nuovo referente (se servono) e l'opportunità
@@ -697,7 +706,7 @@ function leggiModulo(modulo) {
     servizio,
     ore: Math.round(Number(d.get("ore"))) || 0,
     // La tariffa si salva solo se diversa da quella standard del servizio
-    tariffa: tariffa > 0 && tariffa !== CONFIG.servizi[servizio].tariffa ? tariffa : null,
+    tariffa: tariffa > 0 && tariffa !== datiServizio(servizio).tariffa ? tariffa : null,
     storico: { contatto: oggi() },
     perso: null,
     allocazione: null,
@@ -743,29 +752,26 @@ function salvaContatto(modulo) {
   }
   if (opp.ore <= 0) return segnalaCampo(modulo.ore, "Inserisci le ore al mese");
 
-  if (nuovaAzienda) {
-    nuovaAzienda.id = nuovoId("az");
-    stato.aziende.push(nuovaAzienda);
-    opp.aziendaId = nuovaAzienda.id;
-    if (nuovoReferente) {
-      nuovoReferente.id = nuovoId("rf");
-      nuovoReferente.aziendaId = nuovaAzienda.id;
-      stato.referenti.push(nuovoReferente);
-      opp.referenteId = nuovoReferente.id;
+  const nome = nuovaAzienda ? nuovaAzienda.ragioneSociale : nomeCliente(opp);
+  applica(() => {
+    if (nuovaAzienda) {
+      nuovaAzienda.id = nuovoId("az");
+      stato.aziende.push(nuovaAzienda);
+      opp.aziendaId = nuovaAzienda.id;
+      if (nuovoReferente) {
+        nuovoReferente.id = nuovoId("rf");
+        nuovoReferente.aziendaId = nuovaAzienda.id;
+        stato.referenti.push(nuovoReferente);
+        opp.referenteId = nuovoReferente.id;
+      }
     }
-  }
-  stato.contatore += 1;
-  opp.id = nuovoId("op");
-  opp.codice = codiceRiferimento(stato.contatore);
-  stato.opportunita.push(opp);
-  registraAttivita({ aziendaId: opp.aziendaId, tipo: "Pipeline", testo: opp.servizio + ": nuovo contatto (" + opp.ore + " h/mese)" });
-  salva();
-  chiudiFinestra();
-  faseSelezionata = "contatto";
-  ultimaModificata = opp.id;
-  if (schermataAttuale().nome !== "pipeline") location.hash = "pipeline";
-  else disegna();
-  mostraAvviso("Contatto creato: " + nomeCliente(opp));
+    stato.contatore += 1;
+    opp.id = nuovoId("op");
+    opp.codice = codiceRiferimento(stato.contatore);
+    stato.opportunita.push(opp);
+    registraAttivita({ aziendaId: opp.aziendaId, tipo: "Pipeline", testo: opp.servizio + ": nuovo contatto (" + opp.ore + " h/mese)" });
+    ultimaModificata = opp.id; // l'id nasce qui: la nuova scheda resta evidenziata nella Pipeline
+  }, { messaggio: "Contatto creato: " + nome, fase: "contatto", vai: "pipeline" });
 }
 
 // Conferma motivata per inviare un'offerta a un cliente C
@@ -773,7 +779,7 @@ function apriConfermaC(o) {
   const p = calcolaPunteggio(o, stato.opportunita);
   const deboli = p.criteri.filter((c) => c.valore < 1);
   apriFinestra(`
-    <form class="modulo" id="modulo-conferma-c" data-id="${o.id}">
+    <form class="modulo" id="modulo-conferma-c" data-id="${esc(o.id)}">
       <div class="finestra-testa"><h2>Cliente fuori dai criteri del pilota</h2>${badgePunteggio(p)}</div>
       <p>${esc(nomeCliente(o))} ha un punteggio di coerenza ${p.totale} su 100 (classe C). I punti deboli:</p>
       <ul class="storico">${deboli.map((c) => `<li><strong>${c.nome}</strong>: ${esc(c.nota)} (${c.punti}/${c.peso})</li>`).join("")}</ul>
@@ -791,7 +797,7 @@ function apriConfermaC(o) {
 function apriPerso(id) {
   const o = trova(id);
   apriFinestra(`
-    <form class="modulo" id="modulo-perso" data-id="${o.id}">
+    <form class="modulo" id="modulo-perso" data-id="${esc(o.id)}">
       <h2>Segna come perso</h2>
       <p>${esc(nomeCliente(o))} uscirà dalla pipeline attiva, ma resterà nei conteggi degli indicatori.</p>
       <label>Motivo
@@ -816,81 +822,102 @@ function apriRipristino() {
 
 // =========================================================== AZIONI
 
+// Ogni modifica passa da qui: copia per «Annulla», modifica, salvataggio, ridisegno, avviso.
+// cambia() modifica lo stato; se restituisce false non succede nulla.
+// messaggio può essere una funzione, quando il testo dipende dalla modifica appena fatta.
+function applica(cambia, { messaggio = "", evidenzia = null, fase = null, vai = null, annullabile = true } = {}) {
+  const copia = { dati: clona(stato), fase: faseSelezionata, evidenzia };
+  if (cambia() === false) return false;
+  salva();
+  if (finestra.open) chiudiFinestra();
+  if (fase) faseSelezionata = fase;
+  if (evidenzia) ultimaModificata = evidenzia;
+  if (vai && vai !== (location.hash.slice(1) || "pipeline")) location.hash = vai;
+  else disegna();
+  mostraAvviso(typeof messaggio === "function" ? messaggio() : messaggio, annullabile ? copia : null);
+  return true;
+}
+
+// Testo dell'avviso quando un'opportunità cambia fase
+function messaggioFase(o, fase) {
+  return fase.id === "contratto"
+    ? "Contratto firmato. Ora assegna la commessa in Allocazione."
+    : nomeCliente(o) + " passa a «" + fase.nome + "»";
+}
+
 // Porta l'opportunità alla fase successiva
 function avanza(id) {
   const o = trova(id);
-  const prossima = CONFIG.fasi[faseRaggiunta(o) + 1];
+  const prossima = o && CONFIG.fasi[faseRaggiunta(o) + 1];
   if (!prossima || o.perso) return;
   const p = calcolaPunteggio(o, stato.opportunita);
   if (prossima.id === "offerta" && p.classe === "C" && CONFIG.punteggio.confermaPerPunteggioC && !o.motivazioneC) {
     apriConfermaC(o);
     return;
   }
-  registraFase(o, prossima);
+  applica(() => registraFase(o, prossima), { messaggio: messaggioFase(o, prossima), evidenzia: o.id, fase: prossima.id });
 }
 
+// Registra la fase nello storico e nella cronologia (solo lo stato: salva e ridisegna applica())
 function registraFase(o, fase) {
   o.storico[fase.id] = oggi();
   registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": fase «" + fase.nome + "»" });
-  salva();
-  faseSelezionata = fase.id;
-  ultimaModificata = o.id;
-  disegna();
-  mostraAvviso(fase.id === "contratto"
-    ? "Contratto firmato. Ora assegna la commessa in Allocazione."
-    : nomeCliente(o) + " passa a «" + fase.nome + "»");
 }
 
+// Assegna il contratto alla prima squadra interna con ore libere nella zona
 function assegnaSquadra(id) {
   const o = trova(id);
-  const squadra = squadraDisponibile(o, stato.opportunita);
+  const squadra = o && squadraDisponibile(o, stato.opportunita);
   if (!squadra) return;
-  o.allocazione = { tipo: "squadra", id: squadra.id, data: oggi() };
-  registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": commessa assegnata a " + squadra.nome });
-  salva();
-  disegna();
-  mostraAvviso("Commessa assegnata a " + squadra.nome);
+  applica(() => {
+    o.allocazione = { tipo: "squadra", id: squadra.id, data: oggi() };
+    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": commessa assegnata a " + squadra.nome });
+  }, { messaggio: "Commessa assegnata a " + squadra.nome, evidenzia: o.id });
 }
 
 // Registra la proposta "in attesa di risposta" (il link apre WhatsApp in una nuova scheda)
 function proponi(id, partnerId) {
   const o = trova(id);
-  if (!propostaInAttesa(o)) {
+  if (!o || propostaInAttesa(o)) return;
+  // Si registra subito dopo il clic, così il link fa in tempo ad aprire WhatsApp
+  setTimeout(() => applica(() => {
     o.proposte = o.proposte || [];
     o.proposte.push({ partnerId, data: oggi(), esito: "attesa" });
-    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": proposta su WhatsApp al partner " + trovaPartner(partnerId).nome });
-  }
-  salva();
-  ultimaModificata = o.id;
-  // Si ridisegna subito dopo, così il link fa in tempo ad aprire WhatsApp
-  setTimeout(disegna, 0);
-  mostraAvviso("Messaggio pronto su WhatsApp. Registra qui la risposta del partner.");
+    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": proposta su WhatsApp al partner " + nomePartner(partnerId) });
+  }, { messaggio: "Messaggio pronto su WhatsApp. Registra qui la risposta del partner.", evidenzia: o.id }), 0);
 }
 
+// Registra la risposta SÌ o NO del partner alla proposta in attesa
 function rispostaPartner(id, esito) {
   const o = trova(id);
-  const attesa = propostaInAttesa(o);
+  const attesa = o && propostaInAttesa(o);
   if (!attesa) return;
-  attesa.esito = esito;
   const partner = trovaPartner(attesa.partnerId);
+  const nome = nomePartner(attesa.partnerId);
   if (esito === "si") {
+    if (!partner) return; // partner tolto da config.js: si può registrare solo il NO
     // Ricontrollo dei requisiti al momento della conferma
     const req = requisitiPartner(partner, dataAvvio(o));
     if (!req.idoneo) {
-      attesa.esito = "no";
-      mostraAvviso(partner.nome + " non è più idoneo (" + req.testo + "): proponi al partner successivo");
-    } else {
-      o.allocazione = { tipo: "partner", id: partner.id, data: oggi() };
-      registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": commessa assegnata al partner " + partner.nome });
-      mostraAvviso("Commessa assegnata a " + partner.nome + " — il cliente resta di Gate");
+      applica(() => { attesa.esito = "no"; },
+        { messaggio: nome + " non è più idoneo (" + req.testo + "): proponi al partner successivo", evidenzia: o.id });
+      return;
     }
+    applica(() => {
+      attesa.esito = "si";
+      o.allocazione = { tipo: "partner", id: partner.id, data: oggi() };
+      registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": commessa assegnata al partner " + nome });
+    }, { messaggio: "Commessa assegnata a " + nome + " — il cliente resta di Gate", evidenzia: o.id });
   } else {
-    const successivo = prossimoPartner(o);
-    mostraAvviso(partner.nome + " ha risposto NO" + (successivo ? " — ora proponi a " + successivo.nome : ""));
+    applica(() => { attesa.esito = "no"; }, {
+      // Il partner successivo si conosce solo dopo aver registrato il NO
+      messaggio: () => {
+        const successivo = prossimoPartner(o);
+        return nome + " ha risposto NO" + (successivo ? " — ora proponi a " + successivo.nome : "");
+      },
+      evidenzia: o.id,
+    });
   }
-  salva();
-  ultimaModificata = o.id;
-  disegna();
 }
 
 // Elenco delle azioni attivate dai pulsanti con data-azione
@@ -909,23 +936,50 @@ const AZIONI = {
   "risposta-si": (el) => rispostaPartner(el.dataset.id, "si"),
   "risposta-no": (el) => rispostaPartner(el.dataset.id, "no"),
   ripristina: () => apriRipristino(),
-  "esporta-backup": () => esportaBackup(),
+  "esporta-backup": () => {
+    esportaBackup();
+    aggiornaStatoBackup();
+    mostraAvviso("Backup scaricato: conservalo in una cartella sicura");
+  },
   "esporta-csv": () => esportaCsvClienti(),
   "importa-backup": () => document.getElementById("file-backup").click(),
+  "scarica-scartati": () => scaricaDatiScartati(),
+  "chiudi-avviso-fisso": (el) => chiudiAvvisoFisso(el),
   ...AZIONI_CLIENTI,
-  "conferma-ripristino": () => {
+  "conferma-ripristino": () => applica(() => {
     stato = datiIniziali();
+  }, { messaggio: "Dati di esempio ripristinati", fase: "contatto" }),
+  // Riporta i dati a prima dell'ultima modifica (un solo passo indietro)
+  annulla: () => {
+    if (!copiaPerAnnulla) return;
+    const copia = copiaPerAnnulla;
+    stato = copia.dati;
+    faseSelezionata = copia.fase;
+    ultimaModificata = copia.evidenzia;
     salva();
-    faseSelezionata = "contatto";
-    chiudiFinestra();
+    if (finestra.open) chiudiFinestra();
     disegna();
-    mostraAvviso("Dati di esempio ripristinati");
+    mostraAvviso("Azione annullata");
   },
 };
 
+// Azioni che modificano i dati: un secondo clic ravvicinato viene ignorato
+const MODIFICANO_DATI = new Set(["avanza", "fatto", "fatto-fase", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
+  "elimina-referente", "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "annulla"]);
+let ultimoClicModifica = 0;
+
 document.addEventListener("click", (evento) => {
   const el = evento.target.closest("[data-azione]");
-  if (el && AZIONI[el.dataset.azione]) AZIONI[el.dataset.azione](el, evento);
+  if (!el || !AZIONI[el.dataset.azione]) return;
+  if (MODIFICANO_DATI.has(el.dataset.azione)) {
+    // Il secondo clic cadrebbe sul pulsante che ha preso il posto di questo
+    if (evento.detail > 1 || Date.now() - ultimoClicModifica < 600) {
+      evento.preventDefault();
+      return;
+    }
+    ultimoClicModifica = Date.now();
+  }
+  AZIONI[el.dataset.azione](el, evento);
 });
 
 // Anche il clic con la rotellina sul link WhatsApp registra la proposta
@@ -949,22 +1003,21 @@ document.addEventListener("submit", (evento) => {
       return;
     }
     const o = trova(modulo.dataset.id);
-    o.motivazioneC = testo;
-    chiudiFinestra();
-    registraFase(o, CONFIG.fasi.find((f) => f.id === "offerta"));
+    const offerta = CONFIG.fasi.find((f) => f.id === "offerta");
+    applica(() => {
+      o.motivazioneC = testo;
+      registraFase(o, offerta);
+    }, { messaggio: messaggioFase(o, offerta), evidenzia: o.id, fase: offerta.id });
   } else if (GESTORI_MODULI[modulo.id]) {
     // Moduli della schermata Clienti (clienti.js)
     GESTORI_MODULI[modulo.id](modulo);
   } else if (modulo.id === "modulo-perso") {
     const o = trova(modulo.dataset.id);
-    o.perso = { data: oggi(), motivo: modulo.motivo.value };
-    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": opportunità persa (" + o.perso.motivo + ")" });
-    salva();
-    chiudiFinestra();
-    faseSelezionata = "perso";
-    ultimaModificata = o.id;
-    disegna();
-    mostraAvviso("Opportunità segnata come persa: " + nomeCliente(o));
+    const motivo = modulo.motivo.value;
+    applica(() => {
+      o.perso = { data: oggi(), motivo };
+      registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": opportunità persa (" + motivo + ")" });
+    }, { messaggio: "Opportunità segnata come persa: " + nomeCliente(o), evidenzia: o.id, fase: "perso" });
   }
 });
 
@@ -986,7 +1039,7 @@ document.addEventListener("change", (evento) => {
   if (campo.closest("#filtri-clienti")) return aggiornaElencoClienti();
   if (!campo.form || campo.form.id !== "modulo-contatto") return;
   // Cambiando servizio, la tariffa torna quella standard del nuovo servizio
-  if (campo.name === "servizio") campo.form.tariffa.value = CONFIG.servizi[campo.value].tariffa;
+  if (campo.name === "servizio") campo.form.tariffa.value = datiServizio(campo.value).tariffa;
   // Scegliendo un'azienda esistente si nascondono i campi della nuova azienda
   if (campo.name === "azienda") {
     const azienda = trovaAzienda(campo.value);
@@ -1001,12 +1054,51 @@ document.addEventListener("change", (evento) => {
 // ========================================================= AVVISI E DISEGNO
 
 let timerAvviso;
-function mostraAvviso(testo) {
+let avvisoMostratoIl = 0;     // quando è comparso l'ultimo avviso (ms)
+let copiaPerAnnulla = null;   // dati di prima dell'ultima modifica, finché l'avviso con «Annulla» è visibile
+
+// Messaggio in basso: con una copia dei dati offre «Annulla» e resta 8 secondi, altrimenti 4
+function mostraAvviso(testo, copia = null) {
   const el = document.getElementById("avviso");
-  el.textContent = testo;
+  copiaPerAnnulla = copia;
+  el.innerHTML = `<span>${esc(testo)}</span>` + (copia ? '<button type="button" data-azione="annulla">Annulla</button>' : "");
   el.classList.add("visibile");
+  avvisoMostratoIl = Date.now();
   clearTimeout(timerAvviso);
-  timerAvviso = setTimeout(() => el.classList.remove("visibile"), 4000);
+  timerAvviso = setTimeout(nascondiAvviso, copia ? 8000 : 4000);
+}
+
+// Nasconde l'avviso; da quel momento l'ultima modifica non si può più annullare
+function nascondiAvviso() {
+  document.getElementById("avviso").classList.remove("visibile");
+  copiaPerAnnulla = null;
+}
+
+// Avviso che resta in cima alla pagina finché non lo si chiude (dati non letti o non salvati)
+function avvisoFisso(testo, pulsanteHtml = "") {
+  const el = document.getElementById("avviso-fisso");
+  el.insertAdjacentHTML("beforeend", `
+    <div class="avviso-fisso-riga">
+      ${icona("attenzione")}
+      <p>${esc(testo)}</p>
+      ${pulsanteHtml}
+      <button class="pulsante-icona" type="button" data-azione="chiudi-avviso-fisso" aria-label="Chiudi l'avviso" title="Chiudi">${icona("x")}</button>
+    </div>`);
+  el.hidden = false;
+}
+
+function chiudiAvvisoFisso(pulsante) {
+  const el = document.getElementById("avviso-fisso");
+  pulsante.closest(".avviso-fisso-riga").remove();
+  el.hidden = !el.children.length;
+}
+
+// Promemoria nel piè di pagina: quando è stato fatto l'ultimo backup
+function aggiornaStatoBackup() {
+  const giorni = stato.ultimoBackup ? giorniTra(stato.ultimoBackup, oggi()) : null;
+  const quando = giorni === null ? "mai" : giorni <= 0 ? "oggi" : giorni === 1 ? "ieri" : giorni + " giorni fa";
+  document.getElementById("stato-backup").innerHTML = "Ultimo backup: " + quando +
+    (giorni === null || giorni > 7 ? ' <span class="chip chip-attenzione">Fai un backup</span>' : "");
 }
 
 const SCHERMATE = {
@@ -1027,7 +1119,15 @@ function schermataAttuale() {
 // Ridisegna la schermata attuale a partire dallo stato
 function disegna() {
   const { nome, parametro, menu } = schermataAttuale();
-  document.getElementById("schermata").innerHTML = SCHERMATE[nome](parametro);
+  let html;
+  try {
+    html = SCHERMATE[nome](parametro);
+  } catch (errore) {
+    // Un dato imprevisto non lascia la pagina bianca: si spiega cosa fare
+    console.error(errore);
+    html = '<p class="vuoto">Questa schermata non si può mostrare: alcuni dati non sono validi. Usa «Salva backup» e poi «Ripristina dati di esempio».</p>';
+  }
+  document.getElementById("schermata").innerHTML = html;
 
   // Voce di menu attiva
   document.querySelectorAll("[data-vai]").forEach((a) => {
@@ -1049,6 +1149,8 @@ function disegna() {
   conteggio.hidden = daAssegnare === 0;
   conteggio.setAttribute("aria-label", daAssegnare + " commesse da assegnare");
 
+  aggiornaStatoBackup();
+
   // Porta in vista la scheda appena modificata
   if (ultimaModificata) {
     const el = document.getElementById("scheda-" + ultimaModificata) || document.getElementById("commessa-" + ultimaModificata);
@@ -1063,9 +1165,34 @@ function disegna() {
 }
 
 window.addEventListener("hashchange", () => {
-  document.getElementById("avviso").classList.remove("visibile");
-  disegna();
+  // L'avviso appena comparso (es. "Contatto creato" salvato da Clienti) resta visibile sulla nuova schermata
+  if (Date.now() - avvisoMostratoIl > 1000) nascondiAvviso();
   window.scrollTo(0, 0);
+  disegna();
 });
+
+// Due schede aperte insieme: quando l'altra salva, questa riprende i suoi dati (le finestre aperte restano)
+window.addEventListener("storage", (evento) => {
+  if (evento.key !== CONFIG.chiaveSalvataggio || !evento.newValue) return;
+  let nuovo = null;
+  try {
+    nuovo = migra(JSON.parse(evento.newValue));
+  } catch (e) {
+    return;
+  }
+  if (!strutturaValida(nuovo)) return;
+  stato = nuovo;
+  disegna();
+  // La copia per «Annulla» di questa scheda cancellerebbe il lavoro dell'altra: l'avviso la toglie
+  mostraAvviso("Dati aggiornati da un'altra scheda");
+});
+
+// Chiede al browser di non cancellare i dati del sito (es. Safari dopo 7 giorni senza visite)
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+if (datiScartati) {
+  avvisoFisso("I dati salvati in questo browser non si leggono: li abbiamo messi da parte.",
+    '<button class="pulsante no piccolo" type="button" data-azione="scarica-scartati">Scarica la copia</button>');
+}
 
 disegna();

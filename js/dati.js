@@ -61,40 +61,89 @@ function datiIniziali() {
     daFare: !!x.daFare,
   }));
 
-  return { aziende, referenti, opportunita, attivita, contatore: opportunita.length, contatoreId: 1000 };
+  return migra({ aziende, referenti, opportunita, attivita, contatore: opportunita.length, contatoreId: 1000, ultimoBackup: null });
 }
 
-// Controlla che i dati (salvati nel browser o importati da un backup) siano coerenti con config.js
-function datiValidi(d) {
-  if (!d || ![d.aziende, d.referenti, d.opportunita, d.attivita].every(Array.isArray)) return false;
-  if (typeof d.contatore !== "number" || typeof d.contatoreId !== "number") return false;
-  const idAziende = new Set(d.aziende.map((a) => a.id));
-  const comuneOk = (nome) => CONFIG.comuni.some((c) => c.nome === nome);
-  return d.aziende.every((a) => a.id && a.ragioneSociale && CONFIG.settori.includes(a.settore) && comuneOk(a.comune)) &&
-    d.referenti.every((r) => r.id && idAziende.has(r.aziendaId)) &&
-    d.attivita.every((x) => x.id && idAziende.has(x.aziendaId) && x.data) &&
-    d.opportunita.every((o) => o && o.id && idAziende.has(o.aziendaId) && o.storico && o.storico.contatto &&
-      CONFIG.servizi[o.servizio] && comuneOk(o.comune) &&
-      (!o.allocazione || (o.allocazione.tipo === "squadra" ? trovaSquadra(o.allocazione.id) : trovaPartner(o.allocazione.id))) &&
-      (o.proposte || []).every((p) => trovaPartner(p.partnerId)));
+// Porta i dati (salvati nel browser o da un backup) alla versione attuale, un passo alla volta
+function migra(d) {
+  if (!d || typeof d !== "object" || Array.isArray(d)) return d;
+  // Versione 2: i dati salvati prima che esistesse il numero di versione
+  if (d.versione === undefined) d.versione = 2;
+  // Ogni intervento che cambia la struttura dei dati aggiunge qui il suo passo, per esempio:
+  // if (d.versione === 2) { ...trasforma i dati...; d.versione = 3; }
+  return d;
 }
 
-// Legge i dati salvati nel browser; se mancano o non sono validi, usa gli esempi
+// Controlla solo struttura e tipi dei dati, mai le liste di config.js (che possono cambiare)
+function strutturaValida(d) {
+  const isId = (x) => typeof x === "string" && /^[\w-]+$/.test(x);
+  const isData = (x) => typeof x === "string" && /^\d{4}-\d{2}-\d{2}$/.test(x);
+  const isTesto = (x) => typeof x === "string";
+  const isOggetto = (x) => !!x && typeof x === "object" && !Array.isArray(x);
+  if (!isOggetto(d) || d.versione !== CONFIG.versioneDati) return false;
+  if (![d.aziende, d.referenti, d.opportunita, d.attivita].every(Array.isArray)) return false;
+  if (!Number.isFinite(d.contatore) || !Number.isFinite(d.contatoreId)) return false;
+  if (d.ultimoBackup != null && !isData(d.ultimoBackup)) return false;
+  const idAziende = new Set(d.aziende.map((a) => a && a.id));
+  const aziendaEsiste = (id) => isId(id) && idAziende.has(id);
+  const propostaOk = (p) => isOggetto(p) && isId(p.partnerId) && isData(p.data) && ["attesa", "si", "no"].includes(p.esito);
+  return d.aziende.every((a) => isOggetto(a) && isId(a.id) && isTesto(a.ragioneSociale) && a.ragioneSociale.trim() !== "") &&
+    d.referenti.every((r) => isOggetto(r) && isId(r.id) && aziendaEsiste(r.aziendaId)) &&
+    d.attivita.every((x) => isOggetto(x) && isId(x.id) && aziendaEsiste(x.aziendaId) && isData(x.data) && isTesto(x.testo) &&
+      typeof x.daFare === "boolean" && (x.ora == null || x.ora === "" || (isTesto(x.ora) && /^\d{2}:\d{2}$/.test(x.ora)))) &&
+    d.opportunita.every((o) => isOggetto(o) && isId(o.id) && isTesto(o.codice) && aziendaEsiste(o.aziendaId) &&
+      isTesto(o.servizio) && Number.isFinite(o.ore) && o.ore >= 0 &&
+      (o.tariffa == null || (Number.isFinite(o.tariffa) && o.tariffa >= 0)) &&
+      isOggetto(o.storico) && isData(o.storico.contatto) && Object.values(o.storico).every(isData) &&
+      (o.perso == null || (isOggetto(o.perso) && isData(o.perso.data) && isTesto(o.perso.motivo))) &&
+      (o.allocazione == null || (isOggetto(o.allocazione) && ["squadra", "partner"].includes(o.allocazione.tipo) &&
+        isId(o.allocazione.id) && isData(o.allocazione.data))) &&
+      (o.proposte === undefined || (Array.isArray(o.proposte) && o.proposte.every(propostaOk))));
+}
+
+// Dati salvati che non si leggevano: messi da parte in localStorage con la chiave "-scartato"
+let datiScartati = false;
+let testoScartato = "";
+
+// Legge i dati salvati nel browser; se non si leggono li mette da parte (mai cancellati) e usa gli esempi
 function carica() {
+  let testo = null;
   try {
-    const salvato = JSON.parse(localStorage.getItem(CONFIG.chiaveSalvataggio));
-    if (datiValidi(salvato)) return salvato;
+    testo = localStorage.getItem(CONFIG.chiaveSalvataggio);
   } catch (e) {
     // Salvataggio non disponibile (es. navigazione privata): si usano gli esempi
+  }
+  if (testo === null) return datiIniziali();
+  let d = null;
+  try {
+    d = migra(JSON.parse(testo));
+  } catch (e) {
+    d = null;
+  }
+  if (strutturaValida(d)) return d;
+  datiScartati = true;
+  testoScartato = testo;
+  try {
+    localStorage.setItem(CONFIG.chiaveSalvataggio + "-scartato", testo);
+  } catch (e) {
+    // Se non c'è spazio, la copia resta scaricabile da "Scarica la copia" in questa sessione
   }
   return datiIniziali();
 }
 
+// Salva lo stato nel browser; restituisce false (e avvisa una volta) se il browser non salva
+let avvisoSalvataggioMostrato = false;
 function salva() {
   try {
     localStorage.setItem(CONFIG.chiaveSalvataggio, JSON.stringify(stato));
+    return true;
   } catch (e) {
-    // Se il browser non permette di salvare, il prototipo funziona comunque
+    if (!avvisoSalvataggioMostrato) {
+      avvisoSalvataggioMostrato = true;
+      avvisoFisso("Questo browser non sta salvando i dati: usa subito «Salva backup».",
+        '<button class="pulsante no piccolo" type="button" data-azione="esporta-backup">Salva backup</button>');
+    }
+    return false;
   }
 }
 
@@ -194,19 +243,33 @@ function scaricaFile(nome, contenuto, tipo) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// Scarica tutti i dati in un file .json e ricorda la data dell'ultimo backup
 function esportaBackup() {
+  stato.ultimoBackup = oggi();
+  salva();
   scaricaFile("gate-crm-backup-" + oggi() + ".json", JSON.stringify(stato, null, 2), "application/json");
 }
 
-// Esporta aziende e referenti in CSV (separatore ";" per Excel in italiano)
+// Scarica i dati salvati che non si leggevano, per farli recuperare a mano
+function scaricaDatiScartati() {
+  scaricaFile("gate-crm-dati-da-recuperare-" + oggi() + ".json", testoScartato, "application/json");
+}
+
+// Esporta aziende e referenti in CSV (separatore ";" per Excel in italiano).
+// Il telefono esce come "0039 000 000 1011": Excel lo legge come testo e non come formula.
 function esportaCsvClienti() {
-  const campo = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+  // Un testo che inizia con = + - @ sarebbe letto da Excel come formula: l'apostrofo lo lascia testo
+  const campo = (v) => {
+    let s = String(v ?? "");
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return '"' + s.replace(/"/g, '""') + '"';
+  };
   const righe = [["Ragione sociale", "P.IVA", "Settore", "Comune", "Fonte", "Stato", "Referente", "Ruolo", "Decisore", "Telefono", "Email", "Canale preferito", "Consenso privacy"]];
   stato.aziende.forEach((a) => {
     const refs = referentiDi(a.id);
     (refs.length ? refs : [{}]).forEach((r) => righe.push([
       a.ragioneSociale, a.piva, a.settore, a.comune, a.fonte, statoAzienda(a.id),
-      r.nome, r.ruolo, r.nome ? (r.decisore ? "Sì" : "No") : "", r.telefono ? telefonoLeggibile(r.telefono) : "", r.email, r.canale,
+      r.nome, r.ruolo, r.nome ? (r.decisore ? "Sì" : "No") : "", r.telefono ? telefonoLeggibile(r.telefono).replace("+", "00") : "", r.email, r.canale,
       r.nome ? (r.privacy ? "Sì" : "No") : "",
     ]));
   });

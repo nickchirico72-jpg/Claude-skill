@@ -26,11 +26,11 @@ function rigaDaFare(x, conAzienda) {
     <li class="da-fare">
       <div class="da-fare-testo">
         <p>${scadenza(x.data)} <strong>${esc(x.tipo)}</strong> · ${esc(x.testo)}</p>
-        ${conAzienda ? `<p class="nota-piccola"><a class="link" href="#cliente-${azienda.id}">${esc(azienda.ragioneSociale)}</a>${ref ? " · " + esc(ref.nome) : ""}</p>` : ""}
+        ${conAzienda ? `<p class="nota-piccola"><a class="link" href="#cliente-${esc(azienda.id)}">${esc(azienda.ragioneSociale)}</a>${ref ? " · " + esc(ref.nome) : ""}</p>` : ""}
       </div>
       <div class="da-fare-azioni">
         ${ref ? pulsantiContatto(ref, true) : ""}
-        <button class="pulsante secondario piccolo" type="button" data-azione="fatto" data-id="${x.id}">${icona("spunta")} Fatto</button>
+        <button class="pulsante secondario piccolo" type="button" data-azione="fatto" data-id="${esc(x.id)}">${icona("spunta")} Fatto</button>
       </div>
     </li>`;
 }
@@ -128,7 +128,7 @@ function schedeClienti(aziende) {
     return `
       <article class="riquadro cliente">
         <div class="scheda-alto">
-          <a class="link-titolo" href="#cliente-${a.id}">${esc(a.ragioneSociale)}</a>
+          <a class="link-titolo" href="#cliente-${esc(a.id)}">${esc(a.ragioneSociale)}</a>
           ${chipStato(a.id)}
         </div>
         <p class="partner-dati">${esc(a.settore)} · ${esc(a.comune)} · fonte: ${esc(a.fonte)}</p>
@@ -159,8 +159,8 @@ function disegnaSchedaCliente(id) {
       titolo: esc(a.ragioneSociale),
       istruzione: "Registra ogni contatto con il cliente e fissa sempre la prossima azione: così nessuna trattativa resta ferma.",
       azione: `<div class="azioni-intestazione">
-        <button class="pulsante secondario" type="button" data-azione="modifica-azienda" data-id="${a.id}">${icona("matita")} Modifica dati</button>
-        <button class="pulsante accento" type="button" data-azione="nuova-opportunita" data-id="${a.id}">${icona("piu")} Nuova opportunità</button></div>`,
+        <button class="pulsante secondario" type="button" data-azione="modifica-azienda" data-id="${esc(a.id)}">${icona("matita")} Modifica dati</button>
+        <button class="pulsante accento" type="button" data-azione="nuova-opportunita" data-id="${esc(a.id)}">${icona("piu")} Nuova opportunità</button></div>`,
     })}
     <p class="riga-chip">${chipStato(a.id)} <span class="chip">Fonte: ${esc(a.fonte)}</span> <span class="chip">${esc(a.comune)}</span>
       ${a.piva ? `<span class="chip">P.IVA ${esc(a.piva)}</span>` : ""} <span class="chip">In archivio dal ${formattaData(a.creata)}</span></p>
@@ -175,7 +175,7 @@ function disegnaSchedaCliente(id) {
               <article class="riquadro referente">
                 <div class="scheda-alto">
                   <h3>${esc(r.nome)}</h3>
-                  <button class="pulsante-icona" type="button" data-azione="modifica-referente" data-id="${r.id}" aria-label="Modifica ${esc(r.nome)}" title="Modifica">${icona("matita")}</button>
+                  <button class="pulsante-icona" type="button" data-azione="modifica-referente" data-id="${esc(r.id)}" aria-label="Modifica ${esc(r.nome)}" title="Modifica">${icona("matita")}</button>
                 </div>
                 <p class="partner-dati">${esc(r.ruolo) || "Ruolo non indicato"}</p>
                 <p class="riga-chip">
@@ -186,7 +186,7 @@ function disegnaSchedaCliente(id) {
                 <p class="partner-dati">${r.telefono ? esc(telefonoLeggibile(r.telefono)) : "Telefono non indicato"}<br>${r.email ? esc(r.email) : "Email non indicata"}</p>
                 <div class="contatti">${pulsantiContatto(r)}</div>
               </article>`).join("")}
-            <button class="riquadro aggiungi" type="button" data-azione="nuovo-referente" data-id="${a.id}">${icona("piu")} Aggiungi referente</button>
+            <button class="riquadro aggiungi" type="button" data-azione="nuovo-referente" data-id="${esc(a.id)}">${icona("piu")} Aggiungi referente</button>
           </div>
         </section>
 
@@ -198,8 +198,8 @@ function disegnaSchedaCliente(id) {
                 <thead><tr><th>Rif.</th><th>Servizio</th><th>Sede</th><th>Fase</th><th>Punteggio</th><th class="num">Valore annuo</th></tr></thead>
                 <tbody>
                   ${opp.map((o) => `<tr>
-                    <td><button class="link pulsante-link" type="button" data-azione="dettaglio" data-id="${o.id}">${o.codice}</button></td>
-                    <td>${esc(o.servizio)}<br><span class="nota-piccola">${o.ore} h/mese</span></td>
+                    <td><button class="link pulsante-link" type="button" data-azione="dettaglio" data-id="${esc(o.id)}">${esc(o.codice)}</button></td>
+                    <td>${esc(o.servizio)}<br><span class="nota-piccola">${Number(o.ore)} h/mese</span></td>
                     <td>${esc(o.comune)}</td>
                     <td>${faseAttuale(o) === "perso" ? "Perso" : CONFIG.fasi[faseRaggiunta(o)].nome}</td>
                     <td>${badgePunteggio(calcolaPunteggio(o, stato.opportunita))}</td>
@@ -220,11 +220,11 @@ function disegnaSchedaCliente(id) {
 
         <section class="sezione">
           <h2>Registra un'attività</h2>
-          <form class="modulo riquadro" id="modulo-attivita" data-id="${a.id}">
+          <form class="modulo riquadro" id="modulo-attivita" data-id="${esc(a.id)}">
             <div class="riga-doppia">
               <label>Tipo <select name="tipo">${opzioni(CONFIG.tipiAttivita, "Chiamata")}</select></label>
               <label>Referente
-                <select name="referente"><option value="">Nessuno in particolare</option>${refs.map((r) => `<option value="${r.id}">${esc(r.nome)}</option>`).join("")}</select>
+                <select name="referente"><option value="">Nessuno in particolare</option>${refs.map((r) => `<option value="${esc(r.id)}">${esc(r.nome)}</option>`).join("")}</select>
               </label>
             </div>
             <label>Cosa è successo o cosa fare
@@ -259,7 +259,7 @@ function disegnaSchedaCliente(id) {
 function apriModificaAzienda(id) {
   const a = trovaAzienda(id);
   apriFinestra(`
-    <form class="modulo" id="modulo-azienda" data-id="${a.id}">
+    <form class="modulo" id="modulo-azienda" data-id="${esc(a.id)}">
       <h2>Dati dell'azienda</h2>
       <label>Ragione sociale <input name="ragioneSociale" required value="${esc(a.ragioneSociale)}"></label>
       <div class="riga-doppia">
@@ -282,7 +282,7 @@ function apriReferente(aziendaId, referenteId) {
   const r = trovaReferente(referenteId) || { nome: "", ruolo: "", telefono: "", email: "", canale: "Telefono", decisore: false, privacy: false };
   const usato = referenteId && stato.opportunita.some((o) => o.referenteId === referenteId);
   apriFinestra(`
-    <form class="modulo" id="modulo-referente" data-azienda="${aziendaId}" data-id="${referenteId || ""}">
+    <form class="modulo" id="modulo-referente" data-azienda="${esc(aziendaId)}" data-id="${esc(referenteId)}">
       <h2>${referenteId ? "Modifica referente" : "Nuovo referente"}</h2>
       <div class="riga-doppia">
         <label>Nome e cognome <input name="nome" required value="${esc(r.nome)}"></label>
@@ -296,7 +296,7 @@ function apriReferente(aziendaId, referenteId) {
       <label class="spunta"><input name="decisore" type="checkbox" ${r.decisore ? "checked" : ""}> È il decisore</label>
       <label class="spunta"><input name="privacy" type="checkbox" ${r.privacy ? "checked" : ""}> Ha dato il consenso privacy per essere ricontattato</label>
       <div class="azioni-finestra">
-        ${referenteId && !usato ? `<button class="pulsante no" type="button" data-azione="elimina-referente" data-id="${referenteId}">Elimina</button>` : ""}
+        ${referenteId && !usato ? `<button class="pulsante no" type="button" data-azione="elimina-referente" data-id="${esc(referenteId)}">Elimina</button>` : ""}
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
         <button class="pulsante primario" type="submit">Salva</button>
       </div>
@@ -310,11 +310,11 @@ function importaBackup(file) {
   lettore.onload = () => {
     let dati = null;
     try {
-      dati = JSON.parse(lettore.result);
+      dati = migra(JSON.parse(lettore.result));
     } catch (e) {
       dati = null;
     }
-    if (!datiValidi(dati)) {
+    if (!strutturaValida(dati)) {
       mostraAvviso("Il file scelto non è un backup valido di questo prototipo");
       return;
     }
@@ -337,30 +337,23 @@ const AZIONI_CLIENTI = {
   "modifica-azienda": (el) => apriModificaAzienda(el.dataset.id),
   "nuovo-referente": (el) => apriReferente(el.dataset.id, null),
   "modifica-referente": (el) => apriReferente(trovaReferente(el.dataset.id).aziendaId, el.dataset.id),
-  "elimina-referente": (el) => {
+  "elimina-referente": (el) => applica(() => {
     stato.referenti = stato.referenti.filter((r) => r.id !== el.dataset.id);
     stato.attivita.forEach((x) => { if (x.referenteId === el.dataset.id) x.referenteId = null; });
-    salva();
-    chiudiFinestra();
-    disegna();
-    mostraAvviso("Referente eliminato");
-  },
+  }, { messaggio: "Referente eliminato" }),
   fatto: (el) => {
     const x = stato.attivita.find((y) => y.id === el.dataset.id);
-    x.daFare = false;
-    x.data = oggi();
-    salva();
-    disegna();
-    mostraAvviso("Attività segnata come fatta: " + x.testo);
+    if (!x || !x.daFare) return;
+    applica(() => {
+      x.daFare = false;
+      x.data = oggi();
+    }, { messaggio: "Attività segnata come fatta: " + x.testo });
   },
-  "conferma-importa": () => {
+  "conferma-importa": () => applica(() => {
+    if (!backupInAttesa) return false;
     stato = backupInAttesa;
     backupInAttesa = null;
-    salva();
-    chiudiFinestra();
-    disegna();
-    mostraAvviso("Backup importato");
-  },
+  }, { messaggio: "Backup importato", fase: "contatto" }),
 };
 
 // Invio dei moduli (chiamati da app.js)
@@ -374,11 +367,10 @@ const GESTORI_MODULI = {
     }
     const piva = modulo.piva.value.replace(/\s/g, "");
     if (piva && !/^\d{11}$/.test(piva)) return segnalaCampo(modulo.piva, "La partita IVA ha 11 cifre");
-    Object.assign(a, { ragioneSociale: nome, piva, settore: modulo.settore.value, comune: modulo.comune.value, fonte: modulo.fonte.value, note: modulo.note.value.trim() });
-    salva();
-    chiudiFinestra();
-    disegna();
-    mostraAvviso("Dati dell'azienda aggiornati");
+    const dati = { ragioneSociale: nome, piva, settore: modulo.settore.value, comune: modulo.comune.value, fonte: modulo.fonte.value, note: modulo.note.value.trim() };
+    applica(() => {
+      Object.assign(a, dati);
+    }, { messaggio: "Dati dell'azienda aggiornati" });
   },
   "modulo-referente": (modulo) => {
     const nome = modulo.nome.value.trim();
@@ -394,27 +386,23 @@ const GESTORI_MODULI = {
       privacy: modulo.privacy.checked,
     };
     const esistente = trovaReferente(modulo.dataset.id);
-    if (esistente) Object.assign(esistente, dati);
-    else stato.referenti.push({ id: nuovoId("rf"), aziendaId: modulo.dataset.azienda, ...dati });
-    salva();
-    chiudiFinestra();
-    disegna();
-    mostraAvviso(esistente ? "Referente aggiornato" : "Referente aggiunto: " + nome);
+    applica(() => {
+      if (esistente) Object.assign(esistente, dati);
+      else stato.referenti.push({ id: nuovoId("rf"), aziendaId: modulo.dataset.azienda, ...dati });
+    }, { messaggio: esistente ? "Referente aggiornato" : "Referente aggiunto: " + nome });
   },
   "modulo-attivita": (modulo) => {
     const testo = modulo.testo.value.trim();
     if (!testo) return segnalaCampo(modulo.testo, "Scrivi cosa è successo o cosa fare");
     if (!modulo.data.value) return segnalaCampo(modulo.data, "Scegli una data");
-    registraAttivita({
+    const dati = {
       aziendaId: modulo.dataset.id,
       referenteId: modulo.referente.value || null,
       tipo: modulo.tipo.value,
       data: modulo.data.value,
       testo,
       daFare: modulo.daFare.checked,
-    });
-    salva();
-    disegna();
-    mostraAvviso(modulo.daFare.checked ? "Prossima azione fissata" : "Attività registrata");
+    };
+    applica(() => registraAttivita(dati), { messaggio: dati.daFare ? "Prossima azione fissata" : "Attività registrata" });
   },
 };

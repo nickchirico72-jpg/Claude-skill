@@ -20,6 +20,8 @@ function traGiorni(n) {
 const CONFIG = {
   // Chiave con cui i dati vengono salvati nel browser (localStorage)
   chiaveSalvataggio: "gate-sviluppo-commerciale-v2",
+  // Versione della struttura dei dati salvati: NON modificarla, la aggiorna chi cambia il codice (vedi migra() in dati.js)
+  versioneDati: 2,
 
   // ---------------------------------------------------------------- Pilota
   pilota: {
