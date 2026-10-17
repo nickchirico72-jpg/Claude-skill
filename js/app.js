@@ -1745,7 +1745,7 @@ const AZIONI = {
 };
 
 // Azioni che modificano i dati: un secondo clic ravvicinato viene ignorato
-const MODIFICANO_DATI = new Set(["avanza", "fatto", "fatto-fase", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
+const MODIFICANO_DATI = new Set(['importa-contatti', "avanza", "fatto", "fatto-fase", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
   "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "annulla"]);
 let ultimoClicModifica = 0;
 let ultimoInvio = 0; // quando è stato inviato l'ultimo modulo (ms)

@@ -63,6 +63,18 @@ Ogni sezione del CRM dice a quale domanda risponde, con un'etichetta colorata:
 3. **Cosa succederà?** (predittiva): previsione ponderata dei ricavi, ore che serviranno alle squadre se si firmano le offerte aperte.
 4. **Cosa conviene fare?** (prescrittiva): consigli proattivi nella Pipeline e negli Indicatori, per esempio "Sollecita Poliambulatorio Zeta · Perché: offerta scaduta". Ogni consiglio nasce da una regola leggibile (`js/analisi.js`, soglie in `config.js`), non da una scatola nera.
 
+## Collegamento con sito e social
+
+Senza un server i contatti non possono entrare nel CRM da soli. Il prototipo usa un collegamento semplice, adatto al pilota:
+
+1. **Modulo "Richiedi un preventivo"** (`modulo.html`): una pagina pubblica da collegare al sito, alla bio di Instagram, ai post e alle campagne. Chi la compila invia la richiesta a Gate su **WhatsApp o per email**, con il messaggio già scritto e il consenso privacy.
+2. **Link tracciati per canale**: in Clienti → **Sito e social** c'è un link per ogni canale (sito, Facebook, Instagram, LinkedIn, Google Ads), per esempio `modulo.html?utm_source=instagram`. Il canale viaggia nel messaggio.
+3. **Importazione**: nella stessa finestra si incollano le richieste ricevute oppure si carica il **CSV esportato dalle campagne** (Meta Lead Ads per Facebook e Instagram, LinkedIn Lead Gen Forms). Il CRM crea le aziende "Da qualificare" con la fonte giusta, il referente, la nota della richiesta e una chiamata di qualifica per domani; i doppioni vengono esclusi.
+
+Così gli indicatori per canale mostrano quali social portano contratti e a che costo. Numero WhatsApp ed email di Gate, canali e costi sono in `config.js` (oggi fittizi).
+
+**Passo successivo** (con un archivio online): il modulo e le campagne scrivono direttamente nel CRM tramite un collegamento automatico (webhook), senza copia e incolla.
+
 ## Come avviarlo
 
 - **In locale:** scarica la cartella e apri `index.html` con un doppio clic. Non serve installare nulla.
@@ -105,6 +117,7 @@ Colori e font riprendono il sito [gatesrl.it](https://www.gatesrl.it/): blu nott
 ## Struttura dei file
 
 ```
+modulo.html         modulo pubblico "Richiedi un preventivo" per sito e social
 index.html          struttura della pagina e menu
 css/stile.css       palette e font del sito Gate (variabili in cima al file)
 js/config.js        IPOTESI E DATI DI ESEMPIO: l'unico file da modificare con i dati reali
@@ -113,6 +126,7 @@ js/dati.js          salvataggio nel browser, collegamenti tra aziende/referenti/
 js/allocazione.js   regole di allocazione: squadre, partner, DURC, messaggio WhatsApp
 js/punteggio.js     stime economiche e punteggio di coerenza A/B/C
 js/kpi.js           5 KPI, obiettivi del pilota, funnel, motivi di perdita, risultati per settore e canale
+js/canali.js        collegamento con sito e social: link tracciati, importazione richieste e CSV delle campagne
 js/analisi.js       le quattro domande: etichette, previsione della capacità, consigli "Cosa conviene fare?"
 js/clienti.js       schermata Clienti: elenco con ricerca e filtri, scheda cliente, referenti, attività, privacy
 js/app.js           schermate Pipeline, Allocazione e Indicatori, finestre e clic

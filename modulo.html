@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Richiedi un preventivo · Gate S.R.L. (prototipo)</title>
+  <meta name="description" content="Modulo di richiesta preventivo da collegare al sito e ai social. Prototipo dimostrativo.">
+  <meta name="theme-color" content="#1E3A5F">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
+  <link rel="stylesheet" href="css/stile.css">
+  <style>
+    /* Pagina pubblica: una colonna centrata, senza menu del CRM */
+    .pagina-modulo { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+    .pagina-modulo .marchio-pubblico { margin-bottom: 20px; color: var(--secondary); font-family: Sora, system-ui, sans-serif; font-size: 24px; font-weight: 700; }
+    .pagina-modulo .marchio-pubblico span { color: var(--accent-testo); font-size: 12px; letter-spacing: 0.12em; }
+    .invio { display: flex; flex-wrap: wrap; gap: 8px; }
+    .anteprima-messaggio { white-space: pre-wrap; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main class="pagina-modulo">
+    <p class="marchio-pubblico">Gate <span>S.R.L.</span></p>
+    <p class="nota-dati">Prototipo dimostrativo: il modulo non è ancora pubblicato da Gate.</p>
+    <h1>Richiedi un preventivo</h1>
+    <p class="istruzione">Pulizia professionale, pest control, manutenzioni, giardinaggio e logistica. Ti ricontattiamo entro un giorno lavorativo.</p>
+
+    <!-- Il modulo non invia nulla a un server: prepara un messaggio che si invia su WhatsApp o per email -->
+    <form class="modulo riquadro" id="modulo-richiesta" novalidate style="margin-top:16px">
+      <label>Azienda o studio * <input name="azienda" required autocomplete="organization"></label>
+      <div class="riga-doppia">
+        <label>Nome e cognome * <input name="nome" required autocomplete="name"></label>
+        <label>Ruolo <input name="ruolo" autocomplete="organization-title" placeholder="Es. titolare"></label>
+      </div>
+      <div class="riga-doppia">
+        <label>Telefono * <input name="telefono" type="tel" inputmode="tel" required autocomplete="tel"></label>
+        <label>Email <input name="email" type="email" inputmode="email" autocomplete="email"></label>
+      </div>
+      <div class="riga-doppia">
+        <label>Comune <select name="comune" id="campo-comune"></select></label>
+        <label>Servizio <select name="servizio" id="campo-servizio"></select></label>
+      </div>
+      <label>Ore al mese, se le conosci <input name="ore" type="number" inputmode="numeric" min="1" step="1" placeholder="Es. 40"></label>
+      <label>Messaggio <textarea name="messaggio" placeholder="Es. uffici di 300 mq, pulizia tre volte a settimana"></textarea></label>
+      <label class="spunta"><input name="privacy" type="checkbox" required> Acconsento a essere ricontattato da Gate S.R.L. per questa richiesta *</label>
+      <p class="nota-piccola">* obbligatorio. I dati servono solo a rispondere alla richiesta.</p>
+      <div class="invio">
+        <button class="pulsante whatsapp" type="submit" data-invio="whatsapp">Invia su WhatsApp</button>
+        <button class="pulsante secondario" type="submit" data-invio="email">Invia per email</button>
+      </div>
+    </form>
+
+    <section class="riquadro" id="esito" hidden style="margin-top:16px">
+      <h2>Richiesta pronta</h2>
+      <p class="nota-piccola">Si è aperta l'app per l'invio con il messaggio già scritto: premi Invia. Se non si è aperta, copia il testo qui sotto.</p>
+      <pre class="anteprima-messaggio" id="testo-richiesta"></pre>
+    </section>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script>
+    // Canale da cui arriva il visitatore: ?utm_source=instagram (link tracciato), altrimenti "sito"
+    const canale = new URLSearchParams(location.search).get("utm_source") || "sito";
+
+    // Elenchi del modulo presi da config.js, così restano uguali a quelli del CRM
+    document.getElementById("campo-comune").innerHTML =
+      CONFIG.comuni.map((c) => `<option>${c.nome}</option>`).join("") + "<option>Altro comune</option>";
+    document.getElementById("campo-servizio").innerHTML =
+      Object.keys(CONFIG.servizi).map((s) => `<option>${s}</option>`).join("") + "<option>Da definire</option>";
+
+    // Testo della richiesta: righe "Chiave: valore" che il CRM sa rileggere (Clienti → Canali e modulo → Importa)
+    function testoRichiesta(d) {
+      const oggi = new Date().toLocaleDateString("it-IT");
+      return [
+        "Richiesta di preventivo – Gate S.R.L.",
+        "Azienda: " + d.get("azienda"),
+        "Referente: " + d.get("nome"),
+        "Ruolo: " + (d.get("ruolo") || ""),
+        "Telefono: " + d.get("telefono"),
+        "Email: " + (d.get("email") || ""),
+        "Comune: " + d.get("comune"),
+        "Servizio: " + d.get("servizio"),
+        "Ore al mese: " + (d.get("ore") || ""),
+        "Messaggio: " + String(d.get("messaggio") || "").replace(/\s+/g, " ").trim(),
+        "Canale: " + canale,
+        "Consenso privacy: sì (" + oggi + ")",
+      ].join("\n");
+    }
+
+    document.getElementById("modulo-richiesta").addEventListener("submit", (evento) => {
+      evento.preventDefault();
+      const modulo = evento.target;
+      // Controllo dei campi obbligatori con i messaggi del browser
+      for (const campo of modulo.querySelectorAll("[required]")) {
+        if (!campo.checkValidity() || (campo.type !== "checkbox" && !campo.value.trim())) {
+          campo.reportValidity();
+          return;
+        }
+      }
+      if (modulo.email.value && !modulo.email.checkValidity()) return modulo.email.reportValidity();
+      const testo = testoRichiesta(new FormData(modulo));
+      const via = evento.submitter ? evento.submitter.dataset.invio : "whatsapp";
+      const link = via === "email"
+        ? "mailto:" + CONFIG.contattiGate.email + "?subject=" + encodeURIComponent("Richiesta di preventivo") + "&body=" + encodeURIComponent(testo)
+        : "https://wa.me/" + CONFIG.contattiGate.whatsapp + "?text=" + encodeURIComponent(testo);
+      document.getElementById("testo-richiesta").textContent = testo;
+      document.getElementById("esito").hidden = false;
+      window.open(link, "_blank", "noopener");
+    });
+  </script>
+</body>
+</html>

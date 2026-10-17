@@ -3158,3 +3158,48 @@ h1[tabindex="-1"]:focus {
 .pannelli-pipeline .elenco-consigli {
   gap: 6px;
 }
+
+/* Collegamento con sito e social */
+.elenco-link {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.elenco-link li {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.elenco-link input {
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--input);
+  border-radius: 8px;
+  background: var(--muted);
+  font-size: 12.5px;
+}
+
+@media (max-width: 599px) {
+  .elenco-link li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .elenco-link strong {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Su telefono "Sito e social" sta nel piè di pagina, così l'intestazione dei Clienti resta su una riga */
+@media (max-width: 599px) {
+  .azioni-intestazione [data-azione="canali"] {
+    display: none;
+  }
+}

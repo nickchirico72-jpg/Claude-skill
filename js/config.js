@@ -136,6 +136,10 @@ const CONFIG = {
       "Eventi e LinkedIn": 400,
       "Passaparola": 0,
       "Contatto diretto": 0,   // telefonata o email ricevuta senza un canale preciso
+      "Facebook": 250,         // campagne e post sponsorizzati
+      "Instagram": 250,
+      "LinkedIn": 300,
+      "Google Ads": 400,
     },
   },
 
@@ -344,5 +348,21 @@ const CONFIG = {
     "Fuori zona": "Filtra prima i contatti fuori zona (punteggio C)",
     "Capacità insufficiente": "Allarga la rete dei partner nelle zone sature",
     "Nessuna risposta": "Fissa sempre una data di sollecito dopo l'offerta",
+  },
+
+  // ------------------------------------------- Collegamento con sito e social
+  // Ogni canale digitale ha un codice (utm_source) che si aggiunge al link del modulo:
+  // così il CRM sa da dove arriva ogni richiesta.
+  canaliDigitali: [
+    { fonte: "Sito web", codice: "sito" },
+    { fonte: "Facebook", codice: "facebook" },
+    { fonte: "Instagram", codice: "instagram" },
+    { fonte: "LinkedIn", codice: "linkedin" },
+    { fonte: "Google Ads", codice: "google" },
+  ],
+  // Dove arrivano le richieste del modulo "Richiedi un preventivo" (fittizi: sostituirli con quelli di Gate)
+  contattiGate: {
+    whatsapp: "390000000000",
+    email: "commerciale@example.com",
   },
 };
