@@ -32,18 +32,28 @@ const CONFIG = {
   // Chi firma i messaggi WhatsApp ai partner
   mittente: "l'Ufficio commerciale di Gate S.R.L.",
 
-  // Giorni tra la firma del contratto e l'avvio del servizio
+  // Giorni tra la firma del contratto e l'avvio del servizio (proposta, modificabile alla firma)
   giorniAvvioServizio: 15,
+  // Giorni di validità di un'offerta dalla data di invio (proposta, modificabile all'invio)
+  giorniValiditaOfferta: 30,
 
   // ------------------------------------------------- Fasi della pipeline
   // probabilita = probabilità di chiusura (ipotesi), usata per il margine atteso
+  // azione = pulsante che registra il passaggio alla fase successiva, già avvenuto
   // metodo = passo corrispondente del metodo Gate ("Come lavoriamo" sul sito)
+  // giorniFerma = oltre questi giorni nella fase la trattativa è "ferma" (ipotesi da confermare con Gate)
+  // followUp = promemoria creato da solo quando la trattativa entra nella fase (ipotesi da confermare con Gate)
   fasi: [
-    { id: "contatto",    nome: "Contatto",    probabilita: 0.05, azione: "Qualifica" },
-    { id: "qualificato", nome: "Qualificato", probabilita: 0.15, azione: "Registra sopralluogo" },
-    { id: "sopralluogo", nome: "Sopralluogo", probabilita: 0.35, azione: "Invia offerta", metodo: "Analisi" },
-    { id: "offerta",     nome: "Offerta",     probabilita: 0.55, azione: "Contratto firmato", metodo: "Proposta" },
-    { id: "contratto",   nome: "Contratto",   probabilita: 1.0,  metodo: "Esecuzione" },
+    { id: "contatto",    nome: "Contatto",    probabilita: 0.05, azione: "È qualificato",
+      giorniFerma: 7,    followUp: { giorni: 2,  tipo: "Chiamata", testo: "Chiamata di qualifica" } },
+    { id: "qualificato", nome: "Qualificato", probabilita: 0.15, azione: "Sopralluogo fatto",
+      giorniFerma: 14,   followUp: { giorni: 3,  tipo: "Chiamata", testo: "Fissare il sopralluogo" } },
+    { id: "sopralluogo", nome: "Sopralluogo", probabilita: 0.35, azione: "Offerta inviata", metodo: "Analisi",
+      giorniFerma: 14,   followUp: { giorni: 5,  tipo: "Email",    testo: "Preparare e inviare l'offerta" } },
+    { id: "offerta",     nome: "Offerta",     probabilita: 0.55, azione: "Contratto firmato", metodo: "Proposta",
+      giorniFerma: 21,   followUp: { giorni: 7,  tipo: "Chiamata", testo: "Sollecitare la risposta all'offerta" } },
+    { id: "contratto",   nome: "Contratto",   probabilita: 1.0,  metodo: "Esecuzione",
+      giorniFerma: null, followUp: { giorni: 45, tipo: "Visita",   testo: "Controllo qualità dopo il primo mese" } },
   ],
   motiviPerdita: ["Prezzo", "Tempi di avvio", "Fuori zona", "Capacità insufficiente", "Nessuna risposta", "Altro"],
 
@@ -236,6 +246,7 @@ const CONFIG = {
   // Opportunità commerciali: una trattativa per un servizio con un'azienda.
   // comune = sede di lavoro dove si svolge il servizio.
   // storico: fasi raggiunte con la data. Le opportunità perse hanno anche "perso".
+  // scadenzaOfferta: fino a quando vale l'offerta inviata.
   // allocazione: a chi è stata affidata la commessa (solo per i contratti).
   opportunita: [
     { azienda: "az1", comune: "Bari", servizio: "Pulizia Professionale", ore: 48,
@@ -248,9 +259,11 @@ const CONFIG = {
     { azienda: "az3", comune: "Bari", servizio: "Pulizia Professionale", ore: 32,
       storico: { contatto: traGiorni(-50), qualificato: traGiorni(-47), sopralluogo: traGiorni(-40), offerta: traGiorni(-33), contratto: traGiorni(-3) } },
     { azienda: "az4", comune: "Modugno", servizio: "Pulizia Professionale", ore: 120,
-      storico: { contatto: traGiorni(-44), qualificato: traGiorni(-41), sopralluogo: traGiorni(-30), offerta: traGiorni(-20) } },
+      storico: { contatto: traGiorni(-44), qualificato: traGiorni(-41), sopralluogo: traGiorni(-30), offerta: traGiorni(-20) },
+      scadenzaOfferta: traGiorni(10) },
     { azienda: "az5", comune: "Bari", servizio: "Pulizia Professionale", ore: 90,
-      storico: { contatto: traGiorni(-58), qualificato: traGiorni(-55), sopralluogo: traGiorni(-45), offerta: traGiorni(-35) } },
+      storico: { contatto: traGiorni(-58), qualificato: traGiorni(-55), sopralluogo: traGiorni(-45), offerta: traGiorni(-35) },
+      scadenzaOfferta: traGiorni(-5) },
     { azienda: "az6", comune: "Bari", servizio: "Pulizia Professionale", ore: 16,
       storico: { contatto: traGiorni(-66), qualificato: traGiorni(-63), sopralluogo: traGiorni(-57), offerta: traGiorni(-50) },
       perso: { data: traGiorni(-36), motivo: "Prezzo" } },

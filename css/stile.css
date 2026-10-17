@@ -461,6 +461,15 @@ textarea {
   color: var(--critico);
 }
 
+/* Pulsante-testo per un'azione da fare (non distruttiva) */
+.pulsante-testo.positivo {
+  color: var(--primary);
+}
+
+.pulsante-testo.positivo:hover {
+  color: var(--primary-scuro);
+}
+
 .link {
   color: var(--primary);
   font-weight: 600;
@@ -738,6 +747,40 @@ textarea {
 .scheda-nota {
   color: var(--muted-foreground);
   font-size: 12.5px;
+}
+
+/* Sopralluogo fissato o validità dell'offerta */
+.scheda-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--secondary);
+}
+
+.scheda-info .icona {
+  width: 15px;
+  height: 15px;
+}
+
+/* Prossima azione e trattativa ferma */
+.scheda-stato-trattativa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+}
+
+.stato-testo {
+  min-width: 0;
+  color: var(--muted-foreground);
+}
+
+.scheda-stato-trattativa .pulsante-testo {
+  padding: 0;
 }
 
 .vuoto {
@@ -1415,6 +1458,77 @@ dialog::backdrop {
   font-size: 13.5px;
 }
 
+/* Finestre delle fasi: pulsanti rapidi della data, confronto del punteggio, importo, conferma C */
+.pulsanti-rapidi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: -4px;
+}
+
+.pulsanti-rapidi .pulsante[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: hsl(195 55% 35% / 0.1);
+  color: var(--primary-scuro);
+}
+
+.confronto-punteggio,
+.importo-offerta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: -4px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.confronto-punteggio .valore-annuo {
+  margin-left: auto;
+  font-weight: 400;
+}
+
+.conferma-c {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--critico-sfondo);
+  color: var(--critico);
+  font-size: 13.5px;
+}
+
+.conferma-c label {
+  color: var(--foreground);
+}
+
+/* Pulsante-testo all'inizio della riga dei pulsanti (es. «Torna a ...») */
+.a-sinistra {
+  align-self: flex-start;
+  margin-right: auto;
+}
+
+/* Dettaglio: referente con i pulsanti di contatto e note sulla trattativa */
+.dettaglio-referente {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13.5px;
+}
+
+.dettaglio-referente .contatti {
+  margin-top: 6px;
+}
+
+.nota-trattativa {
+  white-space: pre-line;
+  font-size: 13.5px;
+}
+
 .nota-c {
   padding: 10px 12px;
   border-radius: 8px;
@@ -1784,6 +1898,19 @@ dialog::backdrop {
 
   .pulsante-icona {
     width: 44px;
+  }
+}
+
+/* Da fare oggi e Da seguire: affiancati sugli schermi larghi */
+.pannelli-pipeline {
+  display: grid;
+  gap: 0 24px;
+}
+
+@media (min-width: 1100px) {
+  .pannelli-pipeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
   }
 }
 

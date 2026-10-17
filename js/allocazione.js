@@ -103,11 +103,10 @@ function esecutorePrevisto(opp, opportunita) {
   return null;
 }
 
-// Data di avvio del servizio: firma del contratto + giorni configurati
+// Data di avvio del servizio: quella concordata alla firma, altrimenti firma + giorni configurati
 function dataAvvio(opp) {
-  const [a, m, g] = (opp.storico.contratto || oggi()).split("-").map(Number);
-  const giorni = Math.round((new Date(a, m - 1, g) - new Date(new Date().toDateString())) / 86400000);
-  return traGiorni(giorni + CONFIG.giorniAvvioServizio);
+  if (opp.avvio) return opp.avvio;
+  return aggiungiGiorni(opp.storico.contratto || oggi(), CONFIG.giorniAvvioServizio);
 }
 
 // Testo del messaggio WhatsApp con i segnaposto sostituiti

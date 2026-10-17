@@ -70,9 +70,9 @@ function tabellaCriteri(p) {
 function disegnaPipeline() {
   const tutte = stato.opportunita;
   const punteggi = new Map(tutte.map((o) => [o.id, calcolaPunteggio(o, tutte)]));
-  const inTrattativa = tutte.filter((o) => !o.perso && !o.storico.contratto);
+  const aperte = tutte.filter(trattativaAperta);
   const classi = { A: 0, B: 0, C: 0 };
-  inTrattativa.forEach((o) => classi[punteggi.get(o.id).classe]++);
+  aperte.forEach((o) => classi[punteggi.get(o.id).classe]++);
 
   // Colonne: le 5 fasi più "Perso"
   const colonne = CONFIG.fasi.map((f) => ({ id: f.id, nome: f.nome, metodo: f.metodo }));
@@ -85,20 +85,23 @@ function disegnaPipeline() {
     ${intestazione({
       occhiello: "Pipeline commerciale",
       titolo: "Opportunità commerciali",
-      istruzione: "Aggiungi un contatto e fallo avanzare di fase con un clic. Il punteggio A/B/C dice quanto è coerente con capacità e margini.",
+      istruzione: "Registra ogni passo quando è avvenuto e tieni sempre una prossima azione. Il punteggio A/B/C dice quanto è coerente con capacità e margini.",
       azione: `<button class="pulsante accento" type="button" data-azione="nuovo">${icona("piu")} Nuovo contatto</button>`,
     })}
 
     <section class="riepilogo" aria-label="Riepilogo">
-      <div><span>In trattativa</span><strong>${inTrattativa.length}</strong></div>
-      <div><span>Valore annuo in trattativa</span><strong>${formattaEuro(inTrattativa.reduce((s, o) => s + valoreAnnuo(o), 0))}</strong></div>
+      <div><span>In trattativa</span><strong>${aperte.length}</strong></div>
+      <div><span>Valore annuo in trattativa</span><strong>${formattaEuro(aperte.reduce((s, o) => s + valoreAnnuo(o), 0))}</strong></div>
       <div><span>Coerenza delle trattative</span><strong>
         <span class="badge badge-A">A ${classi.A}</span>
         <span class="badge badge-B">B ${classi.B}</span>
         <span class="badge badge-C">C ${classi.C}</span></strong></div>
     </section>
 
-    ${sezioneDaFare()}
+    <div class="pannelli-pipeline">
+      ${sezioneDaFare()}
+      ${sezioneDaSeguire()}
+    </div>
 
     <nav class="selettore-fasi" aria-label="Scegli la fase da vedere">
       ${colonne.map((c) => `
@@ -126,11 +129,6 @@ function disegnaPipeline() {
     </div>`;
 }
 
-// Data in cui l'opportunità è entrata nella fase attuale (per ordinare le schede)
-function dataFaseAttuale(o) {
-  return o.perso ? o.perso.data : o.storico[CONFIG.fasi[faseRaggiunta(o)].id];
-}
-
 function schedaOpportunita(o, p) {
   const fase = faseAttuale(o);
   let fondo;
@@ -139,10 +137,16 @@ function schedaOpportunita(o, p) {
   } else if (fase === "contratto") {
     fondo = statoCommessa(o);
   } else {
-    const azione = CONFIG.fasi[faseRaggiunta(o)].azione;
+    // In Qualificato, prima si fissa il sopralluogo in agenda; poi si registra che è stato fatto
+    const fissato = fase === "qualificato" ? sopralluogoFissato(o) : null;
+    const pulsante = fase === "qualificato" && !fissato
+      ? `<button class="pulsante primario piccolo" type="button" data-azione="fissa-sopralluogo" data-id="${esc(o.id)}">${icona("calendario")} Fissa sopralluogo</button>`
+      : `<button class="pulsante primario piccolo" type="button" data-azione="avanza" data-id="${esc(o.id)}" title="Registra che è già avvenuto">${icona("spunta")} ${CONFIG.fasi[faseRaggiunta(o)].azione}</button>`;
     fondo = `
+      ${infoFase(o, fissato)}
+      ${rigaStatoTrattativa(o)}
       <div class="scheda-azioni">
-        <button class="pulsante primario piccolo" type="button" data-azione="avanza" data-id="${esc(o.id)}">${azione} ${icona("freccia")}</button>
+        ${pulsante}
         <button class="pulsante-testo" type="button" data-azione="perso" data-id="${esc(o.id)}">Segna come perso</button>
       </div>`;
   }
@@ -157,6 +161,29 @@ function schedaOpportunita(o, p) {
       <p class="scheda-valore">${formattaEuro(valoreAnnuo(o))}/anno · margine ${formattaPercentuale(marginePercentuale(o, stato.opportunita))}</p>
       ${fondo}
     </article>`;
+}
+
+// Informazioni della fase: sopralluogo fissato (Qualificato) o validità dell'offerta (Offerta)
+function infoFase(o, fissato) {
+  if (fissato) {
+    return `<p class="scheda-info">${icona("calendario")} Sopralluogo ${formattaGiorno(fissato.data)}${fissato.ora ? " · ore " + esc(fissato.ora) : ""}</p>`;
+  }
+  if (faseAttuale(o) === "offerta" && o.scadenzaOfferta) {
+    return o.scadenzaOfferta < oggi()
+      ? `<p class="scheda-info"><span class="chip chip-critico">${icona("attenzione")} Offerta scaduta il ${formattaData(o.scadenzaOfferta).slice(0, 5)}</span></p>`
+      : `<p class="scheda-info">Valida fino al ${formattaData(o.scadenzaOfferta).slice(0, 5)}</p>`;
+  }
+  return "";
+}
+
+// Riga di stato di una trattativa aperta: prossima azione (o «Fissala») e trattativa ferma
+function rigaStatoTrattativa(o) {
+  const s = statoTrattativa(o);
+  const prossima = s.prossima
+    ? `${scadenza(s.prossima.data)} <span class="stato-testo" title="${esc(s.prossima.testo)}">${esc(accorcia(s.prossima.testo, 40))}</span>`
+    : `<span class="chip chip-attenzione">Nessuna prossima azione</span>
+       <button class="pulsante-testo positivo" type="button" data-azione="prossima-azione" data-id="${esc(o.aziendaId)}">Fissala</button>`;
+  return `<p class="scheda-stato-trattativa">${s.ferma ? `<span class="chip chip-critico">Ferma da ${giorni(s.giorniInFase)}</span>` : ""}${prossima}</p>`;
 }
 
 // Riga di stato per i contratti: assegnato, in attesa del partner o da assegnare
@@ -549,10 +576,14 @@ function tesseraKpi({ etichetta, valore, dettaglio, formula, obiettivo, raggiunt
 
 const finestra = document.getElementById("finestra");
 
+let finestraApertaIl = 0; // quando si è aperta l'ultima finestra (ms)
+
 function apriFinestra(html, etichetta) {
   finestra.innerHTML = `<div class="finestra-contenuto">${html}</div>`;
   finestra.setAttribute("aria-label", etichetta);
-  finestra.showModal();
+  finestraApertaIl = Date.now();
+  // Una finestra può aprirne un'altra (es. dal dettaglio a «Modifica»): si cambia solo il contenuto
+  if (!finestra.open) finestra.showModal();
   const primo = finestra.querySelector("input, select, textarea");
   if (primo) primo.focus();
 }
@@ -561,29 +592,120 @@ function chiudiFinestra() {
   finestra.close();
 }
 
-// Dettaglio di un'opportunità: perché ha quel punteggio e storico delle fasi
+// Si può tornare alla fase precedente se la trattativa non è persa e la commessa non è ancora affidata
+function puoTornareIndietro(o) {
+  return !!o && !o.perso && faseRaggiunta(o) > 0 && !o.allocazione && !propostaInAttesa(o);
+}
+
+// Dettaglio di un'opportunità, come scheda di lavoro: dati, referente, punteggio, storico e correzioni
 function apriDettaglio(id) {
   const o = trova(id);
+  if (!o) return;
   const p = calcolaPunteggio(o, stato.opportunita);
   const s = CONFIG.punteggio.soglie;
   const ref = trovaReferente(o.referenteId);
-  const passi = CONFIG.fasi.filter((f) => o.storico[f.id])
-    .map((f) => `<li>${f.nome}: ${formattaData(o.storico[f.id])}</li>`).join("");
+  const passi = CONFIG.fasi.filter((f) => o.storico[f.id]).map((f) => `<li>${f.nome}: ${formattaData(o.storico[f.id])}</li>` +
+    (f.id === "offerta" && o.scadenzaOfferta ? `<li>Offerta valida fino al ${formattaData(o.scadenzaOfferta)}</li>` : "") +
+    (f.id === "contratto" && o.avvio ? `<li>Avvio del servizio: ${formattaData(o.avvio)}</li>` : "")).join("");
+  const precedente = puoTornareIndietro(o) ? CONFIG.fasi[faseRaggiunta(o) - 1] : null;
   apriFinestra(`
     <div class="finestra-testa"><h2>${esc(nomeCliente(o))}</h2>${badgePunteggio(p)}</div>
-    <p class="nota-piccola">${esc(o.servizio)} · ${Number(o.ore)} h/mese · tariffa ${formattaEuro(tariffaOraria(o))}/ora · sede di lavoro: ${esc(o.comune)} · rif. ${esc(o.codice)}<br>
-      Referente: ${ref ? esc(ref.nome) + (ref.ruolo ? " (" + esc(ref.ruolo) + ")" : "") : "non indicato"}</p>
+    <p class="nota-piccola">${esc(o.servizio)} · ${Number(o.ore)} h/mese · tariffa ${formattaEuro(tariffaOraria(o))}/ora · sede di lavoro: ${esc(o.comune)} · rif. ${esc(o.codice)}</p>
+    <div class="dettaglio-referente">
+      ${ref ? `<p><strong>Referente:</strong> ${esc(ref.nome)}${ref.ruolo ? " (" + esc(ref.ruolo) + ")" : ""}${ref.telefono ? " · " + esc(telefonoLeggibile(ref.telefono)) : ""}</p>
+        <div class="contatti">${pulsantiContatto(ref)}</div>` : "<p><strong>Referente:</strong> non indicato</p>"}
+    </div>
+    ${o.note ? `<h3>Note sulla trattativa</h3><p class="nota-trattativa">${esc(o.note)}</p>` : ""}
     <h3>Punteggio di coerenza: ${p.totale} su 100 (classe ${p.classe})</h3>
     ${tabellaCriteri(p)}
     <p class="nota-piccola">Classe A da ${s.A} punti, B da ${s.B}, C sotto ${s.B}.</p>
     <h3>Storico</h3>
-    <ol class="storico">${passi}${o.perso ? `<li>Perso: ${formattaData(o.perso.data)} · ${esc(o.perso.motivo)}</li>` : ""}</ol>
+    <ol class="storico">${passi}${o.perso ? `<li>Perso: ${formattaData(o.perso.data)} · ${esc(o.perso.motivo)}${o.perso.nota ? " · " + esc(o.perso.nota) : ""}</li>` : ""}</ol>
     ${o.motivazioneC ? `<p class="nota-c">Offerta inviata nonostante il punteggio C. Motivazione: ${esc(o.motivazioneC)}</p>` : ""}
     <div class="azioni-finestra">
+      ${precedente ? `<button class="pulsante-testo a-sinistra" type="button" data-azione="torna-indietro" data-id="${esc(o.id)}">Torna a «${precedente.nome}»</button>` : ""}
+      ${o.perso ? `<button class="pulsante secondario" type="button" data-azione="riapri" data-id="${esc(o.id)}">Riapri la trattativa</button>` : ""}
+      <button class="pulsante secondario" type="button" data-azione="modifica-opportunita" data-id="${esc(o.id)}">${icona("matita")} Modifica</button>
       <a class="pulsante secondario" href="#cliente-${esc(o.aziendaId)}" data-azione="chiudi">Apri la scheda cliente</a>
       <button class="pulsante primario" type="button" data-azione="chiudi">Chiudi</button>
     </div>`,
     "Dettaglio opportunità");
+}
+
+// Modifica di un'opportunità: servizio, sede, ore, tariffa, referente e note, con l'anteprima del punteggio
+function apriModificaOpportunita(id) {
+  const o = trova(id);
+  if (!o) return;
+  const assegnata = !!o.allocazione; // commessa affidata: servizio e sede di lavoro non si cambiano più
+  apriFinestra(`
+    <form class="modulo" id="modulo-opportunita" data-id="${esc(o.id)}" novalidate>
+      <div>
+        <h2>Modifica opportunità</h2>
+        <p class="nota-piccola">${esc(nomeCliente(o))} · rif. ${esc(o.codice)}. Ogni modifica resta nella cronologia del cliente.</p>
+      </div>
+      <div class="riga-doppia">
+        <label>Servizio <select name="servizio" ${assegnata ? "disabled" : ""}>${opzioni(Object.keys(CONFIG.servizi), o.servizio)}</select></label>
+        <label>Sede di lavoro (comune) <select name="comune" ${assegnata ? "disabled" : ""}>${opzioniComuni(o.comune)}</select></label>
+      </div>
+      ${assegnata ? '<p class="nota-piccola">Commessa già assegnata: servizio e sede di lavoro non si possono cambiare.</p>' : ""}
+      <div class="riga-doppia">
+        <label>Ore al mese
+          <input name="ore" type="number" inputmode="numeric" min="1" step="1" required value="${Number(o.ore)}">
+        </label>
+        <label>Tariffa oraria (€)
+          <input name="tariffa" type="number" inputmode="decimal" min="1" step="0.5" value="${Number(tariffaOraria(o))}">
+        </label>
+      </div>
+      <label>Referente <select name="referente">${opzioniReferenti(o.aziendaId, o.referenteId)}</select></label>
+      <label>Note sulla trattativa
+        <textarea name="note" placeholder="Es. decide il titolare entro fine mese">${esc(o.note || "")}</textarea>
+      </label>
+      <div class="anteprima" id="anteprima-punteggio" aria-live="polite"></div>
+      <div class="azioni-finestra">
+        <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
+        <button class="pulsante primario" type="submit">Salva le modifiche</button>
+      </div>
+    </form>`, "Modifica opportunità");
+  aggiornaAnteprima(document.getElementById("modulo-opportunita"));
+}
+
+// Copia dell'opportunità con i valori scritti nel modulo (i campi disabilitati restano quelli salvati)
+function leggiModificaOpportunita(modulo) {
+  const o = trova(modulo.dataset.id);
+  const d = new FormData(modulo);
+  const servizio = d.has("servizio") ? d.get("servizio") : o.servizio;
+  const tariffa = Number(d.get("tariffa"));
+  return {
+    ...o,
+    servizio,
+    comune: d.has("comune") ? d.get("comune") : o.comune,
+    ore: Math.round(Number(d.get("ore"))) || 0,
+    // La tariffa si salva solo se diversa da quella standard del servizio
+    tariffa: tariffa > 0 && tariffa !== datiServizio(servizio).tariffa ? tariffa : null,
+    referenteId: d.get("referente") || null,
+    note: String(d.get("note") || "").trim(),
+  };
+}
+
+// Salva le correzioni e scrive una sola riga di cronologia con i campi cambiati
+function salvaModificaOpportunita(modulo) {
+  const o = trova(modulo.dataset.id);
+  const n = leggiModificaOpportunita(modulo);
+  if (n.ore <= 0) return segnalaCampo(modulo.ore, "Inserisci le ore al mese");
+  const numero = (x) => Number(x).toLocaleString("it-IT");
+  const nomeRef = (id) => (trovaReferente(id) || { nome: "nessuno" }).nome;
+  const cambi = [];
+  if (n.servizio !== o.servizio) cambi.push("servizio " + o.servizio + " → " + n.servizio);
+  if (n.comune !== o.comune) cambi.push("sede di lavoro " + o.comune + " → " + n.comune);
+  if (n.ore !== o.ore) cambi.push("ore al mese " + o.ore + " → " + n.ore);
+  if (tariffaOraria(n) !== tariffaOraria(o)) cambi.push("tariffa " + numero(tariffaOraria(o)) + " → " + numero(tariffaOraria(n)) + " €/ora");
+  if (n.referenteId !== (o.referenteId || null)) cambi.push("referente " + nomeRef(o.referenteId) + " → " + nomeRef(n.referenteId));
+  if (n.note !== (o.note || "")) cambi.push("note aggiornate");
+  if (!cambi.length) return chiudiFinestra(); // nulla da salvare
+  applica(() => {
+    Object.assign(o, { servizio: n.servizio, comune: n.comune, ore: n.ore, tariffa: n.tariffa, referenteId: n.referenteId, note: n.note });
+    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: "Correzione: " + cambi.join("; ") });
+  }, { messaggio: "Opportunità aggiornata", evidenzia: o.id });
 }
 
 // Opzioni di una select; il valore salvato che non è più in config.js resta, con "(non più in elenco)"
@@ -667,10 +789,11 @@ function apriNuovoContatto(aziendaId = "") {
   aggiornaAnteprima();
 }
 
-function opzioniReferenti(aziendaId) {
+// Opzioni dei referenti di un'azienda: scelto quello indicato, altrimenti il decisore
+function opzioniReferenti(aziendaId, scelto = null) {
   const refs = referentiDi(aziendaId);
   if (!refs.length) return '<option value="">Nessun referente registrato</option>';
-  const principale = refs.find((r) => r.decisore) || refs[0];
+  const principale = refs.find((r) => r.id === scelto) || refs.find((r) => r.decisore) || refs[0];
   return refs.map((r) => `<option value="${esc(r.id)}" ${r.id === principale.id ? "selected" : ""}>${esc(r.nome)}${r.ruolo ? " · " + esc(r.ruolo) : ""}${r.decisore ? " (decisore)" : ""}</option>`).join("");
 }
 
@@ -715,19 +838,25 @@ function leggiModulo(modulo) {
   return { opp, nuovaAzienda, nuovoReferente };
 }
 
-function aggiornaAnteprima() {
-  const modulo = document.getElementById("modulo-contatto");
-  const box = document.getElementById("anteprima-punteggio");
-  if (!modulo || !box) return;
-  const { opp, nuovaAzienda, nuovoReferente } = leggiModulo(modulo);
+// Anteprima del punteggio nei moduli "Nuovo contatto" e "Modifica opportunità"
+function aggiornaAnteprima(modulo = document.querySelector("#modulo-contatto, #modulo-opportunita")) {
+  const box = modulo && modulo.querySelector("#anteprima-punteggio");
+  if (!box) return;
+  let opp;
+  if (modulo.id === "modulo-opportunita") {
+    opp = leggiModificaOpportunita(modulo);
+  } else {
+    const letto = leggiModulo(modulo);
+    opp = letto.opp;
+    // Per l'anteprima l'azienda nuova non è ancora salvata: la si passa direttamente
+    if (letto.nuovaAzienda) {
+      opp._azienda = letto.nuovaAzienda;
+      opp._decisore = letto.nuovoReferente && letto.nuovoReferente.decisore ? letto.nuovoReferente : null;
+    }
+  }
   if (opp.ore <= 0) {
     box.innerHTML = '<p class="nota-piccola">Inserisci le ore al mese per calcolare il punteggio di coerenza.</p>';
     return;
-  }
-  // Per l'anteprima l'azienda nuova non è ancora salvata: la si passa direttamente
-  if (nuovaAzienda) {
-    opp._azienda = nuovaAzienda;
-    opp._decisore = nuovoReferente && nuovoReferente.decisore ? nuovoReferente : null;
   }
   const p = calcolaPunteggio(opp, stato.opportunita);
   box.innerHTML = `
@@ -753,6 +882,7 @@ function salvaContatto(modulo) {
   if (opp.ore <= 0) return segnalaCampo(modulo.ore, "Inserisci le ore al mese");
 
   const nome = nuovaAzienda ? nuovaAzienda.ragioneSociale : nomeCliente(opp);
+  let promemoria = null;
   applica(() => {
     if (nuovaAzienda) {
       nuovaAzienda.id = nuovoId("az");
@@ -770,44 +900,238 @@ function salvaContatto(modulo) {
     opp.codice = codiceRiferimento(stato.contatore);
     stato.opportunita.push(opp);
     registraAttivita({ aziendaId: opp.aziendaId, tipo: "Pipeline", testo: opp.servizio + ": nuovo contatto (" + opp.ore + " h/mese)" });
+    promemoria = cadenza(opp, CONFIG.fasi[0], oggi());
     ultimaModificata = opp.id; // l'id nasce qui: la nuova scheda resta evidenziata nella Pipeline
-  }, { messaggio: "Contatto creato: " + nome, fase: "contatto", vai: "pipeline" });
+  }, { messaggio: () => "Contatto creato: " + nome + testoPromemoria(promemoria), fase: "contatto", vai: "pipeline" });
 }
 
-// Conferma motivata per inviare un'offerta a un cliente C
-function apriConfermaC(o) {
-  const p = calcolaPunteggio(o, stato.opportunita);
-  const deboli = p.criteri.filter((c) => c.valore < 1);
+// Pulsanti che impostano subito la data del modulo (es. «Domani», «Tra una settimana»)
+function pulsantiRapidi(scelte) {
+  return `<div class="pulsanti-rapidi" role="group" aria-label="Scelta rapida della data">
+    ${scelte.map(([n, testo]) => `<button class="pulsante secondario piccolo" type="button" data-azione="imposta-data" data-giorni="${n}">${testo}</button>`).join("")}
+  </div>`;
+}
+
+// Fissa il sopralluogo in agenda: diventa un'attività da fare collegata all'opportunità
+function apriFissaSopralluogo(o) {
   apriFinestra(`
-    <form class="modulo" id="modulo-conferma-c" data-id="${esc(o.id)}">
-      <div class="finestra-testa"><h2>Cliente fuori dai criteri del pilota</h2>${badgePunteggio(p)}</div>
-      <p>${esc(nomeCliente(o))} ha un punteggio di coerenza ${p.totale} su 100 (classe C). I punti deboli:</p>
-      <ul class="storico">${deboli.map((c) => `<li><strong>${c.nome}</strong>: ${esc(c.nota)} (${c.punti}/${c.peso})</li>`).join("")}</ul>
-      <label>Per inviare comunque l'offerta, scrivi la motivazione (resterà registrata)
-        <textarea name="motivazione" required minlength="5" placeholder="Es. cliente strategico per entrare nel settore"></textarea>
-      </label>
+    <form class="modulo" id="modulo-sopralluogo" data-id="${esc(o.id)}" novalidate>
+      <div>
+        <h2>Fissa sopralluogo · ${esc(nomeCliente(o))}</h2>
+        <p class="nota-piccola">Il sopralluogo entra nell'agenda del cliente e in «Da fare oggi» il giorno stabilito. Quando è fatto, premi «Sopralluogo fatto».</p>
+      </div>
+      <label>Data <input name="data" type="date" required min="${oggi()}" value="${traGiorni(1)}"></label>
+      ${pulsantiRapidi([[1, "Domani"], [3, "Tra 3 giorni"], [7, "Tra una settimana"]])}
+      <div class="riga-doppia">
+        <label>Ora (facoltativa) <input name="ora" type="time"></label>
+        <label>Nota (facoltativa) <input name="nota" autocomplete="off" placeholder="Es. chiedere della segreteria"></label>
+      </div>
+      <button class="pulsante-testo positivo a-sinistra" type="button" data-azione="registra-sopralluogo" data-id="${esc(o.id)}">Il sopralluogo è già stato fatto? Registralo</button>
       <div class="azioni-finestra">
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
-        <button class="pulsante primario" type="submit">Invia comunque l'offerta</button>
+        <button class="pulsante primario" type="submit">Fissa sopralluogo</button>
       </div>
-    </form>`, "Conferma per punteggio C");
+    </form>`, "Fissa sopralluogo");
 }
 
-// Motivo della perdita
+function salvaSopralluogo(modulo) {
+  const o = trova(modulo.dataset.id);
+  const data = modulo.data.value;
+  const ora = modulo.ora.value;
+  const nota = modulo.nota.value.trim();
+  if (!o) return chiudiFinestra();
+  if (!formattaData(data)) return segnalaCampo(modulo.data, "Scegli la data del sopralluogo");
+  if (data < oggi()) return segnalaCampo(modulo.data, "Scegli una data da oggi in poi. Un sopralluogo già fatto si registra con «Registralo».");
+  applica(() => {
+    togliPromemoriaAutomatici(o.id); // il promemoria «Fissare il sopralluogo» non serve più
+    registraAttivita({ aziendaId: o.aziendaId, referenteId: o.referenteId || null, opportunitaId: o.id, fase: "sopralluogo",
+      tipo: "Visita", testo: "Sopralluogo" + (nota ? ": " + nota : ""), data, daFare: true, ...(ora ? { ora } : {}) });
+  }, { messaggio: "Sopralluogo fissato per " + formattaGiorno(data) + (ora ? " alle " + ora : ""), evidenzia: o.id, fase: "qualificato" });
+}
+
+// Finestra breve per registrare una fase già avvenuta, già compilata: data e dati di quella fase
+function apriFase(o, fase, { data = null, attivitaId = null } = {}) {
+  const minimo = dataFaseAttuale(o); // la nuova fase non può essere prima di quella attuale
+  let valore = data && data <= oggi() ? data : oggi();
+  if (valore < minimo) valore = minimo;
+  const p = calcolaPunteggio(o, stato.opportunita);
+  const azione = CONFIG.fasi[CONFIG.fasi.indexOf(fase) - 1].azione;
+  const etichetta = { sopralluogo: "Data del sopralluogo", offerta: "Data di invio", contratto: "Data della firma" }[fase.id] || "Data";
+  let campi = "";
+  if (fase.id === "sopralluogo") {
+    campi = `
+      <label>Ore al mese confermate
+        <input name="ore" type="number" inputmode="numeric" min="1" step="1" required value="${Number(o.ore)}">
+      </label>
+      <p class="confronto-punteggio" id="confronto-punteggio"></p>
+      <label>Note del sopralluogo (facoltative)
+        <textarea name="note" placeholder="Es. 380 mq su due piani, accesso dalle 7 alle 9"></textarea>
+      </label>`;
+  } else if (fase.id === "offerta") {
+    // Cliente C: la conferma motivata è chiesta qui, nella stessa finestra
+    const chiediC = p.classe === "C" && CONFIG.punteggio.confermaPerPunteggioC && !o.motivazioneC;
+    campi = `
+      <div class="riga-doppia">
+        <label>Tariffa offerta (€/ora)
+          <input name="tariffa" type="number" inputmode="decimal" min="1" step="0.5" required value="${Number(tariffaOraria(o)) || ""}">
+        </label>
+        <label>Valida fino al
+          <input name="scadenza" type="date" required min="${valore}" value="${aggiungiGiorni(valore, CONFIG.giorniValiditaOfferta)}">
+        </label>
+      </div>
+      <p class="importo-offerta" id="importo-offerta"></p>
+      ${chiediC ? `
+        <div class="conferma-c">
+          <p><strong>Cliente fuori dai criteri del pilota: punteggio ${p.totale} su 100 (classe C).</strong> I punti deboli:</p>
+          <ul class="storico">${p.criteri.filter((c) => c.valore < 1).map((c) => `<li><strong>${c.nome}</strong>: ${esc(c.nota)} (${c.punti}/${c.peso})</li>`).join("")}</ul>
+          <label>Motivazione (resterà registrata)
+            <textarea name="motivazione" required minlength="5" placeholder="Es. cliente strategico per entrare nel settore"></textarea>
+          </label>
+        </div>` : ""}`;
+  } else if (fase.id === "contratto") {
+    campi = `
+      <label>Avvio del servizio
+        <input name="avvio" type="date" required min="${valore}" value="${aggiungiGiorni(valore, CONFIG.giorniAvvioServizio)}">
+      </label>
+      <p class="nota-piccola">È la data concordata con il cliente: la riceve anche il partner nel messaggio WhatsApp.</p>`;
+  }
+  apriFinestra(`
+    <form class="modulo" id="modulo-fase" data-id="${esc(o.id)}" data-fase="${esc(fase.id)}" data-attivita="${esc(attivitaId || "")}" novalidate>
+      <div class="finestra-testa"><h2>${esc(azione)} · ${esc(nomeCliente(o))}</h2>${badgePunteggio(p)}</div>
+      <p class="nota-piccola">Registra un passo già avvenuto: controlla data e dati, poi conferma.</p>
+      <label>${etichetta}
+        <input name="data" type="date" required min="${minimo}" max="${oggi()}" value="${valore}">
+      </label>
+      ${campi}
+      <div class="azioni-finestra">
+        <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
+        <button class="pulsante primario" type="submit">${fase.id === "contratto" ? "Conferma e vai all'allocazione" : "Conferma"}</button>
+      </div>
+    </form>`, azione);
+  aggiornaModuloFase(document.getElementById("modulo-fase"));
+}
+
+// Calcoli che cambiano mentre si scrive: punteggio prima e dopo, importo dell'offerta, date collegate
+function aggiornaModuloFase(modulo, campo = null) {
+  const o = trova(modulo.dataset.id);
+  if (!o) return;
+  // Validità dell'offerta e avvio seguono la data, finché non si cambiano a mano
+  const collegato = modulo.scadenza || modulo.avvio;
+  if (collegato && campo === collegato) collegato.dataset.toccato = "1";
+  if (collegato && campo === modulo.data && formattaData(modulo.data.value)) {
+    collegato.min = modulo.data.value;
+    if (!collegato.dataset.toccato) {
+      collegato.value = aggiungiGiorni(modulo.data.value, modulo.scadenza ? CONFIG.giorniValiditaOfferta : CONFIG.giorniAvvioServizio);
+    }
+  }
+  const confronto = modulo.querySelector("#confronto-punteggio");
+  if (confronto) {
+    const ore = Math.round(Number(modulo.ore.value)) || 0;
+    const prima = calcolaPunteggio(o, stato.opportunita);
+    const dopo = calcolaPunteggio({ ...o, ore }, stato.opportunita);
+    confronto.innerHTML = ore <= 0 ? "Inserisci le ore al mese confermate."
+      : `<span>Punteggio</span> ${badgePunteggio(prima)}${ore === o.ore ? "" : " → " + badgePunteggio(dopo)}
+         <span class="valore-annuo">${formattaEuro(valoreAnnuo({ ...o, ore }))} all'anno</span>`;
+  }
+  const importo = modulo.querySelector("#importo-offerta");
+  if (importo) {
+    const tariffa = Number(modulo.tariffa.value) || 0;
+    importo.textContent = "Importo: " + formattaEuro(o.ore * tariffa) + "/mese · " + formattaEuro(o.ore * tariffa * 12) + "/anno";
+  }
+}
+
+// Conferma della finestra di fase: controlla i dati e registra la fase con la sua data
+function salvaFase(modulo) {
+  const o = trova(modulo.dataset.id);
+  const fase = CONFIG.fasi.find((f) => f.id === modulo.dataset.fase);
+  // La fase deve essere ancora la successiva (es. non già registrata da un'altra scheda)
+  if (!o || !fase || o.perso || CONFIG.fasi[faseRaggiunta(o) + 1] !== fase) return chiudiFinestra();
+  const data = modulo.data.value;
+  const minimo = dataFaseAttuale(o);
+  if (!formattaData(data)) return segnalaCampo(modulo.data, "Scegli la data");
+  if (data > oggi()) return segnalaCampo(modulo.data, "Registra solo passi già avvenuti: la data non può essere nel futuro");
+  if (data < minimo) return segnalaCampo(modulo.data, "La data non può essere prima del " + formattaData(minimo) + ", quando è iniziata la fase attuale");
+  let ore, note, tariffa, scadenzaOfferta, motivazione, avvio;
+  if (fase.id === "sopralluogo") {
+    ore = Math.round(Number(modulo.ore.value)) || 0;
+    note = modulo.note.value.trim();
+    if (ore <= 0) return segnalaCampo(modulo.ore, "Inserisci le ore al mese confermate");
+  } else if (fase.id === "offerta") {
+    tariffa = Number(modulo.tariffa.value);
+    scadenzaOfferta = modulo.scadenza.value;
+    motivazione = modulo.motivazione ? modulo.motivazione.value.trim() : "";
+    if (!(tariffa > 0)) return segnalaCampo(modulo.tariffa, "Indica la tariffa offerta");
+    if (!formattaData(scadenzaOfferta) || scadenzaOfferta < data) return segnalaCampo(modulo.scadenza, "La validità deve finire dopo la data di invio");
+    if (modulo.motivazione && motivazione.length < 5) return segnalaCampo(modulo.motivazione, "Scrivi una motivazione di almeno 5 caratteri");
+  } else if (fase.id === "contratto") {
+    avvio = modulo.avvio.value;
+    if (!formattaData(avvio) || avvio < data) return segnalaCampo(modulo.avvio, "L'avvio non può essere prima della firma");
+  }
+  let promemoria = null;
+  applica(() => {
+    let dettaglio = "";
+    if (fase.id === "sopralluogo") {
+      if (ore !== o.ore) {
+        registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", data, testo: "Ore al mese: " + o.ore + " → " + ore + " (dal sopralluogo)" });
+        o.ore = ore;
+      }
+      // Il sopralluogo fissato in agenda si chiude con la data in cui è stato fatto
+      const fissato = stato.attivita.find((x) => x.id === modulo.dataset.attivita && x.daFare) || sopralluogoFissato(o);
+      if (fissato) {
+        fissato.daFare = false;
+        fissato.data = data;
+        if (note) fissato.testo = "Sopralluogo: " + note;
+      } else if (note) {
+        registraAttivita({ aziendaId: o.aziendaId, referenteId: o.referenteId || null, opportunitaId: o.id, tipo: "Visita", data, testo: "Sopralluogo: " + note });
+      }
+    } else if (fase.id === "offerta") {
+      o.tariffa = tariffa !== datiServizio(o.servizio).tariffa ? tariffa : null;
+      o.scadenzaOfferta = scadenzaOfferta;
+      if (motivazione) o.motivazioneC = motivazione;
+      dettaglio = "tariffa " + tariffa.toLocaleString("it-IT") + " €/ora, valida fino al " + formattaData(scadenzaOfferta);
+    } else if (fase.id === "contratto") {
+      o.avvio = avvio;
+      dettaglio = "avvio del servizio il " + formattaData(avvio);
+    }
+    promemoria = registraFase(o, fase, data, dettaglio);
+  }, { messaggio: () => messaggioFase(o, fase, promemoria), evidenzia: o.id, fase: fase.id, vai: fase.id === "contratto" ? "allocazione" : null });
+}
+
+// Motivo della perdita: va scelto, non parte già impostato
 function apriPerso(id) {
   const o = trova(id);
+  if (!o) return;
   apriFinestra(`
-    <form class="modulo" id="modulo-perso" data-id="${esc(o.id)}">
+    <form class="modulo" id="modulo-perso" data-id="${esc(o.id)}" novalidate>
       <h2>Segna come perso</h2>
-      <p>${esc(nomeCliente(o))} uscirà dalla pipeline attiva, ma resterà nei conteggi degli indicatori.</p>
+      <p>${esc(nomeCliente(o))} uscirà dalla pipeline attiva, ma resterà nei conteggi degli indicatori. Se serve, potrai riaprirla dal dettaglio.</p>
       <label>Motivo
-        <select name="motivo">${CONFIG.motiviPerdita.map((m) => `<option>${esc(m)}</option>`).join("")}</select>
+        <select name="motivo" required>
+          <option value="">— Scegli il motivo —</option>
+          ${CONFIG.motiviPerdita.map((m) => `<option value="${esc(m)}">${esc(m)}</option>`).join("")}
+        </select>
+      </label>
+      <label>Note (facoltative)
+        <textarea name="nota" placeholder="Es. ha scelto un fornitore già presente nel condominio"></textarea>
       </label>
       <div class="azioni-finestra">
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
-        <button class="pulsante primario" type="submit">Segna come perso</button>
+        <button class="pulsante no" type="submit">Segna come perso</button>
       </div>
     </form>`, "Segna come perso");
+}
+
+function salvaPerso(modulo) {
+  const o = trova(modulo.dataset.id);
+  const motivo = modulo.motivo.value;
+  const nota = modulo.nota.value.trim();
+  if (!o || o.perso) return chiudiFinestra();
+  if (!motivo) return segnalaCampo(modulo.motivo, "Scegli il motivo");
+  applica(() => {
+    o.perso = { data: oggi(), motivo, ...(nota ? { nota } : {}) };
+    togliPromemoriaAutomatici(o.id); // i promemoria automatici di una trattativa persa non servono più
+    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": opportunità persa (" + motivo + ")" });
+  }, { messaggio: "Opportunità segnata come persa: " + nomeCliente(o), evidenzia: o.id, fase: "perso" });
 }
 
 function apriRipristino() {
@@ -826,7 +1150,7 @@ function apriRipristino() {
 // cambia() modifica lo stato; se restituisce false non succede nulla.
 // messaggio può essere una funzione, quando il testo dipende dalla modifica appena fatta.
 function applica(cambia, { messaggio = "", evidenzia = null, fase = null, vai = null, annullabile = true } = {}) {
-  const copia = { dati: clona(stato), fase: faseSelezionata, evidenzia };
+  const copia = { dati: clona(stato), fase: faseSelezionata, evidenzia, schermata: location.hash };
   if (cambia() === false) return false;
   salva();
   if (finestra.open) chiudiFinestra();
@@ -838,30 +1162,88 @@ function applica(cambia, { messaggio = "", evidenzia = null, fase = null, vai = 
   return true;
 }
 
-// Testo dell'avviso quando un'opportunità cambia fase
-function messaggioFase(o, fase) {
-  return fase.id === "contratto"
-    ? "Contratto firmato. Ora assegna la commessa in Allocazione."
-    : nomeCliente(o) + " passa a «" + fase.nome + "»";
+// Testo che descrive il promemoria creato in automatico, es. ". Promemoria: chiamata di qualifica sab 19/10"
+function testoPromemoria(promemoria) {
+  if (!promemoria) return "";
+  return ". Promemoria: " + promemoria.testo.charAt(0).toLowerCase() + promemoria.testo.slice(1) + " " + formattaGiorno(promemoria.data);
 }
 
-// Porta l'opportunità alla fase successiva
+// Testo dell'avviso quando un'opportunità cambia fase
+function messaggioFase(o, fase, promemoria = null) {
+  return (fase.id === "contratto"
+    ? "Contratto firmato: ora assegna la commessa"
+    : nomeCliente(o) + " passa a «" + fase.nome + "»") + testoPromemoria(promemoria);
+}
+
+// Pulsante di fase: registra un passo già avvenuto. Dopo il Contatto un solo clic; poi una finestra breve con i dati
 function avanza(id) {
   const o = trova(id);
   const prossima = o && CONFIG.fasi[faseRaggiunta(o) + 1];
   if (!prossima || o.perso) return;
-  const p = calcolaPunteggio(o, stato.opportunita);
-  if (prossima.id === "offerta" && p.classe === "C" && CONFIG.punteggio.confermaPerPunteggioC && !o.motivazioneC) {
-    apriConfermaC(o);
-    return;
+  if (prossima.id === "qualificato") {
+    let promemoria = null;
+    applica(() => { promemoria = registraFase(o, prossima, oggi()); },
+      { messaggio: () => messaggioFase(o, prossima, promemoria), evidenzia: o.id, fase: prossima.id });
+  } else if (prossima.id === "sopralluogo") {
+    // Senza sopralluogo in agenda si fissa; con il sopralluogo fissato si registra con la sua data
+    const fissato = sopralluogoFissato(o);
+    if (fissato) apriFase(o, prossima, { data: fissato.data, attivitaId: fissato.id });
+    else apriFissaSopralluogo(o);
+  } else {
+    apriFase(o, prossima);
   }
-  applica(() => registraFase(o, prossima), { messaggio: messaggioFase(o, prossima), evidenzia: o.id, fase: prossima.id });
 }
 
-// Registra la fase nello storico e nella cronologia (solo lo stato: salva e ridisegna applica())
-function registraFase(o, fase) {
-  o.storico[fase.id] = oggi();
-  registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": fase «" + fase.nome + "»" });
+// Registra la fase con la data in cui è avvenuta e aggiorna i promemoria (solo lo stato: salva e ridisegna applica()).
+// Restituisce il promemoria creato in automatico, oppure null.
+function registraFase(o, fase, data = oggi(), dettaglio = "") {
+  o.storico[fase.id] = data;
+  registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", data, testo: o.servizio + ": fase «" + fase.nome + "»" + (dettaglio ? " (" + dettaglio + ")" : "") });
+  return cadenza(o, fase, data);
+}
+
+// Toglie i promemoria automatici ancora da fare di un'opportunità
+function togliPromemoriaAutomatici(oppId) {
+  stato.attivita = stato.attivita.filter((x) => !(x.automatica && x.daFare && x.opportunitaId === oppId));
+}
+
+// Cadenza automatica: quando l'opportunità entra in una fase il vecchio promemoria automatico sparisce e,
+// se l'azienda non ha altre attività da fare, se ne crea uno (data della fase + giorni, mai prima di oggi)
+function cadenza(o, fase, data) {
+  togliPromemoriaAutomatici(o.id);
+  const f = fase.followUp;
+  if (!f || stato.attivita.some((x) => x.daFare && x.aziendaId === o.aziendaId)) return null;
+  const quando = aggiungiGiorni(data, f.giorni);
+  const promemoria = { id: nuovoId("at"), aziendaId: o.aziendaId, referenteId: o.referenteId || null, tipo: f.tipo, testo: f.testo,
+    data: quando < oggi() ? oggi() : quando, daFare: true, automatica: true, opportunitaId: o.id };
+  stato.attivita.push(promemoria);
+  return promemoria;
+}
+
+// Correzione: annulla la fase attuale e torna alla precedente (con «Annulla», senza altre conferme)
+function tornaIndietro(id) {
+  const o = trova(id);
+  if (!puoTornareIndietro(o)) return;
+  const attuale = CONFIG.fasi[faseRaggiunta(o)];
+  const precedente = CONFIG.fasi[faseRaggiunta(o) - 1];
+  applica(() => {
+    delete o.storico[attuale.id];
+    if (attuale.id === "offerta") o.scadenzaOfferta = null;
+    if (attuale.id === "contratto") o.avvio = null;
+    togliPromemoriaAutomatici(o.id); // il promemoria era della fase annullata
+    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: "Correzione: fase «" + attuale.nome + "» annullata, torna a «" + precedente.nome + "»" });
+  }, { messaggio: nomeCliente(o) + " torna a «" + precedente.nome + "»", evidenzia: o.id, fase: precedente.id });
+}
+
+// Correzione: riapre una trattativa segnata come persa
+function riapri(id) {
+  const o = trova(id);
+  if (!o || !o.perso) return;
+  const motivo = o.perso.motivo;
+  applica(() => {
+    o.perso = null;
+    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: "Correzione: trattativa riaperta (era persa per «" + motivo + "»)" });
+  }, { messaggio: nomeCliente(o) + ": trattativa riaperta", evidenzia: o.id, fase: CONFIG.fasi[faseRaggiunta(o)].id });
 }
 
 // Assegna il contratto alla prima squadra interna con ore libere nella zona
@@ -945,6 +1327,20 @@ const AZIONI = {
   "importa-backup": () => document.getElementById("file-backup").click(),
   "scarica-scartati": () => scaricaDatiScartati(),
   "chiudi-avviso-fisso": (el) => chiudiAvvisoFisso(el),
+  "fissa-sopralluogo": (el) => { const o = trova(el.dataset.id); if (o) apriFissaSopralluogo(o); },
+  "registra-sopralluogo": (el) => {
+    const o = trova(el.dataset.id);
+    if (o) apriFase(o, CONFIG.fasi.find((f) => f.id === "sopralluogo"));
+  },
+  // Pulsanti rapidi della data: «Domani», «Tra una settimana»...
+  "imposta-data": (el) => {
+    const modulo = el.closest("form");
+    modulo.data.value = traGiorni(Number(el.dataset.giorni));
+    modulo.querySelectorAll("[data-azione=imposta-data]").forEach((b) => b.setAttribute("aria-pressed", b === el));
+  },
+  "modifica-opportunita": (el) => apriModificaOpportunita(el.dataset.id),
+  "torna-indietro": (el) => tornaIndietro(el.dataset.id),
+  riapri: (el) => riapri(el.dataset.id),
   ...AZIONI_CLIENTI,
   "conferma-ripristino": () => applica(() => {
     stato = datiIniziali();
@@ -958,7 +1354,9 @@ const AZIONI = {
     ultimaModificata = copia.evidenzia;
     salva();
     if (finestra.open) chiudiFinestra();
-    disegna();
+    // Si torna alla schermata in cui era partita l'azione (es. dall'Allocazione alla Pipeline)
+    if (copia.schermata !== location.hash) location.hash = copia.schermata;
+    else disegna();
     mostraAvviso("Azione annullata");
   },
 };
@@ -968,9 +1366,22 @@ const MODIFICANO_DATI = new Set(["avanza", "fatto", "fatto-fase", "assegna-squad
   "elimina-referente", "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "annulla"]);
 let ultimoClicModifica = 0;
 
+// Doppio clic su un pulsante che apre una finestra: il secondo clic non deve premere un pulsante della finestra appena aperta
+finestra.addEventListener("click", (evento) => {
+  if (evento.detail > 1 && Date.now() - finestraApertaIl < 800) {
+    evento.preventDefault();
+    evento.stopPropagation();
+  }
+}, true);
+
 document.addEventListener("click", (evento) => {
   const el = evento.target.closest("[data-azione]");
   if (!el || !AZIONI[el.dataset.azione]) return;
+  // Dopo una modifica, il secondo clic di un doppio clic non apre nemmeno altro (es. il dettaglio della scheda spostata)
+  if (evento.detail > 1 && Date.now() - ultimoClicModifica < 600) {
+    evento.preventDefault();
+    return;
+  }
   if (MODIFICANO_DATI.has(el.dataset.azione)) {
     // Il secondo clic cadrebbe sul pulsante che ha preso il posto di questo
     if (evento.detail > 1 || Date.now() - ultimoClicModifica < 600) {
@@ -992,38 +1403,22 @@ document.addEventListener("auxclick", (evento) => {
 document.addEventListener("submit", (evento) => {
   const modulo = evento.target;
   evento.preventDefault();
-  if (modulo.id === "modulo-contatto") {
-    salvaContatto(modulo);
-  } else if (modulo.id === "modulo-conferma-c") {
-    const testo = modulo.motivazione.value.trim();
-    if (testo.length < 5) {
-      modulo.motivazione.setCustomValidity("Scrivi una motivazione di almeno 5 caratteri");
-      modulo.motivazione.reportValidity();
-      modulo.motivazione.setCustomValidity("");
-      return;
-    }
-    const o = trova(modulo.dataset.id);
-    const offerta = CONFIG.fasi.find((f) => f.id === "offerta");
-    applica(() => {
-      o.motivazioneC = testo;
-      registraFase(o, offerta);
-    }, { messaggio: messaggioFase(o, offerta), evidenzia: o.id, fase: offerta.id });
-  } else if (GESTORI_MODULI[modulo.id]) {
-    // Moduli della schermata Clienti (clienti.js)
-    GESTORI_MODULI[modulo.id](modulo);
-  } else if (modulo.id === "modulo-perso") {
-    const o = trova(modulo.dataset.id);
-    const motivo = modulo.motivo.value;
-    applica(() => {
-      o.perso = { data: oggi(), motivo };
-      registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": opportunità persa (" + motivo + ")" });
-    }, { messaggio: "Opportunità segnata come persa: " + nomeCliente(o), evidenzia: o.id, fase: "perso" });
-  }
+  const gestori = {
+    "modulo-contatto": salvaContatto,
+    "modulo-fase": salvaFase,
+    "modulo-sopralluogo": salvaSopralluogo,
+    "modulo-opportunita": salvaModificaOpportunita,
+    "modulo-perso": salvaPerso,
+    ...GESTORI_MODULI, // moduli della schermata Clienti (clienti.js)
+  };
+  if (gestori[modulo.id]) gestori[modulo.id](modulo);
 });
 
 // Anteprima del punteggio mentre si compila il modulo; ricerca nell'elenco clienti
 document.addEventListener("input", (evento) => {
-  if (evento.target.closest("#modulo-contatto")) aggiornaAnteprima();
+  const modulo = evento.target.closest("#modulo-contatto, #modulo-opportunita");
+  if (modulo) aggiornaAnteprima(modulo);
+  if (evento.target.closest("#modulo-fase")) aggiornaModuloFase(evento.target.form, evento.target);
   if (evento.target.closest("#filtri-clienti")) aggiornaElencoClienti();
 });
 
@@ -1037,7 +1432,8 @@ document.getElementById("file-backup").addEventListener("change", (evento) => {
 document.addEventListener("change", (evento) => {
   const campo = evento.target;
   if (campo.closest("#filtri-clienti")) return aggiornaElencoClienti();
-  if (!campo.form || campo.form.id !== "modulo-contatto") return;
+  if (campo.form && campo.form.id === "modulo-fase") return aggiornaModuloFase(campo.form, campo);
+  if (!campo.form || !["modulo-contatto", "modulo-opportunita"].includes(campo.form.id)) return;
   // Cambiando servizio, la tariffa torna quella standard del nuovo servizio
   if (campo.name === "servizio") campo.form.tariffa.value = datiServizio(campo.value).tariffa;
   // Scegliendo un'azienda esistente si nascondono i campi della nuova azienda
@@ -1048,7 +1444,7 @@ document.addEventListener("change", (evento) => {
     campo.form.referente.innerHTML = azienda ? opzioniReferenti(azienda.id) : "";
     if (azienda) campo.form.comune.value = azienda.comune;
   }
-  aggiornaAnteprima();
+  aggiornaAnteprima(campo.form);
 });
 
 // ========================================================= AVVISI E DISEGNO
@@ -1135,12 +1531,12 @@ function disegna() {
     else a.removeAttribute("aria-current");
   });
 
-  // Numero di attività in scadenza accanto alla voce "Clienti"
+  // Numero di attività da fare entro oggi accanto alla voce "Pipeline", dove c'è l'elenco "Da fare oggi"
   const scadute = attivitaDaFare().filter((x) => x.data <= oggi()).length;
-  const conteggioClienti = document.getElementById("conteggio-clienti");
-  conteggioClienti.textContent = scadute;
-  conteggioClienti.hidden = scadute === 0;
-  conteggioClienti.setAttribute("aria-label", scadute + " attività da fare entro oggi");
+  const conteggioPipeline = document.getElementById("conteggio-pipeline");
+  conteggioPipeline.textContent = scadute;
+  conteggioPipeline.hidden = scadute === 0;
+  conteggioPipeline.setAttribute("aria-label", scadute + " attività da fare entro oggi");
 
   // Numero di commesse da assegnare accanto alla voce "Allocazione"
   const daAssegnare = stato.opportunita.filter((o) => o.storico.contratto && !o.perso && !o.allocazione).length;

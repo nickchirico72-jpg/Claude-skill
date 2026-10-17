@@ -10,27 +10,40 @@ function attivitaDaFare() {
   return stato.attivita.filter((x) => x.daFare).sort((a, b) => a.data.localeCompare(b.data));
 }
 
-// Etichetta della scadenza: in ritardo, oggi, domani o data
+// Etichetta della scadenza: in ritardo, oggi, domani, giorno della settimana (entro 7 giorni) o data
 function scadenza(data) {
   if (data < oggi()) return `<span class="chip chip-critico">${icona("attenzione")} In ritardo · ${formattaData(data)}</span>`;
   if (data === oggi()) return '<span class="chip chip-attenzione">Oggi</span>';
   if (data === traGiorni(1)) return '<span class="chip">Domani</span>';
+  if (data <= traGiorni(7)) return `<span class="chip">${formattaGiorno(data)}</span>`;
   return `<span class="chip">${formattaData(data)}</span>`;
+}
+
+// Fase che un'attività da fare registra quando è fatta (es. il sopralluogo fissato), se l'opportunità ci deve ancora arrivare
+function faseDaRegistrare(x) {
+  const o = x.fase && x.opportunitaId ? trova(x.opportunitaId) : null;
+  const prossima = o && !o.perso ? CONFIG.fasi[faseRaggiunta(o) + 1] : null;
+  return prossima && prossima.id === x.fase ? prossima : null;
 }
 
 // Riga di un'attività da fare, con il pulsante per segnarla come fatta
 function rigaDaFare(x, conAzienda) {
   const azienda = trovaAzienda(x.aziendaId);
   const ref = trovaReferente(x.referenteId) || referentiDi(x.aziendaId).find((r) => r.decisore) || referentiDi(x.aziendaId)[0];
+  const fase = faseDaRegistrare(x);
+  // Un sopralluogo fissato si chiude con «Sopralluogo fatto», che registra anche la fase
+  const pulsante = fase
+    ? `<button class="pulsante primario piccolo" type="button" data-azione="fatto-fase" data-id="${esc(x.id)}">${icona("spunta")} ${CONFIG.fasi[CONFIG.fasi.indexOf(fase) - 1].azione}</button>`
+    : `<button class="pulsante secondario piccolo" type="button" data-azione="fatto" data-id="${esc(x.id)}">${icona("spunta")} Fatto</button>`;
   return `
     <li class="da-fare">
       <div class="da-fare-testo">
-        <p>${scadenza(x.data)} <strong>${esc(x.tipo)}</strong> · ${esc(x.testo)}</p>
+        <p>${scadenza(x.data)} <strong>${esc(x.tipo)}</strong> · ${esc(x.testo)}${x.ora ? " · ore " + esc(x.ora) : ""}</p>
         ${conAzienda ? `<p class="nota-piccola"><a class="link" href="#cliente-${esc(azienda.id)}">${esc(azienda.ragioneSociale)}</a>${ref ? " · " + esc(ref.nome) : ""}</p>` : ""}
       </div>
       <div class="da-fare-azioni">
         ${ref ? pulsantiContatto(ref, true) : ""}
-        <button class="pulsante secondario piccolo" type="button" data-azione="fatto" data-id="${esc(x.id)}">${icona("spunta")} Fatto</button>
+        ${pulsante}
       </div>
     </li>`;
 }
@@ -47,6 +60,67 @@ function sezioneDaFare() {
         : '<p class="nota-piccola">Nessuna attività in scadenza oggi.</p>'}
       ${prossime ? `<p class="nota-piccola">Nei prossimi giorni: ${prossime} attività. Le trovi nelle schede dei clienti.</p>` : ""}
     </section>`;
+}
+
+// Trattative aperte da seguire: senza prossima azione o ferme da troppo tempo, dalla più ferma
+function trattativeDaSeguire() {
+  return stato.opportunita.filter(trattativaAperta).map((o) => ({ o, s: statoTrattativa(o) }))
+    .filter(({ s }) => !s.prossima || s.ferma)
+    .sort((a, b) => b.s.giorniInFase - a.s.giorniInFase);
+}
+
+// Riquadro "Da seguire" accanto a "Da fare oggi"
+function sezioneDaSeguire() {
+  const elenco = trattativeDaSeguire();
+  return `
+    <section class="riquadro da-fare-riquadro" id="da-seguire" aria-label="Da seguire">
+      <h2 class="titolo-riquadro">${icona("attenzione")} Da seguire <span class="conteggio">${elenco.length}</span></h2>
+      ${elenco.length ? `<ul class="elenco-da-fare">${elenco.map(({ o, s }) => `
+        <li class="da-fare">
+          <div class="da-fare-testo">
+            <p><a class="link" href="#cliente-${esc(o.aziendaId)}">${esc(nomeCliente(o))}</a>
+              <span class="nota-piccola">${CONFIG.fasi[faseRaggiunta(o)].nome} da ${giorni(s.giorniInFase)} · ${formattaEuro(valoreAnnuo(o))}/anno</span></p>
+            <p class="riga-chip">
+              ${s.ferma ? `<span class="chip chip-critico">Ferma da ${giorni(s.giorniInFase)}</span>` : ""}
+              ${s.prossima ? `<span class="nota-piccola">Prossima: ${esc(accorcia(s.prossima.testo, 40))}</span> ${scadenza(s.prossima.data)}`
+                : '<span class="chip chip-attenzione">Nessuna prossima azione</span>'}
+            </p>
+          </div>
+          <div class="da-fare-azioni">
+            <button class="pulsante secondario piccolo" type="button" data-azione="prossima-azione" data-id="${esc(o.aziendaId)}">${icona("calendario")} Fissa la prossima azione</button>
+          </div>
+        </li>`).join("")}</ul>`
+        : '<p class="nota-piccola">Ogni trattativa aperta ha una prossima azione e nessuna è ferma.</p>'}
+    </section>`;
+}
+
+// Serve una prossima azione: l'azienda ha trattative aperte e nessuna attività da fare
+function serveProssimaAzione(aziendaId) {
+  return opportunitaDi(aziendaId).some(trattativaAperta) && !stato.attivita.some((x) => x.daFare && x.aziendaId === aziendaId);
+}
+
+// Finestra "Qual è la prossima azione?": tipo e testo proposti dalla fase più avanzata tra le trattative aperte
+function apriProssimaAzione(aziendaId) {
+  const a = trovaAzienda(aziendaId);
+  if (!a) return;
+  const o = opportunitaDi(aziendaId).filter(trattativaAperta).sort((x, y) => faseRaggiunta(y) - faseRaggiunta(x))[0];
+  const fase = CONFIG.fasi[o ? faseRaggiunta(o) : 0];
+  const f = fase.followUp;
+  apriFinestra(`
+    <form class="modulo" id="modulo-prossima" data-azienda="${esc(a.id)}" data-id="${o ? esc(o.id) : ""}" novalidate>
+      <div>
+        <h2>Qual è la prossima azione?</h2>
+        <p class="nota-piccola">${esc(a.ragioneSociale)}${o ? " · trattativa in «" + fase.nome + "»" : ""}. Ogni trattativa aperta ha sempre un passo fissato in agenda.</p>
+      </div>
+      <label>Tipo <select name="tipo">${opzioni(CONFIG.tipiAttivita, f.tipo)}</select></label>
+      <label>Cosa fare <input name="testo" required autocomplete="off" value="${esc(f.testo)}"></label>
+      <label>Data <input name="data" type="date" required min="${oggi()}" value="${traGiorni(f.giorni)}"></label>
+      ${pulsantiRapidi([[1, "Domani"], [2, "Tra 2 giorni"], [7, "Tra una settimana"], [14, "Tra due settimane"]])}
+      <div class="azioni-finestra">
+        <button class="pulsante secondario" type="button" data-azione="chiudi">Nessuna</button>
+        <button class="pulsante primario" type="submit">Fissa la prossima azione</button>
+      </div>
+    </form>`, "Prossima azione");
 }
 
 // ========================================================= CONTATTO CON UN CLIC
@@ -344,11 +418,20 @@ const AZIONI_CLIENTI = {
   fatto: (el) => {
     const x = stato.attivita.find((y) => y.id === el.dataset.id);
     if (!x || !x.daFare) return;
-    applica(() => {
+    const fatta = applica(() => {
       x.daFare = false;
       x.data = oggi();
     }, { messaggio: "Attività segnata come fatta: " + x.testo });
+    // Nessuna trattativa resta senza un passo in agenda
+    if (fatta && serveProssimaAzione(x.aziendaId)) apriProssimaAzione(x.aziendaId);
   },
+  // Sopralluogo fissato: «Sopralluogo fatto» apre la finestra della fase con la data in agenda
+  "fatto-fase": (el) => {
+    const x = stato.attivita.find((y) => y.id === el.dataset.id);
+    const fase = x && x.daFare ? faseDaRegistrare(x) : null;
+    if (fase) apriFase(trova(x.opportunitaId), fase, { data: x.data, attivitaId: x.id });
+  },
+  "prossima-azione": (el) => apriProssimaAzione(el.dataset.id),
   "conferma-importa": () => applica(() => {
     if (!backupInAttesa) return false;
     stato = backupInAttesa;
@@ -368,8 +451,15 @@ const GESTORI_MODULI = {
     const piva = modulo.piva.value.replace(/\s/g, "");
     if (piva && !/^\d{11}$/.test(piva)) return segnalaCampo(modulo.piva, "La partita IVA ha 11 cifre");
     const dati = { ragioneSociale: nome, piva, settore: modulo.settore.value, comune: modulo.comune.value, fonte: modulo.fonte.value, note: modulo.note.value.trim() };
+    // Una riga di cronologia con i campi cambiati, es. "Dati aggiornati: comune Bari → Modugno"
+    const etichette = { ragioneSociale: "ragione sociale", piva: "partita IVA", settore: "settore", comune: "comune", fonte: "fonte" };
+    const cambi = Object.entries(etichette).filter(([k]) => (a[k] || "") !== dati[k])
+      .map(([k, nome]) => nome + " " + (a[k] || "—") + " → " + (dati[k] || "—"));
+    if ((a.note || "") !== dati.note) cambi.push("note aggiornate");
+    if (!cambi.length) return chiudiFinestra(); // nulla da salvare
     applica(() => {
       Object.assign(a, dati);
+      registraAttivita({ aziendaId: a.id, tipo: "Pipeline", testo: "Dati aggiornati: " + cambi.join("; ") });
     }, { messaggio: "Dati dell'azienda aggiornati" });
   },
   "modulo-referente": (modulo) => {
@@ -386,9 +476,26 @@ const GESTORI_MODULI = {
       privacy: modulo.privacy.checked,
     };
     const esistente = trovaReferente(modulo.dataset.id);
+    // Cronologia: i campi cambiati; di telefono ed email solo che sono cambiati, senza i numeri
+    const cambi = [];
+    if (esistente) {
+      const siNo = (v) => (v ? "sì" : "no");
+      if (esistente.nome !== dati.nome) cambi.push("nome aggiornato");
+      if ((esistente.ruolo || "") !== dati.ruolo) cambi.push("ruolo " + (esistente.ruolo || "—") + " → " + (dati.ruolo || "—"));
+      if (numeroInternazionale(esistente.telefono) !== dati.telefono) cambi.push("telefono aggiornato");
+      if ((esistente.email || "") !== dati.email) cambi.push("email aggiornata");
+      if (esistente.canale !== dati.canale) cambi.push("canale preferito " + (esistente.canale || "—") + " → " + dati.canale);
+      if (!!esistente.decisore !== dati.decisore) cambi.push("decisore " + siNo(esistente.decisore) + " → " + siNo(dati.decisore));
+      if (!!esistente.privacy !== dati.privacy) cambi.push("consenso privacy " + siNo(esistente.privacy) + " → " + siNo(dati.privacy));
+      if (!cambi.length) return chiudiFinestra(); // nulla da salvare
+    }
     applica(() => {
-      if (esistente) Object.assign(esistente, dati);
-      else stato.referenti.push({ id: nuovoId("rf"), aziendaId: modulo.dataset.azienda, ...dati });
+      if (esistente) {
+        Object.assign(esistente, dati);
+        registraAttivita({ aziendaId: esistente.aziendaId, tipo: "Pipeline", testo: "Dati aggiornati: referente " + dati.nome + ": " + cambi.join("; ") });
+      } else {
+        stato.referenti.push({ id: nuovoId("rf"), aziendaId: modulo.dataset.azienda, ...dati });
+      }
     }, { messaggio: esistente ? "Referente aggiornato" : "Referente aggiunto: " + nome });
   },
   "modulo-attivita": (modulo) => {
@@ -404,5 +511,16 @@ const GESTORI_MODULI = {
       daFare: modulo.daFare.checked,
     };
     applica(() => registraAttivita(dati), { messaggio: dati.daFare ? "Prossima azione fissata" : "Attività registrata" });
+  },
+  "modulo-prossima": (modulo) => {
+    const testo = modulo.testo.value.trim();
+    const data = modulo.data.value;
+    if (!testo) return segnalaCampo(modulo.testo, "Scrivi cosa fare");
+    if (!formattaData(data)) return segnalaCampo(modulo.data, "Scegli una data");
+    if (data < oggi()) return segnalaCampo(modulo.data, "La prossima azione va fissata da oggi in poi");
+    const o = trova(modulo.dataset.id);
+    applica(() => registraAttivita({ aziendaId: modulo.dataset.azienda, referenteId: o ? o.referenteId || null : null,
+      ...(o ? { opportunitaId: o.id } : {}), tipo: modulo.tipo.value, testo, data, daFare: true }),
+    { messaggio: "Prossima azione fissata: " + accorcia(testo, 40) + " " + formattaGiorno(data), evidenzia: o ? o.id : null });
   },
 };

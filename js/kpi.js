@@ -18,6 +18,26 @@ function faseAttuale(opp) {
   return opp.perso ? "perso" : CONFIG.fasi[faseRaggiunta(opp)].id;
 }
 
+// Data in cui l'opportunità è entrata nella fase attuale (o in cui è stata persa)
+function dataFaseAttuale(o) {
+  return o.perso ? o.perso.data : o.storico[CONFIG.fasi[faseRaggiunta(o)].id];
+}
+
+// Trattativa aperta: non persa e senza contratto
+function trattativaAperta(o) {
+  return !o.perso && !o.storico.contratto;
+}
+
+// Stato di una trattativa aperta: giorni nella fase, se è ferma e la prossima azione in agenda
+// (la prima attività da fare dell'azienda, con precedenza a quelle di questa opportunità)
+function statoTrattativa(o) {
+  const fase = CONFIG.fasi[faseRaggiunta(o)];
+  const giorniInFase = giorniTra(dataFaseAttuale(o), oggi());
+  const daFare = stato.attivita.filter((x) => x.daFare && x.aziendaId === o.aziendaId).sort((a, b) => a.data.localeCompare(b.data));
+  const prossima = daFare.find((x) => x.opportunitaId === o.id) || daFare[0] || null;
+  return { giorniInFase, ferma: fase.giorniFerma != null && giorniInFase > fase.giorniFerma, prossima };
+}
+
 // Quante opportunità hanno raggiunto almeno la fase indicata
 function contaRaggiunte(opportunita, idFase) {
   const soglia = CONFIG.fasi.findIndex((f) => f.id === idFase);

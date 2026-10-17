@@ -37,6 +37,9 @@ function datiIniziali() {
       aziendaId: azienda,
       referenteId: (refs.find((r) => r.decisore) || refs[0] || {}).id || null,
       tariffa: null,
+      scadenzaOfferta: null,
+      avvio: null,
+      note: "",
       perso: null,
       allocazione: null,
       proposte: [],
@@ -86,16 +89,19 @@ function strutturaValida(d) {
   if (d.ultimoBackup != null && !isData(d.ultimoBackup)) return false;
   const idAziende = new Set(d.aziende.map((a) => a && a.id));
   const aziendaEsiste = (id) => isId(id) && idAziende.has(id);
+  const facoltativo = (x, controllo) => x == null || controllo(x); // campi aggiunti dopo: assenti o validi
   const propostaOk = (p) => isOggetto(p) && isId(p.partnerId) && isData(p.data) && ["attesa", "si", "no"].includes(p.esito);
   return d.aziende.every((a) => isOggetto(a) && isId(a.id) && isTesto(a.ragioneSociale) && a.ragioneSociale.trim() !== "") &&
     d.referenti.every((r) => isOggetto(r) && isId(r.id) && aziendaEsiste(r.aziendaId)) &&
     d.attivita.every((x) => isOggetto(x) && isId(x.id) && aziendaEsiste(x.aziendaId) && isData(x.data) && isTesto(x.testo) &&
-      typeof x.daFare === "boolean" && (x.ora == null || x.ora === "" || (isTesto(x.ora) && /^\d{2}:\d{2}$/.test(x.ora)))) &&
+      typeof x.daFare === "boolean" && (x.ora == null || x.ora === "" || (isTesto(x.ora) && /^\d{2}:\d{2}$/.test(x.ora))) &&
+      facoltativo(x.opportunitaId, isId) && facoltativo(x.fase, isId) && facoltativo(x.automatica, (v) => typeof v === "boolean")) &&
     d.opportunita.every((o) => isOggetto(o) && isId(o.id) && isTesto(o.codice) && aziendaEsiste(o.aziendaId) &&
       isTesto(o.servizio) && Number.isFinite(o.ore) && o.ore >= 0 &&
       (o.tariffa == null || (Number.isFinite(o.tariffa) && o.tariffa >= 0)) &&
       isOggetto(o.storico) && isData(o.storico.contatto) && Object.values(o.storico).every(isData) &&
-      (o.perso == null || (isOggetto(o.perso) && isData(o.perso.data) && isTesto(o.perso.motivo))) &&
+      facoltativo(o.scadenzaOfferta, isData) && facoltativo(o.avvio, isData) && facoltativo(o.note, isTesto) && facoltativo(o.motivazioneC, isTesto) &&
+      (o.perso == null || (isOggetto(o.perso) && isData(o.perso.data) && isTesto(o.perso.motivo) && facoltativo(o.perso.nota, isTesto))) &&
       (o.allocazione == null || (isOggetto(o.allocazione) && ["squadra", "partner"].includes(o.allocazione.tipo) &&
         isId(o.allocazione.id) && isData(o.allocazione.data))) &&
       (o.proposte === undefined || (Array.isArray(o.proposte) && o.proposte.every(propostaOk))));
@@ -176,6 +182,12 @@ function opportunitaDi(aziendaId) {
 
 function attivitaDi(aziendaId) {
   return stato.attivita.filter((x) => x.aziendaId === aziendaId);
+}
+
+// Sopralluogo fissato in agenda per un'opportunità: la prima attività da fare collegata alla fase Sopralluogo
+function sopralluogoFissato(o) {
+  return stato.attivita.filter((x) => x.daFare && x.opportunitaId === o.id && x.fase === "sopralluogo")
+    .sort((a, b) => a.data.localeCompare(b.data))[0] || null;
 }
 
 // Azienda di un'opportunità (_azienda serve per l'anteprima di un'azienda non ancora salvata)

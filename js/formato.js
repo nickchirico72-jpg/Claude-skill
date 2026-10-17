@@ -17,6 +17,31 @@ function formattaData(iso) {
   return g + "/" + m + "/" + a;
 }
 
+// "2026-10-22" -> "gio 22/10": giorno della settimana per le date vicine
+function formattaGiorno(iso) {
+  if (!formattaData(iso)) return "";
+  const [a, m, g] = iso.split("-").map(Number);
+  return new Date(a, m - 1, g).toLocaleDateString("it-IT", { weekday: "short", day: "2-digit", month: "2-digit" });
+}
+
+// Data AAAA-MM-GG spostata di n giorni, es. aggiungiGiorni("2026-10-30", 3) = "2026-11-02"
+function aggiungiGiorni(iso, n) {
+  const [a, m, g] = iso.split("-").map(Number);
+  const d = new Date(Date.UTC(a, m - 1, g + n));
+  return d.toISOString().slice(0, 10);
+}
+
+// "1 giorno", "35 giorni"
+function giorni(n) {
+  return n === 1 ? "1 giorno" : n + " giorni";
+}
+
+// Testo accorciato a n caratteri, con i puntini se serve
+function accorcia(testo, n) {
+  const s = String(testo ?? "");
+  return s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s;
+}
+
 // Giorni tra due date AAAA-MM-GG, es. giorniTra("2026-10-15", "2026-10-17") = 2
 function giorniTra(da, a) {
   const giorno = (iso) => {
