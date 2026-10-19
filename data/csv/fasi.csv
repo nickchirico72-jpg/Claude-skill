@@ -1,0 +1,7 @@
+fase,ordine,probabilita,giorni_soglia
+contatto,1,0.05,7
+qualificato,2,0.15,14
+sopralluogo,3,0.35,14
+offerta,4,0.55,21
+contratto,5,1.0,
+perso,9,0.0,

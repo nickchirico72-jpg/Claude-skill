@@ -1,0 +1,1027 @@
+id_attivita,id_opp,id_commerciale,tipo,data,esito
+1,63,1,chiamata,2026-01-12,nessuna risposta
+2,63,1,WhatsApp,2026-01-17,letto
+3,63,1,chiamata,2026-01-22,chiesto preventivo
+4,256,2,email,2026-01-27,risposta ricevuta
+5,63,1,sopralluogo,2026-01-29,svolto
+6,256,2,chiamata,2026-01-30,chiesto preventivo
+7,256,2,WhatsApp,2026-02-03,letto
+8,63,1,email,2026-02-07,in attesa di risposta
+9,300,4,chiamata,2026-02-09,interessato
+10,300,4,chiamata,2026-02-10,interessato
+11,256,2,WhatsApp,2026-02-11,letto
+12,300,4,chiamata,2026-02-12,interessato
+13,246,3,email,2026-02-13,risposta ricevuta
+14,256,2,sopralluogo,2026-02-16,svolto
+15,262,2,email,2026-02-16,inviata
+16,262,2,chiamata,2026-02-17,nessuna risposta
+17,161,1,chiamata,2026-02-18,interessato
+18,220,3,email,2026-02-18,inviata
+19,173,3,email,2026-02-21,in attesa di risposta
+20,262,2,chiamata,2026-02-21,richiamare
+21,220,3,chiamata,2026-02-22,richiamare
+22,63,1,email,2026-02-23,risposta ricevuta
+23,121,1,email,2026-02-23,inviata
+24,161,1,chiamata,2026-02-23,richiamare
+25,220,3,WhatsApp,2026-02-23,risposto
+26,61,3,email,2026-02-24,in attesa di risposta
+27,121,1,chiamata,2026-02-24,richiamare
+28,12,3,email,2026-02-25,inviata
+29,63,1,visita,2026-02-25,rinviata
+30,145,2,chiamata,2026-02-26,richiamare
+31,121,1,WhatsApp,2026-02-27,risposto
+32,208,1,email,2026-02-28,risposta ricevuta
+33,256,2,email,2026-02-28,risposta ricevuta
+34,178,3,chiamata,2026-03-01,chiesto preventivo
+35,61,3,WhatsApp,2026-03-02,in attesa di risposta
+36,208,1,WhatsApp,2026-03-02,risposto
+37,256,2,email,2026-03-02,inviata
+38,61,3,chiamata,2026-03-03,richiamare
+39,173,3,chiamata,2026-03-03,richiamare
+40,12,3,WhatsApp,2026-03-04,letto
+41,61,3,sopralluogo,2026-03-05,svolto
+42,161,1,WhatsApp,2026-03-05,letto
+43,208,1,sopralluogo,2026-03-05,svolto
+44,60,1,chiamata,2026-03-06,richiamare
+45,12,3,chiamata,2026-03-07,interessato
+46,60,1,WhatsApp,2026-03-07,in attesa di risposta
+47,61,3,email,2026-03-07,risposta ricevuta
+48,12,3,sopralluogo,2026-03-08,svolto
+49,161,1,sopralluogo,2026-03-09,svolto
+50,12,3,WhatsApp,2026-03-12,letto
+51,208,1,email,2026-03-12,inviata
+52,3,3,email,2026-03-13,risposta ricevuta
+53,112,2,chiamata,2026-03-13,nessuna risposta
+54,3,3,WhatsApp,2026-03-14,risposto
+55,16,2,email,2026-03-15,inviata
+56,46,1,email,2026-03-15,in attesa di risposta
+57,60,1,sopralluogo,2026-03-15,svolto
+58,196,2,email,2026-03-15,inviata
+59,61,3,email,2026-03-16,in attesa di risposta
+60,196,2,WhatsApp,2026-03-16,in attesa di risposta
+61,161,1,email,2026-03-17,risposta ricevuta
+62,204,4,chiamata,2026-03-18,interessato
+63,16,2,email,2026-03-19,in attesa di risposta
+64,46,1,WhatsApp,2026-03-21,risposto
+65,112,2,chiamata,2026-03-21,nessuna risposta
+66,161,1,chiamata,2026-03-21,interessato
+67,196,2,WhatsApp,2026-03-22,risposto
+68,46,1,WhatsApp,2026-03-23,letto
+69,237,3,email,2026-03-23,in attesa di risposta
+70,208,1,visita,2026-03-25,rinviata
+71,237,3,email,2026-03-25,in attesa di risposta
+72,3,3,sopralluogo,2026-03-27,svolto
+73,60,1,email,2026-03-28,in attesa di risposta
+74,68,3,email,2026-03-28,in attesa di risposta
+75,237,3,WhatsApp,2026-03-28,letto
+76,168,3,chiamata,2026-03-31,interessato
+77,196,2,sopralluogo,2026-04-01,svolto
+78,125,3,chiamata,2026-04-02,nessuna risposta
+79,168,3,email,2026-04-02,in attesa di risposta
+80,67,2,chiamata,2026-04-03,nessuna risposta
+81,201,2,email,2026-04-03,in attesa di risposta
+82,68,3,email,2026-04-04,inviata
+83,200,3,email,2026-04-04,inviata
+84,261,3,chiamata,2026-04-04,chiesto preventivo
+85,60,1,chiamata,2026-04-05,chiesto preventivo
+86,67,2,chiamata,2026-04-05,richiamare
+87,237,3,WhatsApp,2026-04-05,in attesa di risposta
+88,3,3,WhatsApp,2026-04-06,letto
+89,196,2,email,2026-04-06,risposta ricevuta
+90,237,3,sopralluogo,2026-04-06,svolto
+91,261,3,chiamata,2026-04-06,interessato
+92,37,2,chiamata,2026-04-07,richiamare
+93,61,3,visita,2026-04-08,rinviata
+94,196,2,email,2026-04-08,inviata
+95,238,3,email,2026-04-08,inviata
+96,3,3,email,2026-04-09,in attesa di risposta
+97,161,1,visita,2026-04-09,incontro svolto
+98,238,3,WhatsApp,2026-04-09,risposto
+99,270,3,chiamata,2026-04-09,chiesto preventivo
+100,270,3,chiamata,2026-04-10,nessuna risposta
+101,298,1,chiamata,2026-04-10,nessuna risposta
+102,37,2,WhatsApp,2026-04-11,letto
+103,238,3,chiamata,2026-04-11,interessato
+104,298,1,email,2026-04-11,in attesa di risposta
+105,37,2,email,2026-04-12,inviata
+106,269,1,email,2026-04-12,risposta ricevuta
+107,41,4,chiamata,2026-04-13,nessuna risposta
+108,94,1,email,2026-04-13,inviata
+109,119,3,chiamata,2026-04-13,interessato
+110,269,1,WhatsApp,2026-04-13,letto
+111,41,4,email,2026-04-15,in attesa di risposta
+112,270,3,chiamata,2026-04-15,richiamare
+113,3,3,visita,2026-04-17,rinviata
+114,279,1,email,2026-04-17,in attesa di risposta
+115,119,3,WhatsApp,2026-04-19,in attesa di risposta
+116,139,1,email,2026-04-19,risposta ricevuta
+117,237,3,email,2026-04-19,risposta ricevuta
+118,283,3,email,2026-04-20,in attesa di risposta
+119,128,3,email,2026-04-21,in attesa di risposta
+120,195,1,chiamata,2026-04-21,nessuna risposta
+121,200,3,email,2026-04-21,inviata
+122,238,3,sopralluogo,2026-04-21,svolto
+123,283,3,chiamata,2026-04-21,interessato
+124,258,1,email,2026-04-22,risposta ricevuta
+125,92,3,email,2026-04-23,risposta ricevuta
+126,116,4,email,2026-04-23,in attesa di risposta
+127,135,3,email,2026-04-23,risposta ricevuta
+128,202,2,chiamata,2026-04-23,chiesto preventivo
+129,283,3,chiamata,2026-04-23,nessuna risposta
+130,92,3,WhatsApp,2026-04-24,in attesa di risposta
+131,258,1,email,2026-04-24,in attesa di risposta
+132,279,1,chiamata,2026-04-24,interessato
+133,66,2,chiamata,2026-04-25,nessuna risposta
+134,116,4,email,2026-04-25,in attesa di risposta
+135,128,3,WhatsApp,2026-04-25,letto
+136,202,2,email,2026-04-25,inviata
+137,269,1,WhatsApp,2026-04-25,risposto
+138,279,1,chiamata,2026-04-25,interessato
+139,92,3,chiamata,2026-04-26,nessuna risposta
+140,238,3,email,2026-04-26,inviata
+141,272,2,email,2026-04-26,risposta ricevuta
+142,196,2,chiamata,2026-04-27,chiesto preventivo
+143,165,1,chiamata,2026-04-28,interessato
+144,195,1,WhatsApp,2026-04-28,risposto
+145,22,1,email,2026-04-29,risposta ricevuta
+146,116,4,chiamata,2026-04-29,interessato
+147,119,3,WhatsApp,2026-04-29,risposto
+148,128,3,email,2026-04-29,risposta ricevuta
+149,202,2,WhatsApp,2026-04-29,letto
+150,258,1,WhatsApp,2026-04-29,in attesa di risposta
+151,272,2,WhatsApp,2026-04-29,risposto
+152,128,3,sopralluogo,2026-04-30,svolto
+153,92,3,chiamata,2026-05-01,chiesto preventivo
+154,167,2,chiamata,2026-05-01,nessuna risposta
+155,242,1,email,2026-05-01,inviata
+156,92,3,sopralluogo,2026-05-02,svolto
+157,119,3,sopralluogo,2026-05-03,svolto
+158,195,1,WhatsApp,2026-05-03,in attesa di risposta
+159,242,1,chiamata,2026-05-03,interessato
+160,165,1,WhatsApp,2026-05-04,letto
+161,202,2,email,2026-05-04,in attesa di risposta
+162,229,2,email,2026-05-04,risposta ricevuta
+163,237,3,visita,2026-05-05,rinviata
+164,283,3,email,2026-05-05,inviata
+165,22,1,chiamata,2026-05-06,nessuna risposta
+166,120,1,email,2026-05-06,in attesa di risposta
+167,167,2,chiamata,2026-05-06,nessuna risposta
+168,202,2,sopralluogo,2026-05-06,svolto
+169,242,1,email,2026-05-06,in attesa di risposta
+170,279,1,sopralluogo,2026-05-06,svolto
+171,202,2,chiamata,2026-05-07,interessato
+172,120,1,WhatsApp,2026-05-08,risposto
+173,92,3,email,2026-05-09,risposta ricevuta
+174,120,1,chiamata,2026-05-09,chiesto preventivo
+175,238,3,email,2026-05-09,inviata
+176,120,1,email,2026-05-10,inviata
+177,128,3,email,2026-05-10,inviata
+178,167,2,sopralluogo,2026-05-10,svolto
+179,195,1,sopralluogo,2026-05-10,svolto
+180,22,1,chiamata,2026-05-11,chiesto preventivo
+181,93,4,email,2026-05-11,risposta ricevuta
+182,257,2,email,2026-05-11,risposta ricevuta
+183,40,2,chiamata,2026-05-12,richiamare
+184,76,4,email,2026-05-12,in attesa di risposta
+185,119,3,email,2026-05-12,risposta ricevuta
+186,212,2,email,2026-05-12,in attesa di risposta
+187,55,3,chiamata,2026-05-13,chiesto preventivo
+188,93,4,WhatsApp,2026-05-13,letto
+189,195,1,email,2026-05-13,risposta ricevuta
+190,8,1,email,2026-05-14,in attesa di risposta
+191,40,2,WhatsApp,2026-05-14,risposto
+192,76,4,chiamata,2026-05-14,chiesto preventivo
+193,119,3,chiamata,2026-05-14,nessuna risposta
+194,190,2,chiamata,2026-05-14,richiamare
+195,55,3,chiamata,2026-05-15,interessato
+196,190,2,chiamata,2026-05-15,interessato
+197,279,1,email,2026-05-15,in attesa di risposta
+198,159,3,chiamata,2026-05-16,interessato
+199,211,3,email,2026-05-16,risposta ricevuta
+200,212,2,WhatsApp,2026-05-16,risposto
+201,242,1,sopralluogo,2026-05-16,svolto
+202,8,1,WhatsApp,2026-05-17,letto
+203,38,2,email,2026-05-17,in attesa di risposta
+204,66,2,chiamata,2026-05-17,chiesto preventivo
+205,242,1,chiamata,2026-05-17,richiamare
+206,260,1,chiamata,2026-05-17,chiesto preventivo
+207,38,2,WhatsApp,2026-05-18,risposto
+208,40,2,sopralluogo,2026-05-19,svolto
+209,76,4,sopralluogo,2026-05-20,svolto
+210,167,2,email,2026-05-20,inviata
+211,190,2,chiamata,2026-05-20,nessuna risposta
+212,234,1,chiamata,2026-05-20,interessato
+213,40,2,email,2026-05-21,risposta ricevuta
+214,93,4,sopralluogo,2026-05-21,svolto
+215,101,3,chiamata,2026-05-21,richiamare
+216,181,2,email,2026-05-21,inviata
+217,289,3,chiamata,2026-05-21,nessuna risposta
+218,55,3,sopralluogo,2026-05-22,svolto
+219,93,4,WhatsApp,2026-05-22,in attesa di risposta
+220,119,3,visita,2026-05-22,rinviata
+221,120,1,sopralluogo,2026-05-22,svolto
+222,170,2,chiamata,2026-05-22,nessuna risposta
+223,189,3,chiamata,2026-05-22,nessuna risposta
+224,242,1,email,2026-05-22,in attesa di risposta
+225,26,2,email,2026-05-23,in attesa di risposta
+226,120,1,chiamata,2026-05-23,nessuna risposta
+227,170,2,WhatsApp,2026-05-23,in attesa di risposta
+228,212,2,chiamata,2026-05-23,richiamare
+229,238,3,visita,2026-05-23,incontro svolto
+230,26,2,chiamata,2026-05-24,interessato
+231,189,3,email,2026-05-24,risposta ricevuta
+232,4,1,email,2026-05-25,risposta ricevuta
+233,8,1,email,2026-05-25,inviata
+234,34,2,chiamata,2026-05-25,richiamare
+235,40,2,email,2026-05-25,in attesa di risposta
+236,93,4,email,2026-05-25,inviata
+237,40,2,WhatsApp,2026-05-26,letto
+238,76,4,WhatsApp,2026-05-26,risposto
+239,101,3,chiamata,2026-05-26,nessuna risposta
+240,297,4,email,2026-05-26,risposta ricevuta
+241,266,3,chiamata,2026-05-27,interessato
+242,101,3,chiamata,2026-05-28,nessuna risposta
+243,26,2,WhatsApp,2026-05-29,risposto
+244,212,2,sopralluogo,2026-05-29,svolto
+245,55,3,WhatsApp,2026-05-30,in attesa di risposta
+246,128,3,visita,2026-05-30,incontro svolto
+247,266,3,chiamata,2026-05-30,chiesto preventivo
+248,34,2,WhatsApp,2026-05-31,risposto
+249,76,4,email,2026-05-31,risposta ricevuta
+250,55,3,email,2026-06-01,in attesa di risposta
+251,93,4,email,2026-06-01,inviata
+252,26,2,email,2026-06-02,risposta ricevuta
+253,93,4,visita,2026-06-02,rinviata
+254,147,3,chiamata,2026-06-02,nessuna risposta
+255,184,3,email,2026-06-02,in attesa di risposta
+256,297,4,chiamata,2026-06-02,chiesto preventivo
+257,120,1,email,2026-06-03,inviata
+258,126,3,email,2026-06-03,risposta ricevuta
+259,14,1,chiamata,2026-06-04,interessato
+260,38,2,chiamata,2026-06-04,nessuna risposta
+261,14,1,chiamata,2026-06-05,chiesto preventivo
+262,129,4,chiamata,2026-06-05,chiesto preventivo
+263,213,1,email,2026-06-05,in attesa di risposta
+264,242,1,email,2026-06-05,inviata
+265,33,3,chiamata,2026-06-06,richiamare
+266,89,2,chiamata,2026-06-06,richiamare
+267,104,2,chiamata,2026-06-06,chiesto preventivo
+268,126,3,email,2026-06-06,risposta ricevuta
+269,170,2,sopralluogo,2026-06-06,svolto
+270,170,2,email,2026-06-07,in attesa di risposta
+271,213,1,WhatsApp,2026-06-07,letto
+272,33,3,chiamata,2026-06-08,richiamare
+273,89,2,WhatsApp,2026-06-08,risposto
+274,147,3,chiamata,2026-06-08,nessuna risposta
+275,104,2,WhatsApp,2026-06-09,risposto
+276,115,2,chiamata,2026-06-09,richiamare
+277,230,3,chiamata,2026-06-09,nessuna risposta
+278,263,2,email,2026-06-09,in attesa di risposta
+279,52,2,email,2026-06-10,inviata
+280,167,2,WhatsApp,2026-06-10,in attesa di risposta
+281,170,2,email,2026-06-10,in attesa di risposta
+282,184,3,chiamata,2026-06-10,nessuna risposta
+283,230,3,chiamata,2026-06-10,chiesto preventivo
+284,276,3,email,2026-06-10,in attesa di risposta
+285,113,1,email,2026-06-11,in attesa di risposta
+286,115,2,email,2026-06-11,inviata
+287,147,3,chiamata,2026-06-11,nessuna risposta
+288,52,2,WhatsApp,2026-06-12,risposto
+289,89,2,WhatsApp,2026-06-12,in attesa di risposta
+290,104,2,chiamata,2026-06-12,chiesto preventivo
+291,129,4,WhatsApp,2026-06-12,letto
+292,263,2,WhatsApp,2026-06-12,letto
+293,26,2,sopralluogo,2026-06-13,svolto
+294,29,1,chiamata,2026-06-13,interessato
+295,52,2,WhatsApp,2026-06-13,in attesa di risposta
+296,71,1,email,2026-06-13,inviata
+297,75,3,chiamata,2026-06-13,richiamare
+298,89,2,sopralluogo,2026-06-13,svolto
+299,264,1,chiamata,2026-06-13,richiamare
+300,297,4,sopralluogo,2026-06-13,svolto
+301,71,1,email,2026-06-14,in attesa di risposta
+302,113,1,WhatsApp,2026-06-14,risposto
+303,115,2,chiamata,2026-06-14,chiesto preventivo
+304,276,3,chiamata,2026-06-14,interessato
+305,291,1,email,2026-06-14,in attesa di risposta
+306,29,1,chiamata,2026-06-15,nessuna risposta
+307,115,2,chiamata,2026-06-15,chiesto preventivo
+308,76,4,visita,2026-06-16,rinviata
+309,113,1,chiamata,2026-06-16,chiesto preventivo
+310,291,1,email,2026-06-16,inviata
+311,42,3,email,2026-06-17,in attesa di risposta
+312,113,1,WhatsApp,2026-06-17,risposto
+313,170,2,email,2026-06-17,inviata
+314,213,1,chiamata,2026-06-17,nessuna risposta
+315,70,2,email,2026-06-18,inviata
+316,158,2,chiamata,2026-06-18,interessato
+317,213,1,sopralluogo,2026-06-18,svolto
+318,89,2,WhatsApp,2026-06-19,risposto
+319,113,1,sopralluogo,2026-06-19,svolto
+320,158,2,chiamata,2026-06-19,richiamare
+321,129,4,WhatsApp,2026-06-20,risposto
+322,253,4,email,2026-06-20,risposta ricevuta
+323,276,3,WhatsApp,2026-06-20,in attesa di risposta
+324,26,2,chiamata,2026-06-21,interessato
+325,70,2,chiamata,2026-06-21,nessuna risposta
+326,129,4,sopralluogo,2026-06-21,svolto
+327,52,2,sopralluogo,2026-06-23,svolto
+328,70,2,email,2026-06-23,in attesa di risposta
+329,221,2,chiamata,2026-06-23,chiesto preventivo
+330,120,1,visita,2026-06-24,rinviata
+331,213,1,email,2026-06-24,in attesa di risposta
+332,233,4,email,2026-06-24,inviata
+333,276,3,sopralluogo,2026-06-24,svolto
+334,26,2,email,2026-06-25,inviata
+335,89,2,email,2026-06-25,inviata
+336,129,4,WhatsApp,2026-06-25,risposto
+337,158,2,sopralluogo,2026-06-25,svolto
+338,221,2,WhatsApp,2026-06-25,letto
+339,104,2,WhatsApp,2026-06-26,risposto
+340,115,2,sopralluogo,2026-06-26,svolto
+341,276,3,WhatsApp,2026-06-26,in attesa di risposta
+342,297,4,email,2026-06-26,risposta ricevuta
+343,13,2,email,2026-06-27,inviata
+344,129,4,email,2026-06-27,in attesa di risposta
+345,286,2,email,2026-06-27,inviata
+346,86,3,email,2026-06-28,inviata
+347,113,1,email,2026-06-28,risposta ricevuta
+348,19,1,chiamata,2026-06-29,chiesto preventivo
+349,55,3,visita,2026-06-29,rinviata
+350,115,2,WhatsApp,2026-06-29,letto
+351,134,2,chiamata,2026-06-29,nessuna risposta
+352,83,1,email,2026-06-30,in attesa di risposta
+353,148,3,chiamata,2026-06-30,chiesto preventivo
+354,162,3,chiamata,2026-06-30,interessato
+355,276,3,email,2026-06-30,in attesa di risposta
+356,158,2,email,2026-07-01,inviata
+357,252,3,email,2026-07-01,risposta ricevuta
+358,13,2,chiamata,2026-07-02,interessato
+359,18,3,chiamata,2026-07-02,richiamare
+360,18,3,WhatsApp,2026-07-03,letto
+361,26,2,visita,2026-07-03,incontro svolto
+362,70,2,sopralluogo,2026-07-03,svolto
+363,91,2,chiamata,2026-07-03,chiesto preventivo
+364,148,3,WhatsApp,2026-07-03,risposto
+365,252,3,chiamata,2026-07-03,nessuna risposta
+366,115,2,email,2026-07-04,in attesa di risposta
+367,218,3,chiamata,2026-07-04,chiesto preventivo
+368,252,3,WhatsApp,2026-07-04,letto
+369,19,1,chiamata,2026-07-05,interessato
+370,89,2,email,2026-07-05,in attesa di risposta
+371,162,3,email,2026-07-05,inviata
+372,221,2,sopralluogo,2026-07-05,svolto
+373,27,1,email,2026-07-06,risposta ricevuta
+374,287,1,email,2026-07-06,risposta ricevuta
+375,27,1,WhatsApp,2026-07-07,risposto
+376,70,2,email,2026-07-07,inviata
+377,79,4,chiamata,2026-07-07,chiesto preventivo
+378,221,2,chiamata,2026-07-07,interessato
+379,227,1,email,2026-07-07,in attesa di risposta
+380,253,4,email,2026-07-07,inviata
+381,13,2,WhatsApp,2026-07-08,in attesa di risposta
+382,18,3,chiamata,2026-07-08,interessato
+383,28,2,email,2026-07-08,in attesa di risposta
+384,115,2,WhatsApp,2026-07-08,in attesa di risposta
+385,164,1,chiamata,2026-07-08,richiamare
+386,215,3,email,2026-07-08,inviata
+387,250,4,email,2026-07-08,in attesa di risposta
+388,78,1,chiamata,2026-07-09,chiesto preventivo
+389,218,3,WhatsApp,2026-07-09,letto
+390,148,3,sopralluogo,2026-07-10,svolto
+391,215,3,chiamata,2026-07-10,richiamare
+392,164,1,WhatsApp,2026-07-11,in attesa di risposta
+393,255,2,chiamata,2026-07-11,interessato
+394,90,1,chiamata,2026-07-12,richiamare
+395,103,2,email,2026-07-12,risposta ricevuta
+396,215,3,chiamata,2026-07-12,chiesto preventivo
+397,13,2,sopralluogo,2026-07-13,svolto
+398,27,1,sopralluogo,2026-07-13,svolto
+399,79,4,email,2026-07-13,in attesa di risposta
+400,133,2,chiamata,2026-07-13,chiesto preventivo
+401,255,2,chiamata,2026-07-13,chiesto preventivo
+402,7,4,chiamata,2026-07-14,nessuna risposta
+403,74,1,chiamata,2026-07-14,richiamare
+404,78,1,chiamata,2026-07-14,chiesto preventivo
+405,103,2,WhatsApp,2026-07-14,in attesa di risposta
+406,297,4,WhatsApp,2026-07-14,risposto
+407,28,2,chiamata,2026-07-15,chiesto preventivo
+408,35,2,chiamata,2026-07-15,interessato
+409,79,4,WhatsApp,2026-07-15,in attesa di risposta
+410,153,4,email,2026-07-15,risposta ricevuta
+411,18,3,sopralluogo,2026-07-16,svolto
+412,103,2,WhatsApp,2026-07-16,risposto
+413,205,3,email,2026-07-16,risposta ricevuta
+414,213,1,visita,2026-07-16,rinviata
+415,221,2,email,2026-07-16,inviata
+416,228,1,chiamata,2026-07-16,chiesto preventivo
+417,299,3,email,2026-07-16,in attesa di risposta
+418,7,4,email,2026-07-17,in attesa di risposta
+419,153,4,chiamata,2026-07-17,nessuna risposta
+420,255,2,chiamata,2026-07-17,richiamare
+421,274,4,chiamata,2026-07-17,nessuna risposta
+422,299,3,WhatsApp,2026-07-17,risposto
+423,7,4,chiamata,2026-07-18,interessato
+424,73,3,email,2026-07-18,in attesa di risposta
+425,78,1,email,2026-07-18,risposta ricevuta
+426,205,3,email,2026-07-18,risposta ricevuta
+427,210,4,email,2026-07-18,inviata
+428,36,1,email,2026-07-19,in attesa di risposta
+429,73,3,WhatsApp,2026-07-19,letto
+430,74,1,chiamata,2026-07-19,interessato
+431,84,3,chiamata,2026-07-19,chiesto preventivo
+432,188,2,chiamata,2026-07-19,richiamare
+433,210,4,chiamata,2026-07-19,interessato
+434,299,3,WhatsApp,2026-07-19,letto
+435,18,3,chiamata,2026-07-20,interessato
+436,90,1,chiamata,2026-07-20,interessato
+437,107,3,chiamata,2026-07-20,nessuna risposta
+438,185,1,chiamata,2026-07-20,interessato
+439,58,3,email,2026-07-21,inviata
+440,133,2,chiamata,2026-07-21,nessuna risposta
+441,185,1,WhatsApp,2026-07-21,in attesa di risposta
+442,228,1,WhatsApp,2026-07-21,risposto
+443,43,1,chiamata,2026-07-22,richiamare
+444,49,3,chiamata,2026-07-22,chiesto preventivo
+445,107,3,chiamata,2026-07-22,nessuna risposta
+446,117,2,email,2026-07-22,in attesa di risposta
+447,148,3,email,2026-07-22,in attesa di risposta
+448,228,1,email,2026-07-22,in attesa di risposta
+449,299,3,sopralluogo,2026-07-22,svolto
+450,131,2,email,2026-07-23,inviata
+451,175,3,chiamata,2026-07-23,interessato
+452,210,4,WhatsApp,2026-07-23,letto
+453,217,3,email,2026-07-23,in attesa di risposta
+454,288,4,chiamata,2026-07-23,chiesto preventivo
+455,35,2,chiamata,2026-07-24,nessuna risposta
+456,43,1,WhatsApp,2026-07-24,risposto
+457,117,2,chiamata,2026-07-24,nessuna risposta
+458,248,4,chiamata,2026-07-24,richiamare
+459,276,3,visita,2026-07-24,rinviata
+460,58,3,email,2026-07-25,inviata
+461,133,2,sopralluogo,2026-07-25,svolto
+462,153,4,chiamata,2026-07-25,interessato
+463,188,2,email,2026-07-25,risposta ricevuta
+464,210,4,email,2026-07-25,in attesa di risposta
+465,224,2,chiamata,2026-07-25,richiamare
+466,228,1,sopralluogo,2026-07-25,svolto
+467,18,3,email,2026-07-26,risposta ricevuta
+468,28,2,WhatsApp,2026-07-26,risposto
+469,49,3,chiamata,2026-07-26,interessato
+470,117,2,WhatsApp,2026-07-26,in attesa di risposta
+471,141,3,chiamata,2026-07-26,nessuna risposta
+472,174,3,chiamata,2026-07-26,chiesto preventivo
+473,188,2,chiamata,2026-07-26,nessuna risposta
+474,214,3,email,2026-07-26,in attesa di risposta
+475,228,1,email,2026-07-26,risposta ricevuta
+476,49,3,chiamata,2026-07-27,nessuna risposta
+477,58,3,WhatsApp,2026-07-27,letto
+478,140,2,chiamata,2026-07-27,interessato
+479,224,2,chiamata,2026-07-27,richiamare
+480,249,1,chiamata,2026-07-27,richiamare
+481,48,2,email,2026-07-28,risposta ricevuta
+482,175,3,WhatsApp,2026-07-28,letto
+483,214,3,email,2026-07-28,risposta ricevuta
+484,224,2,WhatsApp,2026-07-28,in attesa di risposta
+485,228,1,email,2026-07-28,in attesa di risposta
+486,248,4,chiamata,2026-07-28,chiesto preventivo
+487,288,4,WhatsApp,2026-07-28,in attesa di risposta
+488,299,3,chiamata,2026-07-28,richiamare
+489,6,1,chiamata,2026-07-29,interessato
+490,7,4,sopralluogo,2026-07-29,svolto
+491,131,2,WhatsApp,2026-07-29,letto
+492,140,2,chiamata,2026-07-29,chiesto preventivo
+493,141,3,chiamata,2026-07-29,richiamare
+494,158,2,visita,2026-07-29,incontro svolto
+495,299,3,email,2026-07-29,inviata
+496,43,1,WhatsApp,2026-07-30,risposto
+497,107,3,sopralluogo,2026-07-30,svolto
+498,217,3,chiamata,2026-07-30,richiamare
+499,288,4,WhatsApp,2026-07-30,letto
+500,6,1,email,2026-07-31,in attesa di risposta
+501,95,2,chiamata,2026-07-31,richiamare
+502,115,2,visita,2026-07-31,incontro svolto
+503,6,1,WhatsApp,2026-08-01,risposto
+504,48,2,chiamata,2026-08-01,chiesto preventivo
+505,49,3,sopralluogo,2026-08-01,svolto
+506,58,3,sopralluogo,2026-08-01,svolto
+507,107,3,chiamata,2026-08-01,chiesto preventivo
+508,140,2,chiamata,2026-08-01,chiesto preventivo
+509,146,1,email,2026-08-01,risposta ricevuta
+510,153,4,sopralluogo,2026-08-01,svolto
+511,214,3,WhatsApp,2026-08-01,letto
+512,43,1,WhatsApp,2026-08-02,letto
+513,107,3,email,2026-08-02,risposta ricevuta
+514,225,4,chiamata,2026-08-02,interessato
+515,43,1,sopralluogo,2026-08-03,svolto
+516,58,3,WhatsApp,2026-08-03,in attesa di risposta
+517,81,4,chiamata,2026-08-03,chiesto preventivo
+518,132,1,chiamata,2026-08-03,nessuna risposta
+519,133,2,email,2026-08-03,inviata
+520,146,1,email,2026-08-03,in attesa di risposta
+521,155,1,email,2026-08-03,risposta ricevuta
+522,214,3,WhatsApp,2026-08-03,in attesa di risposta
+523,216,2,email,2026-08-03,inviata
+524,247,1,email,2026-08-03,risposta ricevuta
+525,15,1,email,2026-08-04,inviata
+526,43,1,WhatsApp,2026-08-04,in attesa di risposta
+527,44,3,chiamata,2026-08-04,nessuna risposta
+528,70,2,visita,2026-08-04,incontro svolto
+529,118,2,email,2026-08-04,in attesa di risposta
+530,123,1,chiamata,2026-08-04,chiesto preventivo
+531,166,4,email,2026-08-04,in attesa di risposta
+532,23,2,chiamata,2026-08-05,interessato
+533,56,1,chiamata,2026-08-05,nessuna risposta
+534,131,2,email,2026-08-05,inviata
+535,132,1,WhatsApp,2026-08-05,risposto
+536,6,1,email,2026-08-06,in attesa di risposta
+537,15,1,chiamata,2026-08-06,nessuna risposta
+538,43,1,email,2026-08-06,in attesa di risposta
+539,49,3,WhatsApp,2026-08-06,letto
+540,117,2,chiamata,2026-08-06,richiamare
+541,146,1,chiamata,2026-08-06,nessuna risposta
+542,153,4,email,2026-08-06,in attesa di risposta
+543,175,3,chiamata,2026-08-06,richiamare
+544,180,4,chiamata,2026-08-06,chiesto preventivo
+545,207,3,chiamata,2026-08-06,chiesto preventivo
+546,216,2,chiamata,2026-08-06,interessato
+547,224,2,chiamata,2026-08-06,richiamare
+548,225,4,WhatsApp,2026-08-06,letto
+549,247,1,WhatsApp,2026-08-06,in attesa di risposta
+550,7,4,WhatsApp,2026-08-07,risposto
+551,44,3,WhatsApp,2026-08-07,risposto
+552,96,2,chiamata,2026-08-07,richiamare
+553,123,1,WhatsApp,2026-08-07,risposto
+554,157,4,chiamata,2026-08-07,richiamare
+555,175,3,sopralluogo,2026-08-07,svolto
+556,203,3,email,2026-08-07,risposta ricevuta
+557,225,4,WhatsApp,2026-08-07,letto
+558,254,4,email,2026-08-07,inviata
+559,95,2,WhatsApp,2026-08-08,risposto
+560,123,1,chiamata,2026-08-08,nessuna risposta
+561,155,1,WhatsApp,2026-08-08,letto
+562,157,4,WhatsApp,2026-08-08,in attesa di risposta
+563,175,3,WhatsApp,2026-08-08,in attesa di risposta
+564,180,4,WhatsApp,2026-08-08,letto
+565,193,3,email,2026-08-08,risposta ricevuta
+566,203,3,WhatsApp,2026-08-08,risposto
+567,224,2,sopralluogo,2026-08-08,svolto
+568,284,1,chiamata,2026-08-08,nessuna risposta
+569,288,4,sopralluogo,2026-08-08,svolto
+570,56,1,WhatsApp,2026-08-09,letto
+571,85,3,chiamata,2026-08-09,richiamare
+572,117,2,sopralluogo,2026-08-09,svolto
+573,193,3,chiamata,2026-08-09,richiamare
+574,225,4,sopralluogo,2026-08-09,svolto
+575,231,1,chiamata,2026-08-09,richiamare
+576,11,4,chiamata,2026-08-10,interessato
+577,49,3,email,2026-08-10,risposta ricevuta
+578,64,1,email,2026-08-10,in attesa di risposta
+579,98,1,chiamata,2026-08-10,nessuna risposta
+580,155,1,chiamata,2026-08-10,chiesto preventivo
+581,284,1,chiamata,2026-08-10,chiesto preventivo
+582,11,4,email,2026-08-11,in attesa di risposta
+583,23,2,chiamata,2026-08-11,richiamare
+584,124,2,email,2026-08-11,inviata
+585,166,4,chiamata,2026-08-11,interessato
+586,175,3,email,2026-08-11,in attesa di risposta
+587,216,2,chiamata,2026-08-11,nessuna risposta
+588,221,2,visita,2026-08-11,incontro svolto
+589,251,1,email,2026-08-11,risposta ricevuta
+590,85,3,email,2026-08-12,inviata
+591,96,2,chiamata,2026-08-12,richiamare
+592,97,2,email,2026-08-12,inviata
+593,106,3,email,2026-08-12,inviata
+594,124,2,WhatsApp,2026-08-12,risposto
+595,136,4,chiamata,2026-08-12,richiamare
+596,180,4,chiamata,2026-08-12,richiamare
+597,207,3,email,2026-08-12,risposta ricevuta
+598,217,3,WhatsApp,2026-08-12,in attesa di risposta
+599,277,3,email,2026-08-12,in attesa di risposta
+600,11,4,chiamata,2026-08-13,interessato
+601,56,1,chiamata,2026-08-13,interessato
+602,58,3,email,2026-08-13,inviata
+603,95,2,chiamata,2026-08-13,richiamare
+604,97,2,chiamata,2026-08-13,chiesto preventivo
+605,136,4,WhatsApp,2026-08-13,letto
+606,225,4,WhatsApp,2026-08-13,risposto
+607,247,1,email,2026-08-13,in attesa di risposta
+608,273,3,chiamata,2026-08-13,richiamare
+609,275,1,email,2026-08-13,inviata
+610,284,1,chiamata,2026-08-13,nessuna risposta
+611,217,3,sopralluogo,2026-08-14,svolto
+612,247,1,sopralluogo,2026-08-14,svolto
+613,284,1,WhatsApp,2026-08-14,letto
+614,95,2,sopralluogo,2026-08-15,svolto
+615,225,4,email,2026-08-15,inviata
+616,231,1,WhatsApp,2026-08-15,letto
+617,251,1,WhatsApp,2026-08-15,letto
+618,280,4,email,2026-08-15,risposta ricevuta
+619,72,4,email,2026-08-16,risposta ricevuta
+620,209,2,chiamata,2026-08-16,richiamare
+621,280,4,WhatsApp,2026-08-16,risposto
+622,290,2,email,2026-08-16,inviata
+623,96,2,sopralluogo,2026-08-17,svolto
+624,166,4,chiamata,2026-08-17,nessuna risposta
+625,193,3,sopralluogo,2026-08-17,svolto
+626,209,2,WhatsApp,2026-08-17,risposto
+627,251,1,WhatsApp,2026-08-17,risposto
+628,277,3,chiamata,2026-08-17,interessato
+629,284,1,sopralluogo,2026-08-17,svolto
+630,15,1,sopralluogo,2026-08-18,svolto
+631,56,1,sopralluogo,2026-08-18,svolto
+632,251,1,chiamata,2026-08-18,nessuna risposta
+633,277,3,WhatsApp,2026-08-18,letto
+634,72,4,chiamata,2026-08-19,interessato
+635,106,3,WhatsApp,2026-08-19,letto
+636,117,2,email,2026-08-19,in attesa di risposta
+637,148,3,chiamata,2026-08-19,nessuna risposta
+638,155,1,WhatsApp,2026-08-19,risposto
+639,203,3,sopralluogo,2026-08-19,svolto
+640,217,3,email,2026-08-19,in attesa di risposta
+641,275,1,chiamata,2026-08-19,richiamare
+642,97,2,sopralluogo,2026-08-20,svolto
+643,106,3,WhatsApp,2026-08-20,letto
+644,182,2,email,2026-08-20,inviata
+645,11,4,chiamata,2026-08-21,chiesto preventivo
+646,182,2,chiamata,2026-08-21,chiesto preventivo
+647,216,2,sopralluogo,2026-08-21,svolto
+648,231,1,WhatsApp,2026-08-21,in attesa di risposta
+649,273,3,WhatsApp,2026-08-21,risposto
+650,277,3,sopralluogo,2026-08-21,svolto
+651,290,2,WhatsApp,2026-08-21,risposto
+652,11,4,sopralluogo,2026-08-22,svolto
+653,65,2,email,2026-08-22,in attesa di risposta
+654,95,2,chiamata,2026-08-22,nessuna risposta
+655,110,2,email,2026-08-22,in attesa di risposta
+656,166,4,sopralluogo,2026-08-22,svolto
+657,284,1,email,2026-08-22,in attesa di risposta
+658,43,1,visita,2026-08-23,incontro svolto
+659,72,4,chiamata,2026-08-23,richiamare
+660,110,2,WhatsApp,2026-08-23,letto
+661,182,2,chiamata,2026-08-23,nessuna risposta
+662,203,3,WhatsApp,2026-08-23,in attesa di risposta
+663,65,2,chiamata,2026-08-24,chiesto preventivo
+664,30,3,email,2026-08-25,risposta ricevuta
+665,39,4,email,2026-08-25,risposta ricevuta
+666,193,3,WhatsApp,2026-08-25,risposto
+667,216,2,WhatsApp,2026-08-25,in attesa di risposta
+668,226,2,chiamata,2026-08-25,richiamare
+669,231,1,sopralluogo,2026-08-25,svolto
+670,244,2,chiamata,2026-08-25,nessuna risposta
+671,280,4,chiamata,2026-08-25,nessuna risposta
+672,95,2,email,2026-08-26,inviata
+673,273,3,sopralluogo,2026-08-26,svolto
+674,2,1,email,2026-08-27,inviata
+675,17,4,email,2026-08-27,inviata
+676,39,4,WhatsApp,2026-08-27,risposto
+677,77,1,email,2026-08-27,in attesa di risposta
+678,203,3,email,2026-08-27,inviata
+679,217,3,email,2026-08-27,in attesa di risposta
+680,247,1,email,2026-08-27,risposta ricevuta
+681,275,1,sopralluogo,2026-08-27,svolto
+682,277,3,email,2026-08-27,risposta ricevuta
+683,288,4,WhatsApp,2026-08-27,in attesa di risposta
+684,30,3,WhatsApp,2026-08-28,letto
+685,39,4,chiamata,2026-08-28,nessuna risposta
+686,56,1,email,2026-08-28,risposta ricevuta
+687,77,1,email,2026-08-28,in attesa di risposta
+688,216,2,email,2026-08-28,in attesa di risposta
+689,280,4,sopralluogo,2026-08-28,svolto
+690,2,1,WhatsApp,2026-08-29,risposto
+691,15,1,email,2026-08-29,in attesa di risposta
+692,65,2,sopralluogo,2026-08-29,svolto
+693,96,2,email,2026-08-29,inviata
+694,106,3,sopralluogo,2026-08-29,svolto
+695,193,3,email,2026-08-29,risposta ricevuta
+696,251,1,sopralluogo,2026-08-29,svolto
+697,11,4,chiamata,2026-08-30,richiamare
+698,20,2,chiamata,2026-08-30,chiesto preventivo
+699,110,2,sopralluogo,2026-08-30,svolto
+700,138,3,chiamata,2026-08-30,interessato
+701,183,2,email,2026-08-30,inviata
+702,240,4,email,2026-08-30,in attesa di risposta
+703,24,3,email,2026-08-31,risposta ricevuta
+704,72,4,sopralluogo,2026-08-31,svolto
+705,209,2,sopralluogo,2026-08-31,svolto
+706,271,1,chiamata,2026-08-31,interessato
+707,17,4,chiamata,2026-09-01,nessuna risposta
+708,20,2,WhatsApp,2026-09-01,letto
+709,53,3,chiamata,2026-09-01,nessuna risposta
+710,97,2,email,2026-09-01,inviata
+711,108,3,chiamata,2026-09-01,richiamare
+712,271,1,chiamata,2026-09-01,nessuna risposta
+713,293,3,email,2026-09-01,risposta ricevuta
+714,30,3,WhatsApp,2026-09-02,risposto
+715,108,3,WhatsApp,2026-09-02,letto
+716,231,1,email,2026-09-02,in attesa di risposta
+717,273,3,email,2026-09-02,inviata
+718,284,1,visita,2026-09-02,incontro svolto
+719,11,4,email,2026-09-03,in attesa di risposta
+720,20,2,chiamata,2026-09-03,richiamare
+721,65,2,email,2026-09-03,inviata
+722,166,4,email,2026-09-03,inviata
+723,182,2,chiamata,2026-09-03,nessuna risposta
+724,183,2,WhatsApp,2026-09-03,risposto
+725,194,1,chiamata,2026-09-03,chiesto preventivo
+726,240,4,WhatsApp,2026-09-03,risposto
+727,290,2,email,2026-09-03,risposta ricevuta
+728,20,2,chiamata,2026-09-04,interessato
+729,69,3,email,2026-09-04,in attesa di risposta
+730,106,3,email,2026-09-04,risposta ricevuta
+731,150,2,email,2026-09-04,in attesa di risposta
+732,187,3,email,2026-09-04,in attesa di risposta
+733,209,2,email,2026-09-04,inviata
+734,241,3,chiamata,2026-09-04,interessato
+735,275,1,email,2026-09-04,inviata
+736,290,2,sopralluogo,2026-09-04,svolto
+737,39,4,sopralluogo,2026-09-05,svolto
+738,59,3,chiamata,2026-09-05,richiamare
+739,108,3,sopralluogo,2026-09-05,svolto
+740,151,1,chiamata,2026-09-05,richiamare
+741,187,3,chiamata,2026-09-05,interessato
+742,231,1,email,2026-09-05,inviata
+743,275,1,chiamata,2026-09-05,nessuna risposta
+744,65,2,email,2026-09-06,inviata
+745,127,3,chiamata,2026-09-06,nessuna risposta
+746,150,2,chiamata,2026-09-06,nessuna risposta
+747,251,1,email,2026-09-06,risposta ricevuta
+748,293,3,chiamata,2026-09-06,interessato
+749,5,4,email,2026-09-07,in attesa di risposta
+750,96,2,email,2026-09-07,risposta ricevuta
+751,144,2,email,2026-09-07,in attesa di risposta
+752,197,1,chiamata,2026-09-07,interessato
+753,223,3,email,2026-09-07,risposta ricevuta
+754,293,3,chiamata,2026-09-07,richiamare
+755,175,3,visita,2026-09-08,rinviata
+756,206,3,email,2026-09-08,risposta ricevuta
+757,5,4,chiamata,2026-09-09,chiesto preventivo
+758,187,3,sopralluogo,2026-09-09,svolto
+759,197,1,chiamata,2026-09-09,richiamare
+760,239,2,email,2026-09-09,inviata
+761,2,1,chiamata,2026-09-10,chiesto preventivo
+762,5,4,chiamata,2026-09-10,interessato
+763,11,4,chiamata,2026-09-10,chiesto preventivo
+764,72,4,email,2026-09-10,risposta ricevuta
+765,110,2,email,2026-09-10,inviata
+766,144,2,WhatsApp,2026-09-10,in attesa di risposta
+767,151,1,WhatsApp,2026-09-10,risposto
+768,156,3,email,2026-09-10,risposta ricevuta
+769,197,1,WhatsApp,2026-09-10,risposto
+770,236,4,chiamata,2026-09-10,richiamare
+771,290,2,chiamata,2026-09-10,interessato
+772,72,4,email,2026-09-11,in attesa di risposta
+773,108,3,email,2026-09-11,risposta ricevuta
+774,150,2,WhatsApp,2026-09-11,letto
+775,152,2,email,2026-09-11,risposta ricevuta
+776,166,4,email,2026-09-11,inviata
+777,203,3,email,2026-09-11,inviata
+778,239,2,WhatsApp,2026-09-11,in attesa di risposta
+779,240,4,email,2026-09-11,in attesa di risposta
+780,241,3,chiamata,2026-09-11,richiamare
+781,2,1,sopralluogo,2026-09-12,svolto
+782,11,4,visita,2026-09-12,rinviata
+783,65,2,chiamata,2026-09-12,interessato
+784,223,3,email,2026-09-12,in attesa di risposta
+785,247,1,visita,2026-09-12,incontro svolto
+786,15,1,visita,2026-09-13,rinviata
+787,111,2,chiamata,2026-09-13,chiesto preventivo
+788,150,2,chiamata,2026-09-13,nessuna risposta
+789,193,3,visita,2026-09-13,rinviata
+790,206,3,chiamata,2026-09-13,interessato
+791,17,4,sopralluogo,2026-09-14,svolto
+792,65,2,visita,2026-09-14,rinviata
+793,88,1,email,2026-09-14,inviata
+794,108,3,email,2026-09-14,risposta ricevuta
+795,179,1,email,2026-09-14,risposta ricevuta
+796,197,1,WhatsApp,2026-09-14,letto
+797,223,3,chiamata,2026-09-14,nessuna risposta
+798,47,2,chiamata,2026-09-15,nessuna risposta
+799,62,4,email,2026-09-15,in attesa di risposta
+800,96,2,visita,2026-09-15,incontro svolto
+801,177,2,email,2026-09-15,in attesa di risposta
+802,236,4,chiamata,2026-09-15,richiamare
+803,244,2,email,2026-09-15,risposta ricevuta
+804,280,4,email,2026-09-15,risposta ricevuta
+805,5,4,sopralluogo,2026-09-16,svolto
+806,172,3,chiamata,2026-09-16,nessuna risposta
+807,209,2,WhatsApp,2026-09-16,letto
+808,290,2,email,2026-09-16,in attesa di risposta
+809,62,4,WhatsApp,2026-09-17,letto
+810,138,3,chiamata,2026-09-17,chiesto preventivo
+811,183,2,sopralluogo,2026-09-17,svolto
+812,236,4,chiamata,2026-09-17,nessuna risposta
+813,109,1,chiamata,2026-09-18,chiesto preventivo
+814,177,2,WhatsApp,2026-09-18,risposto
+815,209,2,visita,2026-09-18,incontro svolto
+816,245,1,email,2026-09-18,risposta ricevuta
+817,17,4,email,2026-09-19,risposta ricevuta
+818,50,1,email,2026-09-19,inviata
+819,99,3,email,2026-09-19,risposta ricevuta
+820,108,3,WhatsApp,2026-09-19,risposto
+821,111,2,chiamata,2026-09-19,chiesto preventivo
+822,172,3,email,2026-09-19,inviata
+823,177,2,chiamata,2026-09-19,richiamare
+824,199,2,email,2026-09-19,in attesa di risposta
+825,32,2,chiamata,2026-09-20,nessuna risposta
+826,198,2,email,2026-09-20,risposta ricevuta
+827,199,2,WhatsApp,2026-09-20,letto
+828,223,3,sopralluogo,2026-09-20,svolto
+829,241,3,sopralluogo,2026-09-20,svolto
+830,245,1,chiamata,2026-09-20,chiesto preventivo
+831,25,2,chiamata,2026-09-21,interessato
+832,32,2,email,2026-09-21,in attesa di risposta
+833,109,1,email,2026-09-21,inviata
+834,110,2,WhatsApp,2026-09-21,risposto
+835,160,2,email,2026-09-21,risposta ricevuta
+836,183,2,WhatsApp,2026-09-21,risposto
+837,186,2,chiamata,2026-09-21,chiesto preventivo
+838,198,2,WhatsApp,2026-09-21,risposto
+839,265,2,email,2026-09-21,inviata
+840,275,1,visita,2026-09-21,incontro svolto
+841,25,2,WhatsApp,2026-09-22,letto
+842,47,2,WhatsApp,2026-09-22,in attesa di risposta
+843,54,3,email,2026-09-22,in attesa di risposta
+844,109,1,WhatsApp,2026-09-22,risposto
+845,171,4,email,2026-09-22,inviata
+846,265,2,WhatsApp,2026-09-22,risposto
+847,293,3,sopralluogo,2026-09-22,svolto
+848,294,1,chiamata,2026-09-22,richiamare
+849,32,2,WhatsApp,2026-09-23,letto
+850,160,2,email,2026-09-23,risposta ricevuta
+851,179,1,chiamata,2026-09-23,interessato
+852,267,3,chiamata,2026-09-23,interessato
+853,294,1,chiamata,2026-09-23,chiesto preventivo
+854,51,4,chiamata,2026-09-24,chiesto preventivo
+855,142,3,email,2026-09-24,inviata
+856,150,2,sopralluogo,2026-09-24,svolto
+857,154,3,chiamata,2026-09-24,nessuna risposta
+858,186,2,email,2026-09-24,inviata
+859,235,3,email,2026-09-24,risposta ricevuta
+860,294,1,email,2026-09-24,risposta ricevuta
+861,2,1,email,2026-09-25,inviata
+862,5,4,email,2026-09-25,risposta ricevuta
+863,51,4,chiamata,2026-09-25,richiamare
+864,99,3,WhatsApp,2026-09-25,in attesa di risposta
+865,105,3,chiamata,2026-09-25,richiamare
+866,109,1,WhatsApp,2026-09-25,risposto
+867,111,2,sopralluogo,2026-09-25,svolto
+868,137,2,chiamata,2026-09-25,richiamare
+869,171,4,WhatsApp,2026-09-25,in attesa di risposta
+870,183,2,email,2026-09-25,inviata
+871,206,3,sopralluogo,2026-09-25,svolto
+872,32,2,email,2026-09-26,inviata
+873,100,3,chiamata,2026-09-26,chiesto preventivo
+874,105,3,WhatsApp,2026-09-26,letto
+875,160,2,chiamata,2026-09-26,interessato
+876,163,4,email,2026-09-26,risposta ricevuta
+877,236,4,sopralluogo,2026-09-26,svolto
+878,241,3,email,2026-09-26,in attesa di risposta
+879,293,3,WhatsApp,2026-09-26,letto
+880,21,3,chiamata,2026-09-27,richiamare
+881,31,2,chiamata,2026-09-27,nessuna risposta
+882,142,3,chiamata,2026-09-27,interessato
+883,199,2,chiamata,2026-09-27,interessato
+884,222,2,chiamata,2026-09-27,interessato
+885,296,1,email,2026-09-27,inviata
+886,25,2,WhatsApp,2026-09-28,letto
+887,47,2,sopralluogo,2026-09-28,svolto
+888,88,1,email,2026-09-28,in attesa di risposta
+889,150,2,email,2026-09-28,inviata
+890,154,3,WhatsApp,2026-09-28,in attesa di risposta
+891,186,2,chiamata,2026-09-28,richiamare
+892,222,2,WhatsApp,2026-09-28,in attesa di risposta
+893,232,1,chiamata,2026-09-28,chiesto preventivo
+894,241,3,email,2026-09-28,in attesa di risposta
+895,267,3,chiamata,2026-09-28,chiesto preventivo
+896,21,3,chiamata,2026-09-29,nessuna risposta
+897,31,2,WhatsApp,2026-09-29,in attesa di risposta
+898,32,2,sopralluogo,2026-09-29,svolto
+899,296,1,chiamata,2026-09-29,richiamare
+900,54,3,WhatsApp,2026-09-30,risposto
+901,62,4,sopralluogo,2026-09-30,svolto
+902,97,2,visita,2026-09-30,rinviata
+903,108,3,visita,2026-09-30,rinviata
+904,111,2,email,2026-09-30,risposta ricevuta
+905,154,3,WhatsApp,2026-09-30,in attesa di risposta
+906,294,1,sopralluogo,2026-09-30,svolto
+907,31,2,WhatsApp,2026-10-01,risposto
+908,186,2,sopralluogo,2026-10-01,svolto
+909,199,2,sopralluogo,2026-10-01,svolto
+910,223,3,WhatsApp,2026-10-01,letto
+911,278,3,chiamata,2026-10-01,chiesto preventivo
+912,99,3,chiamata,2026-10-02,chiesto preventivo
+913,163,4,chiamata,2026-10-02,nessuna risposta
+914,186,2,email,2026-10-02,risposta ricevuta
+915,235,3,chiamata,2026-10-02,richiamare
+916,259,2,chiamata,2026-10-02,nessuna risposta
+917,293,3,email,2026-10-02,in attesa di risposta
+918,10,1,chiamata,2026-10-03,nessuna risposta
+919,17,4,visita,2026-10-03,rinviata
+920,57,1,chiamata,2026-10-03,richiamare
+921,122,3,email,2026-10-03,inviata
+922,143,3,chiamata,2026-10-03,chiesto preventivo
+923,223,3,email,2026-10-03,risposta ricevuta
+924,232,1,chiamata,2026-10-03,richiamare
+925,243,1,email,2026-10-03,risposta ricevuta
+926,278,3,WhatsApp,2026-10-03,in attesa di risposta
+927,281,3,email,2026-10-03,inviata
+928,296,1,sopralluogo,2026-10-03,svolto
+929,1,2,chiamata,2026-10-04,richiamare
+930,10,1,chiamata,2026-10-04,richiamare
+931,51,4,WhatsApp,2026-10-04,risposto
+932,57,1,email,2026-10-04,risposta ricevuta
+933,62,4,email,2026-10-04,inviata
+934,80,2,chiamata,2026-10-04,interessato
+935,163,4,WhatsApp,2026-10-04,letto
+936,281,3,WhatsApp,2026-10-04,in attesa di risposta
+937,296,1,chiamata,2026-10-04,richiamare
+938,1,2,chiamata,2026-10-05,chiesto preventivo
+939,31,2,WhatsApp,2026-10-05,in attesa di risposta
+940,51,4,sopralluogo,2026-10-05,svolto
+941,143,3,chiamata,2026-10-05,richiamare
+942,154,3,chiamata,2026-10-05,richiamare
+943,186,2,email,2026-10-05,inviata
+944,5,4,visita,2026-10-06,rinviata
+945,31,2,sopralluogo,2026-10-06,svolto
+946,57,1,WhatsApp,2026-10-06,in attesa di risposta
+947,100,3,chiamata,2026-10-06,nessuna risposta
+948,122,3,email,2026-10-06,in attesa di risposta
+949,235,3,sopralluogo,2026-10-06,svolto
+950,292,4,email,2026-10-06,inviata
+951,295,1,chiamata,2026-10-06,nessuna risposta
+952,9,2,chiamata,2026-10-07,chiesto preventivo
+953,25,2,WhatsApp,2026-10-07,risposto
+954,54,3,sopralluogo,2026-10-07,svolto
+955,102,2,email,2026-10-07,in attesa di risposta
+956,160,2,sopralluogo,2026-10-07,svolto
+957,241,3,visita,2026-10-07,incontro svolto
+958,292,4,WhatsApp,2026-10-07,risposto
+959,295,1,WhatsApp,2026-10-07,in attesa di risposta
+960,21,3,sopralluogo,2026-10-08,svolto
+961,45,4,email,2026-10-08,inviata
+962,62,4,email,2026-10-08,inviata
+963,80,2,chiamata,2026-10-08,nessuna risposta
+964,99,3,sopralluogo,2026-10-08,svolto
+965,102,2,WhatsApp,2026-10-08,in attesa di risposta
+966,149,2,email,2026-10-08,inviata
+967,160,2,email,2026-10-08,risposta ricevuta
+968,163,4,chiamata,2026-10-08,interessato
+969,243,1,WhatsApp,2026-10-08,letto
+970,278,3,chiamata,2026-10-08,nessuna risposta
+971,45,4,WhatsApp,2026-10-09,risposto
+972,82,2,email,2026-10-09,in attesa di risposta
+973,206,3,email,2026-10-09,risposta ricevuta
+974,243,1,WhatsApp,2026-10-09,letto
+975,10,1,email,2026-10-10,in attesa di risposta
+976,32,2,email,2026-10-10,inviata
+977,45,4,WhatsApp,2026-10-10,in attesa di risposta
+978,47,2,email,2026-10-10,in attesa di risposta
+979,122,3,WhatsApp,2026-10-10,risposto
+980,199,2,email,2026-10-10,in attesa di risposta
+981,232,1,email,2026-10-10,risposta ricevuta
+982,259,2,chiamata,2026-10-10,interessato
+983,31,2,chiamata,2026-10-11,chiesto preventivo
+984,169,3,chiamata,2026-10-11,nessuna risposta
+985,259,2,email,2026-10-11,inviata
+986,278,3,sopralluogo,2026-10-11,svolto
+987,9,2,WhatsApp,2026-10-12,letto
+988,130,3,chiamata,2026-10-12,interessato
+989,154,3,sopralluogo,2026-10-12,svolto
+990,160,2,email,2026-10-12,inviata
+991,192,3,chiamata,2026-10-12,interessato
+992,235,3,email,2026-10-12,risposta ricevuta
+993,285,1,chiamata,2026-10-12,richiamare
+994,87,1,chiamata,2026-10-13,chiesto preventivo
+995,102,2,WhatsApp,2026-10-13,in attesa di risposta
+996,130,3,WhatsApp,2026-10-13,letto
+997,191,3,email,2026-10-13,in attesa di risposta
+998,192,3,WhatsApp,2026-10-13,letto
+999,219,1,chiamata,2026-10-13,interessato
+1000,278,3,chiamata,2026-10-13,nessuna risposta
+1001,292,4,WhatsApp,2026-10-13,risposto
+1002,31,2,email,2026-10-14,in attesa di risposta
+1003,143,3,sopralluogo,2026-10-14,svolto
+1004,268,1,email,2026-10-14,in attesa di risposta
+1005,296,1,email,2026-10-14,inviata
+1006,114,1,chiamata,2026-10-15,interessato
+1007,130,3,chiamata,2026-10-15,nessuna risposta
+1008,169,3,chiamata,2026-10-15,nessuna risposta
+1009,176,1,email,2026-10-15,risposta ricevuta
+1010,191,3,chiamata,2026-10-15,nessuna risposta
+1011,219,1,chiamata,2026-10-15,chiesto preventivo
+1012,282,3,email,2026-10-15,inviata
+1013,285,1,chiamata,2026-10-15,richiamare
+1014,51,4,email,2026-10-16,inviata
+1015,54,3,email,2026-10-16,in attesa di risposta
+1016,114,1,chiamata,2026-10-16,richiamare
+1017,243,1,sopralluogo,2026-10-16,svolto
+1018,282,3,WhatsApp,2026-10-16,in attesa di risposta
+1019,2,1,visita,2026-10-17,incontro svolto
+1020,87,1,chiamata,2026-10-18,interessato
+1021,99,3,email,2026-10-18,in attesa di risposta
+1022,149,2,email,2026-10-18,inviata
+1023,150,2,visita,2026-10-18,incontro svolto
+1024,259,2,sopralluogo,2026-10-18,svolto
+1025,87,1,WhatsApp,2026-10-19,in attesa di risposta
+1026,278,3,email,2026-10-19,in attesa di risposta
