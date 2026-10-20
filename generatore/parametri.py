@@ -73,22 +73,29 @@ SERVIZI_ECONOMIA = {
     "servizi alle strutture": {"tariffa": 30, "ore": (8, 80), "margine": 0.22, "variabilita": 0.06},
 }
 
-# Dizionario unico dei canali (tabella canali del database e menu dell'app): (canale, tipo, attivo, nota).
+# Gruppi di canale (modifica 1 del 20/10): i 7 valori usati da filtri, dashboard e import CSV,
+# ognuno con il canale che lo rappresenta quando un CSV indica solo il gruppo
+GRUPPI_CANALI = {"sito": "sito web", "LinkedIn": "LinkedIn", "telefono": "telefono", "email": "email",
+                 "passaparola": "passaparola", "portale/gara": "portale gare", "altro": "contatto diretto"}
+
+# Dizionario unico dei canali (tabella canali del database e menu dell'app): (canale, tipo, attivo, gruppo, nota).
 # Tipo: digitale, diretto, intermediato, gara. I canali spenti non compaiono nei menu né nei costi dell'app.
 CANALI_DIZIONARIO = [
-    ("sito web", "digitale", 1, "sito gatesrl.it (confermato)"),
-    ("modulo sito", "digitale", 1, "modulo «Richiedi un sopralluogo» aperto senza link tracciato"),
-    ("profilo Google", "digitale", 1, "scheda dell'azienda su Google"),
-    ("LinkedIn", "digitale", 1, "pagina aziendale e profili dei commerciali (confermato)"),
-    ("WhatsApp Business", "digitale", 1, "richieste arrivate direttamente su WhatsApp"),
-    ("passaparola", "diretto", 1, "segnalazione di un cliente o di un conoscente"),
-    ("intermediario", "intermediato", 1, "agente o intermediario con provvigione"),
-    ("porta a porta", "diretto", 1, "visita commerciale senza appuntamento"),
-    ("portale gare", "gara", 1, "gare e richieste di offerta su portali"),
-    ("contatto diretto", "diretto", 1, "telefonata, email o incontro senza un canale preciso"),
-    ("Facebook", "digitale", 0, "da confermare con Gate"),
-    ("Instagram", "digitale", 0, "da confermare con Gate"),
-    ("Google Ads", "digitale", 0, "da confermare con Gate"),
+    ("sito web", "digitale", 1, "sito", "sito gatesrl.it (confermato)"),
+    ("modulo sito", "digitale", 1, "sito", "modulo «Richiedi un sopralluogo» aperto senza link tracciato"),
+    ("profilo Google", "digitale", 1, "sito", "scheda dell'azienda su Google"),
+    ("LinkedIn", "digitale", 1, "LinkedIn", "pagina aziendale e profili dei commerciali (confermato)"),
+    ("WhatsApp Business", "digitale", 1, "telefono", "richieste arrivate direttamente su WhatsApp"),
+    ("telefono", "diretto", 1, "telefono", "telefonata ricevuta dal cliente"),
+    ("email", "diretto", 1, "email", "email ricevuta dal cliente"),
+    ("passaparola", "diretto", 1, "passaparola", "segnalazione di un cliente o di un conoscente"),
+    ("intermediario", "intermediato", 1, "altro", "agente o intermediario con provvigione"),
+    ("porta a porta", "diretto", 1, "altro", "visita commerciale senza appuntamento"),
+    ("portale gare", "gara", 1, "portale/gara", "gare e richieste di offerta su portali"),
+    ("contatto diretto", "diretto", 1, "altro", "incontro o contatto senza un canale preciso"),
+    ("Facebook", "digitale", 0, "altro", "da confermare con Gate"),
+    ("Instagram", "digitale", 0, "altro", "da confermare con Gate"),
+    ("Google Ads", "digitale", 0, "altro", "da confermare con Gate"),
 ]
 
 # Pesi dei canali per le nuove opportunità

@@ -88,6 +88,11 @@ function previsionePonderata(opportunita) {
   };
 }
 
+// Trattativa «Da ricontattare» con la data già arrivata: promemoria in Pipeline e nella vista Commerciale
+function ricontattoScaduto(o) {
+  return trattativaAperta(o) && !!o.ricontatto && o.ricontatto.data <= oggi();
+}
+
 // Trattativa aperta ferma oltre la soglia della sua fase (K9)
 function trattativaFerma(o) {
   if (!trattativaAperta(o)) return false;
@@ -154,9 +159,15 @@ function calcolaKpi(opportunita, aziende = stato.aziende) {
   };
 }
 
+// Righe reali di una fonte: quelle importate da CSV nel browser, se ci sono, altrimenti quelle del database
+function righeReali(fonte) {
+  const importate = (stato.richiesteReali || []).filter((r) => r.fonte === fonte);
+  return importate.length ? importate : righeDb("richieste_reali").filter((r) => r.fonte === fonte);
+}
+
 // I KPI del catalogo calcolabili su una fonte di dati reali (fotografia di partenza o test)
 function kpiReali(fonte) {
-  const righe = righeDb("richieste_reali").filter((r) => r.fonte === fonte);
+  const righe = righeReali(fonte);
   const giorniDa = (r, campo) => giorniTra(r.data_richiesta, r[campo]);
   const conRisposta = righe.filter((r) => r.data_risposta);
   const conOfferta = righe.filter((r) => r.data_offerta);
@@ -181,7 +192,7 @@ function kpiReali(fonte) {
 
 // Fonti dei dati reali presenti nel database (partenza, test)
 function fontiReali() {
-  return [...new Set(righeDb("richieste_reali").map((r) => r.fonte))].sort();
+  return [...new Set(righeDb("richieste_reali").concat(stato.richiesteReali || []).map((r) => r.fonte))].sort();
 }
 
 // I 5 obiettivi del pilota: valore, obiettivo e se è raggiunto (l'id è anche la chiave di CONFIG.suggerimenti)

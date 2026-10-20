@@ -130,8 +130,9 @@ condizione("campagna e contenuto sul 30% delle opportunità da sito web e Linked
 verifica("contenuto solo su sito web e LinkedIn, dello stesso canale e già pubblicato", uno("""
   SELECT COUNT(*) FROM opportunita o JOIN contenuti c ON c.id = o.contenuto
   WHERE o.canale <> c.canale OR o.data_contatto < c.data_pubblicazione OR o.campagna IS NULL OR o.pagina_arrivo IS NULL"""))
-attivi = [c for c, _, a, _ in P.CANALI_DIZIONARIO if a]
-condizione("dizionario canali: 10 attivi e 3 da confermare", len(attivi) == 10 and uno("SELECT COUNT(*) FROM canali WHERE attivo = 0 AND nota = 'da confermare con Gate'") == 3,
+attivi = [c for c, _, a, _, _ in P.CANALI_DIZIONARIO if a]
+verifica("ogni canale ha uno dei 7 gruppi", uno(f"SELECT COUNT(*) FROM canali WHERE gruppo NOT IN ({','.join('?' * len(P.GRUPPI_CANALI))})", *P.GRUPPI_CANALI))
+condizione("dizionario canali: 12 attivi e 3 da confermare", len(attivi) == 12 and uno("SELECT COUNT(*) FROM canali WHERE attivo = 0 AND nota = 'da confermare con Gate'") == 3,
            f"{len(attivi)} attivi, {uno('SELECT COUNT(*) FROM canali WHERE attivo = 0')} spenti")
 
 print("\nA1: pipeline aperta realistica (riferimento " + RIF + ")")

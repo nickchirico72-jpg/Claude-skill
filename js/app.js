@@ -14,8 +14,8 @@ let elenchiAperti = { "da-fare": false, "da-seguire": false }; // «Mostra tutte
 // Stato dell'interfaccia, separato dai dati: sopravvive ai ridisegni.
 // filtri = ricerca e filtri dei Clienti; bozze = testo di «Registra un'attività» per azienda;
 // provenienza = schermata da cui si è arrivati (per il link «← Pipeline» della scheda cliente)
-// indicatori = livello (operativo, tattico, strategico) e fonte dei dati (fittizi, partenza, test) della schermata Indicatori
-const interfaccia = { filtri: { testo: "", settore: "", stato: "" }, bozze: {}, provenienza: "", indicatori: { livello: "operativo", fonte: "fittizi" } };
+// indicatori = livello (direzione, commerciale, operativo, altri) e fonte dei dati (fittizi, partenza, test) della schermata Indicatori
+const interfaccia = { filtri: { testo: "", settore: "", stato: "" }, bozze: {}, provenienza: "", indicatori: { livello: "direzione", fonte: "fittizi" } };
 
 // ================================================================== ICONE
 
@@ -126,11 +126,10 @@ function disegnaPipeline() {
         <span class="badge badge-B">B ${classi.B}</span>
         <span class="badge badge-C">C ${classi.C}</span></strong><small>trattative aperte per classe</small></div>
       <a href="#da-seguire" data-azione="scorri" data-id="da-seguire"><span>Da seguire</span>
-        <strong>${daSeguire ? `<span class="chip chip-attenzione">${daSeguire}</span>` : "0"}</strong><small>senza prossima azione o ferme</small></a>
+        <strong>${daSeguire ? `<span class="chip chip-attenzione">${daSeguire}</span>` : "0"}</strong><small>ferme, senza prossima azione o da ricontattare</small></a>
     </section>
 
     <div class="pannelli-pipeline">
-      ${sezioneConsigli()}
       ${sezioneDaFare()}
       ${sezioneDaSeguire()}
     </div>
@@ -214,11 +213,12 @@ function schedaOpportunita(o, p) {
   } else {
     // In Qualificato, prima si fissa il sopralluogo in agenda; poi si registra che è stato fatto
     const fissato = fase === "qualificato" ? sopralluogoFissato(o) : null;
-    stati = infoFase(o, fissato) + rigaStatoTrattativa(o, fissato);
+    stati = rigaRicontatto(o) + infoFase(o, fissato) + rigaStatoTrattativa(o, fissato);
     const pulsante = fase === "qualificato" && !fissato
       ? `<button class="pulsante primario piccolo" type="button" data-azione="fissa-sopralluogo" data-id="${esc(o.id)}">${icona("calendario")} Fissa sopralluogo</button>`
       : `<button class="pulsante primario piccolo" type="button" data-azione="avanza" data-id="${esc(o.id)}" title="Registra che è già avvenuto">${icona("spunta")} ${CONFIG.fasi[faseRaggiunta(o)].azione}</button>`;
     azioni = pulsante + (fase === "offerta" ? `<button class="pulsante secondario piccolo" type="button" data-azione="firma-link" data-id="${esc(o.id)}" title="Invia l'offerta da firmare con un link">Firma da link</button>` : "")
+      + (o.ricontatto ? `<button class="pulsante-testo" type="button" data-azione="ricontattato" data-id="${esc(o.id)}" title="Registra che hai ricontattato il cliente">Ricontattato</button>` : "")
       + `<button class="pulsante-testo" type="button" data-azione="perso" data-id="${esc(o.id)}" title="Segna come perso">Perso</button>`;
   }
 
@@ -230,8 +230,16 @@ function schedaOpportunita(o, p) {
       <p class="scheda-cifre"><strong>${formattaEuro(valoreAnnuo(o))}<small>/anno</small></strong>
         <span class="chip ${tonoMargine}" title="Margine stimato">margine ${formattaPercentuale(margine)}</span></p>
       ${stati ? `<div class="scheda-stati">${stati}</div>` : ""}
-      ${azioni ? `<div class="scheda-azioni${fase === "offerta" ? " con-firma" : ""}">${azioni}</div>` : ""}
+      ${azioni ? `<div class="scheda-azioni${fase === "offerta" || o.ricontatto ? " con-firma" : ""}">${azioni}</div>` : ""}
     </article>`;
+}
+
+// Riga «Da ricontattare il …»: rossa quando la data è arrivata o passata
+function rigaRicontatto(o) {
+  if (!o.ricontatto) return "";
+  const scaduto = ricontattoScaduto(o);
+  return rigaScheda("calendario", `<strong>${scaduto ? "Ricontattare: scaduto il " : "Da ricontattare il "}${formattaData(o.ricontatto.data).slice(0, 5)}</strong>${o.ricontatto.nota ? " · " + esc(o.ricontatto.nota) : ""}`,
+    scaduto ? "critico" : "attenzione", { titolo: "Da ricontattare il " + formattaData(o.ricontatto.data) + (o.ricontatto.nota ? " · " + o.ricontatto.nota : "") });
 }
 
 // Informazioni della fase: sopralluogo fissato (Qualificato) o validità dell'offerta (Offerta)
@@ -623,6 +631,7 @@ function apriDettaglio(id) {
     <div class="azioni-finestra">
       ${precedente ? `<button class="pulsante-testo a-sinistra" type="button" data-azione="torna-indietro" data-id="${esc(o.id)}">Torna a «${precedente.nome}»</button>` : ""}
       ${o.perso ? `<button class="pulsante secondario" type="button" data-azione="riapri" data-id="${esc(o.id)}">Riapri la trattativa</button>` : ""}
+      ${trattativaAperta(o) && !o.ricontatto ? `<button class="pulsante secondario" type="button" data-azione="da-ricontattare" data-id="${esc(o.id)}">Da ricontattare</button>` : ""}
       <button class="pulsante secondario" type="button" data-azione="modifica-opportunita" data-id="${esc(o.id)}">${icona("matita")} Modifica</button>
       <a class="pulsante secondario" href="#cliente-${esc(o.aziendaId)}" data-azione="chiudi">Apri la scheda cliente</a>
       <button class="pulsante primario" type="button" data-azione="chiudi">Chiudi</button>
@@ -674,6 +683,19 @@ function apriModificaOpportunita(id) {
           </label>
         </div>
         <label>Referente <select name="referente">${opzioniReferenti(o.aziendaId, o.referenteId)}</select></label>
+        <fieldset class="gruppo">
+          <legend>Canale e date della richiesta</legend>
+          <div class="riga-doppia">
+            <label>Canale * <select name="canale" required>${opzioniCanali(o.canale)}</select></label>
+            <label>Data della richiesta * <input name="dataRichiesta" type="date" required max="${o.storico.qualificato || oggi()}" value="${esc(o.storico.contatto)}"></label>
+          </div>
+          <div class="riga-doppia">
+            <label>Data di annotazione <input name="dataAnnotazione" type="date" max="${oggi()}" value="${esc(o.dataRegistrazione || "")}"></label>
+            <label>Data della prima risposta <input name="dataRisposta" type="date" max="${oggi()}" value="${esc(o.dataPrimaRisposta || "")}"></label>
+          </div>
+          <label>Data dell'offerta ${o.storico.offerta ? "" : "(si registra con «Offerta inviata»)"}
+            <input name="dataOfferta" type="date" max="${o.storico.contratto || oggi()}" value="${esc(o.storico.offerta || "")}" ${o.storico.offerta ? "" : "disabled"}></label>
+        </fieldset>
         <label>Note sulla trattativa
           <textarea name="note" placeholder="Es. decide il titolare entro fine mese">${esc(o.note || "")}</textarea>
         </label>`)}
@@ -702,6 +724,11 @@ function leggiModificaOpportunita(modulo) {
     tariffa: tariffa > 0 && tariffa !== datiServizio(servizio).tariffa ? tariffa : null,
     referenteId: d.get("referente") || null,
     note: String(d.get("note") || "").trim(),
+    canale: d.get("canale"),
+    dataRichiesta: d.get("dataRichiesta"),
+    dataRegistrazione: d.get("dataAnnotazione") || null,
+    dataPrimaRisposta: d.get("dataRisposta") || null,
+    dataOfferta: d.has("dataOfferta") ? d.get("dataOfferta") : o.storico.offerta,
   };
 }
 
@@ -713,9 +740,19 @@ function salvaModificaOpportunita(modulo) {
   const cambiati = campiCambiati(modulo);
   // Campo del modulo → dato dell'opportunità; i campi non toccati restano come sono salvati ora
   const n = { ...o };
-  Object.entries({ servizio: "servizio", comune: "comune", ore: "ore", tariffa: "tariffa", referente: "referenteId", note: "note" })
+  Object.entries({ servizio: "servizio", comune: "comune", ore: "ore", tariffa: "tariffa", referente: "referenteId", note: "note",
+    canale: "canale", dataRichiesta: "dataRichiesta", dataAnnotazione: "dataRegistrazione", dataRisposta: "dataPrimaRisposta", dataOfferta: "dataOfferta" })
     .forEach(([campo, chiave]) => { if (cambiati.has(campo)) n[chiave] = letto[chiave]; });
   if (n.ore <= 0) return segnalaCampo(modulo.ore, "Inserisci le ore al mese");
+  // Canale e date: stesse regole del nuovo contatto; la data dell'offerta resta tra il sopralluogo e la firma
+  const richiesta = n.dataRichiesta ?? o.storico.contatto;
+  const errore = erroreDateRichiesta(modulo, n.canale, { richiesta, annotazione: n.dataRegistrazione || richiesta, risposta: n.dataPrimaRisposta });
+  if (errore) return segnalaCampo(...errore);
+  if (o.storico.qualificato && richiesta > o.storico.qualificato) return segnalaCampo(modulo.dataRichiesta, "La richiesta non può essere dopo la qualifica (" + formattaData(o.storico.qualificato) + ")");
+  const offerta = n.dataOfferta ?? o.storico.offerta;
+  if (o.storico.offerta && (!formattaData(offerta) || offerta < o.storico.sopralluogo || (o.storico.contratto && offerta > o.storico.contratto))) {
+    return segnalaCampo(modulo.dataOfferta, "La data dell'offerta va tra il sopralluogo e la firma");
+  }
   const numero = (x) => Number(x).toLocaleString("it-IT");
   const nomeRef = (id) => (trovaReferente(id) || { nome: "nessuno" }).nome;
   const cambi = [];
@@ -725,13 +762,21 @@ function salvaModificaOpportunita(modulo) {
   if (tariffaOraria(n) !== tariffaOraria(o)) cambi.push("tariffa " + numero(tariffaOraria(o)) + " → " + numero(tariffaOraria(n)) + " €/ora");
   if ((n.referenteId || null) !== (o.referenteId || null)) cambi.push("referente " + nomeRef(o.referenteId) + " → " + nomeRef(n.referenteId));
   if ((n.note || "") !== (o.note || "")) cambi.push("note aggiornate");
+  if (n.canale !== o.canale) cambi.push("canale " + (o.canale || "—") + " → " + n.canale);
+  if (richiesta !== o.storico.contatto) cambi.push("data della richiesta " + formattaData(o.storico.contatto) + " → " + formattaData(richiesta));
+  if ((n.dataRegistrazione || null) !== (o.dataRegistrazione || null)) cambi.push("data di annotazione " + (formattaData(o.dataRegistrazione) || "—") + " → " + (formattaData(n.dataRegistrazione) || "—"));
+  if ((n.dataPrimaRisposta || null) !== (o.dataPrimaRisposta || null)) cambi.push("prima risposta " + (formattaData(o.dataPrimaRisposta) || "—") + " → " + (formattaData(n.dataPrimaRisposta) || "—"));
+  if (o.storico.offerta && offerta !== o.storico.offerta) cambi.push("data dell'offerta " + formattaData(o.storico.offerta) + " → " + formattaData(offerta));
   if (!cambi.length) return chiudiFinestra(); // nulla da salvare
   applica(() => {
     // Servizio, sede, ore o tariffa cambiati: valore, margine e capacità si stimano con le regole dell'app
     if (n.servizio !== o.servizio || n.comune !== o.comune || n.ore !== o.ore || tariffaOraria(n) !== tariffaOraria(o)) {
       Object.assign(o, { valore: null, margine: null, capacitaSimulata: null });
     }
-    Object.assign(o, { servizio: n.servizio, comune: n.comune, ore: n.ore, tariffa: n.tariffa ?? null, referenteId: n.referenteId || null, note: n.note || "" });
+    Object.assign(o, { servizio: n.servizio, comune: n.comune, ore: n.ore, tariffa: n.tariffa ?? null, referenteId: n.referenteId || null, note: n.note || "",
+      canale: n.canale, dataRegistrazione: n.dataRegistrazione || null, dataPrimaRisposta: n.dataPrimaRisposta || null });
+    o.storico.contatto = richiesta;
+    if (o.storico.offerta) o.storico.offerta = offerta;
     registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: "Correzione: " + cambi.join("; ") });
   }, { messaggio: "Opportunità aggiornata", evidenzia: o.id });
 }
@@ -771,6 +816,24 @@ function apriNuovoContatto(aziendaId = "") {
           </select>
         </label>
 
+        <fieldset class="gruppo">
+          <legend>La richiesta</legend>
+          <div class="riga-doppia">
+            <label>Canale della richiesta *
+              <select name="canale" required aria-describedby="suggerimento-canale">${opzioniCanali(scelta && fonti().includes(scelta.fonte) ? scelta.fonte : "")}</select>
+              <span class="suggerimento" id="suggerimento-canale">Chiedi: come ci ha conosciuto?</span>
+            </label>
+            <label>Data della richiesta * <input name="dataRichiesta" type="date" required max="${oggi()}" value="${oggi()}"></label>
+          </div>
+          <details class="altre-date" id="altre-date">
+            <summary>Annotazione e prima risposta <span class="nota-piccola">· annotata oggi</span></summary>
+            <div class="riga-doppia">
+              <label>Data di annotazione * <input name="dataAnnotazione" type="date" required max="${oggi()}" value="${oggi()}"></label>
+              <label>Data della prima risposta (facoltativa) <input name="dataRisposta" type="date" max="${oggi()}"></label>
+            </div>
+          </details>
+        </fieldset>
+
         <fieldset class="gruppo" id="gruppo-nuova-azienda" ${scelta ? "hidden" : ""}>
           <legend>Dati della nuova azienda</legend>
           <div class="riga-doppia">
@@ -782,12 +845,7 @@ function apriNuovoContatto(aziendaId = "") {
             </label>
           </div>
           <div id="avviso-doppione" class="avviso-doppione" role="status" hidden></div>
-          <div class="riga-doppia">
-            <label>Settore <select name="settore">${opzioni(CONFIG.settori, CONFIG.pilota.settore)}</select></label>
-            <label>Fonte del contatto <select name="fonte" aria-describedby="suggerimento-fonte">${opzioni(fonti(), fonti()[0])}</select>
-              <span class="suggerimento" id="suggerimento-fonte">Chiedi: come ci ha conosciuto?</span>
-            </label>
-          </div>
+          <label>Settore <select name="settore">${opzioni(CONFIG.settori, CONFIG.pilota.settore)}</select></label>
           <div class="riga-doppia">
             <label>Referente (nome e cognome) <input name="refNome" autocomplete="off" placeholder="Es. Dott.ssa Anna Verdi"></label>
             <label>Ruolo <input name="refRuolo" autocomplete="off" placeholder="Es. Socia titolare"></label>
@@ -802,12 +860,9 @@ function apriNuovoContatto(aziendaId = "") {
           </div>
         </fieldset>
 
-        <div class="riga-doppia" id="gruppo-referente" ${scelta ? "" : "hidden"}>
-          <label>Referente per questa opportunità
-            <select name="referente">${scelta ? opzioniReferenti(scelta.id) : ""}</select>
-          </label>
-          <label>Canale di questa richiesta <select name="canale">${opzioni(fonti(), scelta && fonti().includes(scelta.fonte) ? scelta.fonte : fonti()[0])}</select></label>
-        </div>
+        <label id="gruppo-referente" ${scelta ? "" : "hidden"}>Referente per questa opportunità
+          <select name="referente">${scelta ? opzioniReferenti(scelta.id) : ""}</select>
+        </label>
 
         <fieldset class="gruppo">
           <legend>Servizio richiesto</legend>
@@ -910,7 +965,7 @@ function leggiModulo(modulo) {
     piva: testo("piva").replace(/\s/g, ""),
     settore: d.get("settore"),
     comune: d.get("comune"),
-    fonte: d.get("fonte"),
+    fonte: d.get("canale"),
     note: "",
     creata: oggi(),
   };
@@ -928,22 +983,24 @@ function leggiModulo(modulo) {
   const opp = daCapire ? null : {
     aziendaId,
     referenteId: aziendaId ? d.get("referente") || null : null,
-    canale: aziendaId ? d.get("canale") : d.get("fonte"),
+    canale: d.get("canale"),
     comune: d.get("comune"),
     servizio,
     ore: Math.round(Number(d.get("ore"))) || 0,
     // La tariffa si salva solo se diversa da quella standard del servizio
     tariffa: tariffa > 0 && tariffa !== datiServizio(servizio).tariffa ? tariffa : null,
     ...(d.get("ambiente") && mq > 0 ? { preventivo: { ambiente: d.get("ambiente"), mq, frequenza: d.get("frequenza") } } : {}),
-    storico: { contatto: oggi() },
-    dataRegistrazione: oggi(),   // annotata nel CRM il giorno stesso (K14)
+    storico: { contatto: d.get("dataRichiesta") },
+    dataRegistrazione: d.get("dataAnnotazione"),   // quando la richiesta è stata annotata nel CRM (K14)
+    ...(d.get("dataRisposta") ? { dataPrimaRisposta: d.get("dataRisposta") } : {}),
     consensoPrivacy: base === "consenso",
     campagna: "", contenuto: "", paginaArrivo: "",
     perso: null,
     allocazione: null,
     proposte: [],
   };
-  return { opp, nuovaAzienda, nuovoReferente, richiesta: testo("richiesta") };
+  return { opp, nuovaAzienda, nuovoReferente, richiesta: testo("richiesta"),
+    canale: d.get("canale"), date: { richiesta: d.get("dataRichiesta"), annotazione: d.get("dataAnnotazione"), risposta: d.get("dataRisposta") } };
 }
 
 // Opportunità con i valori scritti nel modulo aperto, per l'anteprima del punteggio (null se non c'è)
@@ -991,7 +1048,7 @@ function riquadroPreventivo(opp) {
       <p><strong>${Number(opp.ore)} h/mese</strong> · ${formattaEuro(tariffaOraria(opp))}/ora · <strong>${formattaEuro(valoreAnnuo(opp))}/anno</strong></p>
       <p>Margine stimato <strong>${formattaPercentualeDecimale(margine)}</strong></p>
       ${margine < minimo ? `<p class="avviso-margine">${icona("attenzione")} Margine sotto il minimo del ${formattaPercentuale(minimo)}: rivedi tariffa o frequenza</p>` : ""}
-      <p class="nota-piccola">Valori di prova, da sostituire dopo l'intervista.</p>
+      <p class="nota-piccola">È una stima, non un'offerta: tariffe e rese sono valori di prova, da sostituire dopo l'intervista.</p>
     </div>`;
 }
 
@@ -1015,6 +1072,8 @@ function aggiornaPunteggioBreve(modulo, p) {
 }
 
 function segnalaCampo(campo, messaggio) {
+  const chiuso = campo.closest("details:not([open])");
+  if (chiuso) chiuso.open = true;   // un campo in un riquadro chiuso si mostra prima di segnalarlo
   campo.setCustomValidity(messaggio);
   campo.reportValidity();
   campo.setCustomValidity("");
@@ -1048,8 +1107,20 @@ function campiCambiati(modulo) {
   return new Set(Object.keys(ora).filter((nome) => ora[nome] !== prima[nome]));
 }
 
+// Controlla canale e date della richiesta: restituisce [campo, messaggio] del primo errore, oppure null
+function erroreDateRichiesta(modulo, canale, date) {
+  if (!canale) return [modulo.canale, "Scegli il canale della richiesta"];
+  if (!formattaData(date.richiesta) || date.richiesta > oggi()) return [modulo.dataRichiesta, "Indica la data della richiesta (non nel futuro)"];
+  if (!formattaData(date.annotazione) || date.annotazione > oggi()) return [modulo.dataAnnotazione, "Indica la data di annotazione (non nel futuro)"];
+  if (date.annotazione < date.richiesta) return [modulo.dataAnnotazione, "La richiesta non si annota prima di quando è arrivata"];
+  if (date.risposta && (date.risposta < date.richiesta || date.risposta > oggi())) return [modulo.dataRisposta, "La prima risposta va tra la richiesta e oggi"];
+  return null;
+}
+
 function salvaContatto(modulo) {
-  const { opp, nuovaAzienda, nuovoReferente, richiesta } = leggiModulo(modulo);
+  const { opp, nuovaAzienda, nuovoReferente, richiesta, canale, date } = leggiModulo(modulo);
+  const errore = erroreDateRichiesta(modulo, canale, date);
+  if (errore) return segnalaCampo(...errore);
   if (nuovaAzienda) {
     if (!nuovaAzienda.ragioneSociale) return segnalaCampo(modulo.ragioneSociale, "Scrivi la ragione sociale");
     // Stesso nome o stessa partita IVA di un'azienda già in archivio: si blocca
@@ -1090,7 +1161,7 @@ function salvaContatto(modulo) {
     opp.codice = codiceRiferimento(stato.contatore);
     stato.opportunita.push(opp);
     registraAttivita({ aziendaId: opp.aziendaId, tipo: "Pipeline", testo: opp.servizio + ": nuovo contatto (" + opp.ore + " h/mese)" });
-    promemoria = cadenza(opp, CONFIG.fasi[0], oggi());
+    promemoria = cadenza(opp, CONFIG.fasi[0], opp.storico.contatto);
     ultimaModificata = opp.id; // l'id nasce qui: la nuova scheda resta evidenziata nella Pipeline
   }, opp
     ? { messaggio: () => "Contatto creato: " + nome + testoPromemoria(promemoria), fase: "contatto", vai: "pipeline" }
@@ -1294,6 +1365,50 @@ function salvaFase(modulo) {
   }, { messaggio: () => messaggioFase(o, fase, promemoria), evidenzia: o.id, fase: fase.id, vai: fase.id === "contratto" ? "allocazione" : null });
 }
 
+// «Da ricontattare»: etichetta sulla fase attuale con la data (obbligatoria) in cui richiamare il cliente
+function apriRicontatto(id) {
+  const o = trova(id);
+  if (!o || !trattativaAperta(o)) return;
+  apriFinestra(`
+    <form class="modulo" id="modulo-ricontatto" data-id="${esc(o.id)}" novalidate>
+      <div>
+        <h2>Da ricontattare · ${esc(nomeCliente(o))}</h2>
+        <p class="nota-piccola">La trattativa resta in «${CONFIG.fasi[faseRaggiunta(o)].nome}». Quando la data arriva compare in «Da seguire» nella Pipeline.</p>
+      </div>
+      <label>Data del ricontatto * <input name="data" type="date" required min="${oggi()}"></label>
+      ${pulsantiRapidi([[7, "Tra una settimana"], [14, "Tra due settimane"], [30, "Tra un mese"]])}
+      <label>Motivo (facoltativo) <input name="nota" autocomplete="off" placeholder="Es. decide dopo la riunione dei soci"></label>
+      <div class="azioni-finestra">
+        <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
+        <button class="pulsante primario" type="submit">Segna da ricontattare</button>
+      </div>
+    </form>`);
+}
+
+// Senza data non si passa a «Da ricontattare»
+function salvaRicontatto(modulo) {
+  const o = trova(modulo.dataset.id);
+  if (!o || !trattativaAperta(o)) return chiudiFinestra();
+  const data = modulo.data.value;
+  const nota = modulo.nota.value.trim();
+  if (!formattaData(data)) return segnalaCampo(modulo.data, "Indica la data del ricontatto: senza data la trattativa non diventa «Da ricontattare»");
+  if (data < oggi()) return segnalaCampo(modulo.data, "Scegli una data da oggi in poi");
+  applica(() => {
+    o.ricontatto = { data, nota };
+    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": da ricontattare il " + formattaData(data) + (nota ? " (" + nota + ")" : "") });
+  }, { messaggio: nomeCliente(o) + ": da ricontattare il " + formattaData(data), evidenzia: o.id });
+}
+
+// Ricontatto fatto: l'etichetta sparisce e resta una chiamata nella cronologia
+function ricontattato(id) {
+  const o = trova(id);
+  if (!o || !o.ricontatto) return;
+  applica(() => {
+    delete o.ricontatto;
+    registraAttivita({ aziendaId: o.aziendaId, referenteId: o.referenteId || null, tipo: "Chiamata", testo: "Cliente ricontattato" });
+  }, { messaggio: nomeCliente(o) + ": ricontatto registrato. Fissa la prossima azione", evidenzia: o.id });
+}
+
 // Firma da link (simulata): il cliente apre il link, legge l'offerta e firma senza app, account né password
 function apriFirmaLink(id) {
   const o = trova(id);
@@ -1303,7 +1418,7 @@ function apriFirmaLink(id) {
     <p>Il cliente riceve l'offerta per email o WhatsApp con un link: la legge e la firma dal telefono, senza registrarsi.
       La tecnologia nuova sta tutta dal lato di Gate.</p>
     <div class="riquadro firma-anteprima">
-      <p class="commessa-codice">OFFERTA ${esc(o.codice)} · LINK DI FIRMA (SIMULATO)</p>
+      <p class="commessa-codice">OFFERTA ${esc(o.codice)} · LINK DI FIRMA (SIMULATO) ${badgePunteggio(calcolaPunteggio(o, stato.opportunita))}</p>
       <p><strong>${esc(o.servizio)} · ${esc(o.comune)}</strong></p>
       <p class="nota-piccola">${Number(o.ore)} ore al mese · ${formattaEuro(valoreAnnuo(o))} all'anno${o.scadenzaOfferta ? " · valida fino al " + formattaData(o.scadenzaOfferta) : ""}</p>
     </div>
@@ -1359,6 +1474,7 @@ function salvaPerso(modulo) {
   if (!motivo) return segnalaCampo(modulo.motivo, "Scegli il motivo");
   applica(() => {
     o.perso = { data: oggi(), motivo, ...(nota ? { nota } : {}) };
+    delete o.ricontatto;
     togliPromemoriaAutomatici(o.id); // i promemoria automatici di una trattativa persa non servono più
     registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: o.servizio + ": opportunità persa (" + motivo + ")" });
   }, { messaggio: "Opportunità segnata come persa: " + nomeCliente(o), evidenzia: o.id, fase: "perso" });
@@ -1437,6 +1553,7 @@ function avanza(id) {
 // Restituisce il promemoria creato in automatico, oppure null.
 function registraFase(o, fase, data = oggi(), dettaglio = "") {
   o.storico[fase.id] = data;
+  delete o.ricontatto;   // la trattativa si è mossa: il ricontatto non serve più
   if (!o.dataPrimaRisposta) o.dataPrimaRisposta = data;   // qualificare la richiesta vuol dire averle già risposto (K12)
   registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", data, testo: o.servizio + ": fase «" + fase.nome + "»" + (dettaglio ? " (" + dettaglio + ")" : "") });
   return cadenza(o, fase, data);
@@ -1614,6 +1731,8 @@ const AZIONI = {
   },
   "modifica-opportunita": (el) => apriModificaOpportunita(el.dataset.id),
   "firma-link": (el) => apriFirmaLink(el.dataset.id),
+  "da-ricontattare": (el) => apriRicontatto(el.dataset.id),
+  ricontattato: (el) => ricontattato(el.dataset.id),
   "conferma-firma": (el) => confermaFirma(el.dataset.id),
   "torna-indietro": (el) => tornaIndietro(el.dataset.id),
   riapri: (el) => riapri(el.dataset.id),
@@ -1639,7 +1758,7 @@ const AZIONI = {
 
 // Azioni che modificano i dati: un secondo clic ravvicinato viene ignorato
 const MODIFICANO_DATI = new Set(['importa-contatti', "avanza", "fatto", "fatto-fase", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
-  "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "conferma-firma", "annulla"]);
+  "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "conferma-firma", "ricontattato", "annulla"]);
 let ultimoClicModifica = 0;
 let ultimoInvio = 0; // quando è stato inviato l'ultimo modulo (ms)
 
@@ -1697,6 +1816,7 @@ document.addEventListener("submit", (evento) => {
     "modulo-sopralluogo": salvaSopralluogo,
     "modulo-opportunita": salvaModificaOpportunita,
     "modulo-perso": salvaPerso,
+    "modulo-ricontatto": salvaRicontatto,
     ...GESTORI_MODULI, // moduli della schermata Clienti (clienti.js)
   };
   if (gestori[modulo.id]) gestori[modulo.id](modulo);
@@ -1934,12 +2054,26 @@ function sezioneCapacitaFutura() {
     <section class="riquadro capacita-futura" aria-label="Capacità futura">
       <h2 class="titolo-riquadro">${domanda("predittiva")} <span class="sottotitolo">se si firmano le offerte aperte</span></h2>
       <ul class="elenco-capacita">
-        ${zone.map((z) => `<li class="${z.mancano ? "manca" : ""}">
+        ${zone.filter(zonaConSquadre).map((z) => `<li class="${z.mancano ? "manca" : ""}">
           <strong>${esc(z.zona)}</strong>: servono ${z.ore} ore/mese, le squadre ne hanno ${z.libere} libere
           ${z.mancano ? `<span class="chip chip-critico">mancano ${z.mancano} ore: servirà un partner</span>` : '<span class="chip chip-ok">capacità sufficiente</span>'}
         </li>`).join("")}
       </ul>
+      ${rigaZoneSenzaSquadre(zone)}
     </section>`;
+}
+
+// Zona coperta da almeno una squadra interna
+function zonaConSquadre(z) {
+  return CONFIG.squadre.some((s) => s.zone.includes(z.zona));
+}
+
+// Le zone senza squadre in una sola riga: lì serve comunque un partner
+function rigaZoneSenzaSquadre(zone) {
+  const fuori = zone.filter((z) => !zonaConSquadre(z));
+  if (!fuori.length) return "";
+  return `<p class="nota-piccola">Fuori dalle zone delle squadre: ${fuori.reduce((s, z) => s + z.ore, 0)} ore/mese in ${quanti(fuori.length, "zona", "zone")}
+    (${esc(fuori.map((z) => z.zona).join(", "))}): servono partner.</p>`;
 }
 
 // Indicatori: previsione e tutti i consigli (domande predittiva e prescrittiva)
@@ -1951,7 +2085,8 @@ function sezioniPrevisioneEConsigli() {
       <div class="riquadro">
         <p>Ricavi annui attesi dalle trattative aperte: <strong>${formattaEuro(p.ponderata)}</strong> su ${formattaEuro(p.pieno)} di valore pieno
           (${quanti(p.aperte, "trattativa", "trattative")}, ognuna pesata con la probabilità di chiusura della sua fase).</p>
-        ${previsioneCapacita(stato.opportunita).map((z) => `<p class="nota-piccola">${esc(z.zona)}: le offerte aperte chiederebbero ${z.ore} ore/mese contro ${z.libere} libere${z.mancano ? " — mancano " + z.mancano + " ore" : ""}.</p>`).join("")}
+        ${previsioneCapacita(stato.opportunita).filter(zonaConSquadre).map((z) => `<p class="nota-piccola">${esc(z.zona)}: le offerte aperte chiederebbero ${z.ore} ore/mese contro ${z.libere} libere${z.mancano ? " — mancano " + z.mancano + " ore" : ""}.</p>`).join("")}
+        ${rigaZoneSenzaSquadre(previsioneCapacita(stato.opportunita))}
       </div>
     </section>
     <section class="sezione" id="domanda-prescrittiva">

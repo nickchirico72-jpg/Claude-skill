@@ -30,21 +30,20 @@ Il vincolo: acquisire solo clienti coerenti con la capacità operativa e la marg
 | **Catalogo dei KPI** (`kpi_catalogo`, `docs/kpi.md`) | 17 KPI con domanda di business, formula, livello della piramide di Anthony, tipo (efficacia, efficienza, adozione), processo APQC e soglia. È la fonte unica per SQL, app e Power BI. | 34-35 (TO-BE e KPI) |
 | **Modulo "Richiedi un sopralluogo"** (`sopralluogo.html`) | Modulo breve, senza registrazione: azienda, settore, comune, tipo di ambienti, metri quadri, frequenza, referente, contatto e consenso privacy con informativa breve. Legge dal link `utm_source`, `utm_campaign` e `utm_content` e prepara il messaggio per WhatsApp o per email. | 40 |
 | **Modulo "Richiedi un preventivo"** (`modulo.html`) | Secondo modulo, distinto (decisione del team), per chi conosce già servizio e ore. | 40 |
-| **Pipeline** | Fasi Contatto → Qualificato → Sopralluogo → Offerta → Contratto (più Perso). Ogni opportunità ha il **punteggio di coerenza A/B/C**, con il contributo di ogni criterio. Alla creazione si calcola il **preventivo indicativo**: ore, prezzo annuo e margine, con un avviso se il margine è sotto il minimo. In fase Offerta c'è la **firma da link** (simulata). | 42 (preventivo e classe), 43 (pipeline e firma) |
+| **Pipeline** | Fasi Contatto → Qualificato → Sopralluogo → Offerta → Contratto (più Perso). Ogni richiesta ha **canale** e **data della richiesta** obbligatori, la **data di annotazione** (oggi, modificabile) e, se c'è, la **data della prima risposta**; la data dell'offerta si corregge da «Modifica». Ogni opportunità ha il **punteggio di coerenza A/B/C**, con il contributo di ogni criterio. Alla creazione si calcola il **preventivo indicativo** da metri quadri, frequenza e servizio (è una stima, con avviso se il margine è sotto il minimo). Una trattativa si può segnare **«Da ricontattare»** con una data obbligatoria: quando la data arriva compare in «Da seguire». In fase Offerta c'è la **firma da link** (simulata). | 42 (preventivo e classe), 43 (pipeline e firma) |
 | **Clienti** | Aziende e referenti, contatto con un clic (Chiama, WhatsApp, Email), cronologia, prossime azioni, privacy. La finestra **Sito e social** contiene: i link tracciati per canale, il **piano dei contenuti** con il link pronto per ogni contenuto e l'importazione delle richieste. | 40 |
 | **Allocazione** | Ogni contratto va prima a una **squadra interna** con ore libere nella zona. Altrimenti si propone a un'**impresa partner** su WhatsApp, che risponde SÌ o NO (solo DURC regolare, niente lavoratori autonomi; il cliente resta di Gate). I partner sono "in roadmap" nel PASSAGGIO 3: il team ha scelto di tenerli. Si spengono con `funzioni.partner` in `js/config.js`. | 43 |
-| **Indicatori** | Tre viste, una per livello decisionale. Ognuna dice da quale fonte legge: **Dati fittizi** oppure **Dati reali** (fotografia di partenza o test), e un selettore passa dall'una all'altra. | 44 (dashboard) |
+| **Indicatori** | Tre livelli più «Altri indicatori». Ogni vista dice da quale fonte legge: **Dati fittizi** oppure **Dati reali** (fotografia di partenza o test). Il CSV dei dati reali (7 colonne) si **importa ed esporta direttamente qui**; le righe importate restano in un elenco a parte. | 44 (dashboard) |
 
-Le tre viste degli Indicatori:
-- **Operativo** (ufficio): richieste da gestire, trattative ferme K9, tempo di prima risposta K12, richieste registrate entro 24 ore K14.
-- **Tattico** (responsabile commerciale):
-  - funnel e KPI K1–K3 e K7;
-  - conversione e costo per canale K4;
-  - pipeline ponderata K6, durata del ciclo K8, tempo fino all'offerta K13, firme da link K16;
-  - richieste qualificate per contenuto.
-- **Strategico** (direzione): margine atteso K5, motivi di perdita K10, coerenza del portafoglio K11, quota digitale K15, facilità percepita K17. Poi la **matrice canale × classe A/B/C con il margine**, cioè quali canali portano clienti coerenti, non solo contatti.
+I livelli degli Indicatori (ogni KPI ha il codice K1–K17, una riga che spiega la formula in parole e la formula tecnica in «Come si calcola»; senza dati compare «nessun dato», mai zero):
+- **Direzione**: contatti qualificati K1, conversione delle offerte K3, pipeline ponderata K6, costo di acquisizione K4 per i 7 gruppi di canale.
+- **Commerciale**: trattative ferme K9, ricontatti con la data scaduta, prossimi passi in agenda e consigli.
+- **Operativo e adozione**: tempo di prima risposta K12, tempo dalla richiesta all'offerta K13, richieste annotate entro 24 ore K14 (soglia 80%), quota di richieste digitali K15, offerte firmate da link K16.
+- **Altri indicatori**: K2, K5, K7, K8, K10, K11, K17, funnel, matrice canale × classe A/B/C con il margine, contenuti, settori, previsione.
 
-![Indicatori, vista strategica](docs/screenshot/indicatori-strategico-desktop.png)
+**Canali.** I 15 canali del database (12 attivi) sono raggruppati nei 7 gruppi usati da filtri, dashboard e CSV: sito, LinkedIn, telefono, email, passaparola, portale/gara, altro. Elenco e gruppi stanno in un solo punto: `CANALI_DIZIONARIO` e `GRUPPI_CANALI` in `generatore/parametri.py`.
+
+![Indicatori, vista Direzione](docs/screenshot/indicatori-desktop.png)
 
 <p>
   <img src="docs/screenshot/sopralluogo-mobile.png" alt="Modulo Richiedi un sopralluogo da telefono" width="200">
@@ -58,7 +57,7 @@ Le tre viste degli Indicatori:
 1. **Il cliente chiede un sopralluogo.** Apre `sopralluogo.html` dal link di un post LinkedIn (`?utm_source=linkedin&utm_campaign=uffici-e-commercio&utm_content=prova-03`) e invia la richiesta su WhatsApp.
 2. **La richiesta entra nel CRM.** In Clienti → Sito e social si incolla il messaggio e si preme Importa. Nasce un'opportunità in **Contatto** con canale, campagna, contenuto, data di registrazione di oggi e consenso. Ha già il **preventivo** e la **classe A/B/C**.
 3. **La trattativa avanza nella Pipeline:** È qualificato → Sopralluogo fatto → Offerta inviata → **Firma da link** (simulata) → Contratto.
-4. **Allocazione e Indicatori.** In Allocazione la commessa va a una squadra o a un partner. Negli **Indicatori** (vista Tattico) K16 conta la firma da link e il contenuto compare tra le richieste qualificate.
+4. **Allocazione e Indicatori.** In Allocazione la commessa va a una squadra o a un partner. Negli **Indicatori** (vista Operativo) K16 conta la firma da link; in «Altri indicatori» il contenuto compare tra le richieste qualificate.
 
 ## Le quattro domande dell'analisi
 
@@ -74,7 +73,7 @@ Ogni sezione dice a quale domanda risponde:
 |---|---|
 | Processi AS-IS e TO-BE (BPM, APQC) | **AS-IS:** i tempi di risposta e di registrazione oggi, misurati sulla **fotografia di partenza** (`richieste_reali`, fonte partenza). **TO-BE:** modulo, registrazione immediata, preventivo, firma da link e report; il test di tre settimane li misura (fonte test). |
 | KPI (APQC e KPI compendium) | `kpi_catalogo` e `docs/kpi.md`: ogni KPI ha il processo APQC, categoria 3.0 Market and Sell (dove il PASSAGGIO lo indica, "da verificare sul PCF"). |
-| Piramide di Anthony | Le tre viste degli Indicatori (operativo, tattico, strategico) e la colonna `livello_anthony` del catalogo. |
+| Piramide di Anthony | I livelli degli Indicatori (Direzione, Commerciale, Operativo e adozione) e la colonna `livello_anthony` del catalogo. |
 | Piattaforma e platform thinking | Cliente senza app (modulo e WhatsApp), partner via WhatsApp, CRM come punto unico dei dati, canali tracciati con utm senza pixel. |
 | Roadmap della trasformazione | Le **evoluzioni previste:** portale partner (anteprima in Allocazione), lead scoring con modello statistico, archivio condiviso online. |
 | Digital gap | La quota di richieste digitali (K15) e la registrazione delle richieste (K14), prima e dopo il test. |
@@ -105,7 +104,7 @@ python3 generatore/importa_richieste.py data/esempi/richieste-test-esempio.csv -
 ```
 
 - **Parametri e dizionari.** Stanno in `generatore/parametri.py`: canali, settori, servizi, comuni, fasi, pesi del punteggio e ipotesi H1–H5. Con lo stesso seme i dati sono identici. L'app legge gli stessi dizionari da `js/dizionari.js`: si cambia un solo file e si rilancia il generatore.
-- **Dati veri (fotografia di partenza e test).** Si scrivono in un CSV con le colonne del foglio condiviso: `data_richiesta, data_registrazione, canale, settore, data_risposta, data_offerta, esito, fonte`, più `note` se serve. Le date possono essere scritte `AAAA-MM-GG` o `GG/MM/AAAA`.
+- **Dati veri (fotografia di partenza e test).** Si scrivono in un CSV con le 7 colonne del foglio condiviso: `data_richiesta, data_annotazione, canale, settore, data_risposta, data_offerta, esito` (il canale può essere anche uno dei 7 gruppi). Le date possono essere scritte `AAAA-MM-GG` o `GG/MM/AAAA`. Il CSV si importa in due modi: **nell'app** (Indicatori → «Importa CSV dati reali», con il controllo delle righe e l'elenco a parte) oppure **nel database** con lo script qui sopra (`--fonte partenza` o `--fonte test` se il file non ha la colonna fonte).
 - **Controlli dell'import.** Controlla date, canali, settori ed esiti, stampa le righe scartate con il motivo e sostituisce le righe già importate con la stessa fonte. I voti di facilità arrivano da un secondo CSV facoltativo (`fonte, riga, voto_facilita`).
 - **I CSV di esempio.** Quelli in `data/esempi/` sono **inventati**: servono a provare l'import prima dei dati veri, e l'app li segnala come esempio. Nel CSV del test c'è apposta una riga sbagliata.
 - **Il database si rigenera senza perdere i dati veri.** `genera_dati.py` conserva la tabella `richieste_reali`. I dati reali non si mescolano mai con quelli fittizi.

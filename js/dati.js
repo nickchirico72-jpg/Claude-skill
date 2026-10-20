@@ -18,6 +18,33 @@ function infoCanale(nome) {
   return CONFIG.canali.find((c) => c.canale === nome) || null;
 }
 
+// I 7 gruppi di canale (sito, LinkedIn, telefono, email, passaparola, portale/gara, altro), usati da filtri, dashboard e CSV
+function gruppiCanali() {
+  return Object.keys(CONFIG.gruppiCanali);
+}
+
+// Gruppo di un canale ("sito web" → "sito"); un canale fuori dal dizionario va in "altro"
+function gruppoCanale(nome) {
+  return (infoCanale(nome) || {}).gruppo || "altro";
+}
+
+// Canale del dizionario da un testo che può essere un canale o un gruppo ("sito" → "sito web"), oppure null
+function canaleDaTesto(testo) {
+  const v = String(testo || "").trim().toLowerCase();
+  const canale = CONFIG.canali.find((c) => c.canale.toLowerCase() === v);
+  if (canale) return canale.canale;
+  const gruppo = gruppiCanali().find((g) => g.toLowerCase() === v);
+  return gruppo ? CONFIG.gruppiCanali[gruppo] : null;
+}
+
+// Opzioni del menu dei canali attivi, raggruppati per gruppo, con la prima voce vuota (il canale è obbligatorio)
+function opzioniCanali(scelto = "") {
+  return '<option value="">— Scegli il canale —</option>' + gruppiCanali().map((g) => {
+    const canali = fonti().filter((c) => gruppoCanale(c) === g);
+    return canali.length ? `<optgroup label="${esc(g)}">${canali.map((c) => `<option value="${esc(c)}" ${c === scelto ? "selected" : ""}>${esc(c)}</option>`).join("")}</optgroup>` : "";
+  }).join("");
+}
+
 // Codice del canale nei link tracciati (utm_source): "sito web" → "sito-web", "LinkedIn" → "linkedin"
 function codiceCanale(nome) {
   return String(nome).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -110,12 +137,12 @@ function datiIniziali() {
     const fase = CONFIG.fasi[faseRaggiunta(o)];
     if (giorniTra(o.storico[fase.id], oggi()) > fase.giorniFerma) return; // le ferme restano senza prossima azione: finiscono in «Da seguire»
     let quando = aggiungiGiorni(o.storico[fase.id], fase.followUp.giorni);
-    if (quando < oggi() && i % 4 !== 0) quando = traGiorni(i % 3); // qualche promemoria resta in ritardo, come nella realtà
+    if (quando < oggi() && i % 6 !== 0) quando = traGiorni(1 + (i % 6)); // pochi promemoria restano in ritardo, gli altri nei prossimi giorni
     attivita.push({ id: "pr" + (++n), aziendaId: o.aziendaId, referenteId: o.referenteId, opportunitaId: o.id, daFare: true,
       automatica: true, tipo: fase.followUp.tipo, data: quando, testo: fase.followUp.testo });
   });
 
-  return { versione: CONFIG.versioneDati, aziende, referenti, opportunita, attivita, contenuti: [], contatore: opp.length, contatoreId: 10000, ultimoBackup: null };
+  return { versione: CONFIG.versioneDati, aziende, referenti, opportunita, attivita, contenuti: [], richiesteReali: [], contatore: opp.length, contatoreId: 10000, ultimoBackup: null };
 }
 
 // Dati salvati prima della versione 4 (esempi di config.js): c'è un avviso per passare ai dati del database
@@ -178,6 +205,10 @@ function strutturaValida(d) {
   const isOggetto = (x) => !!x && typeof x === "object" && !Array.isArray(x);
   if (!isOggetto(d) || d.versione !== CONFIG.versioneDati) return false;
   if (![d.aziende, d.referenti, d.opportunita, d.attivita].every(Array.isArray)) return false;
+  // Richieste reali importate da CSV nel browser (facoltative): mai mescolate con le opportunità
+  if (d.richiesteReali !== undefined && !(Array.isArray(d.richiesteReali) && d.richiesteReali.every((r) => r && typeof r === "object" &&
+    ["partenza", "test"].includes(r.fonte) && /^\d{4}-\d{2}-\d{2}$/.test(r.data_richiesta) && ["canale", "settore", "esito"].every((k) => typeof r[k] === "string") &&
+    ["data_registrazione", "data_risposta", "data_offerta"].every((k) => r[k] === null || /^\d{4}-\d{2}-\d{2}$/.test(r[k]))))) return false;
   // Contenuti aggiunti nell'app al piano editoriale (facoltativi)
   if (d.contenuti !== undefined && !(Array.isArray(d.contenuti) && d.contenuti.every((c) => c && typeof c === "object" &&
     /^[\w-]+$/.test(c.id) && /^\d{4}-\d{2}-\d{2}$/.test(c.data_pubblicazione) && ["canale", "tema", "settore", "formato"].every((k) => typeof c[k] === "string")))) return false;
@@ -208,6 +239,7 @@ function strutturaValida(d) {
       ["dataPrimaRisposta", "dataRegistrazione"].every((k) => facoltativo(o[k], isData)) &&
       ["consensoPrivacy", "firmaDaLink"].every((k) => facoltativo(o[k], (v) => typeof v === "boolean")) &&
       facoltativo(o.preventivo, (v) => isOggetto(v) && isTesto(v.ambiente) && isTesto(v.frequenza) && Number.isFinite(v.mq)) &&
+      facoltativo(o.ricontatto, (v) => isOggetto(v) && isData(v.data) && isTesto(v.nota)) &&
       (o.tariffa == null || (Number.isFinite(o.tariffa) && o.tariffa >= 0)) &&
       isOggetto(o.storico) && isData(o.storico.contatto) && Object.values(o.storico).every(isData) &&
       facoltativo(o.scadenzaOfferta, isData) && facoltativo(o.avvio, isData) && facoltativo(o.riaperta, isData) && facoltativo(o.note, isTesto) && facoltativo(o.motivazioneC, isTesto) &&

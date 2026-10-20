@@ -8,81 +8,117 @@ const DIZIONARI_DB = {
    "canale": "sito web",
    "tipo": "digitale",
    "attivo": true,
+   "gruppo": "sito",
    "nota": "sito gatesrl.it (confermato)"
   },
   {
    "canale": "modulo sito",
    "tipo": "digitale",
    "attivo": true,
+   "gruppo": "sito",
    "nota": "modulo «Richiedi un sopralluogo» aperto senza link tracciato"
   },
   {
    "canale": "profilo Google",
    "tipo": "digitale",
    "attivo": true,
+   "gruppo": "sito",
    "nota": "scheda dell'azienda su Google"
   },
   {
    "canale": "LinkedIn",
    "tipo": "digitale",
    "attivo": true,
+   "gruppo": "LinkedIn",
    "nota": "pagina aziendale e profili dei commerciali (confermato)"
   },
   {
    "canale": "WhatsApp Business",
    "tipo": "digitale",
    "attivo": true,
+   "gruppo": "telefono",
    "nota": "richieste arrivate direttamente su WhatsApp"
+  },
+  {
+   "canale": "telefono",
+   "tipo": "diretto",
+   "attivo": true,
+   "gruppo": "telefono",
+   "nota": "telefonata ricevuta dal cliente"
+  },
+  {
+   "canale": "email",
+   "tipo": "diretto",
+   "attivo": true,
+   "gruppo": "email",
+   "nota": "email ricevuta dal cliente"
   },
   {
    "canale": "passaparola",
    "tipo": "diretto",
    "attivo": true,
+   "gruppo": "passaparola",
    "nota": "segnalazione di un cliente o di un conoscente"
   },
   {
    "canale": "intermediario",
    "tipo": "intermediato",
    "attivo": true,
+   "gruppo": "altro",
    "nota": "agente o intermediario con provvigione"
   },
   {
    "canale": "porta a porta",
    "tipo": "diretto",
    "attivo": true,
+   "gruppo": "altro",
    "nota": "visita commerciale senza appuntamento"
   },
   {
    "canale": "portale gare",
    "tipo": "gara",
    "attivo": true,
+   "gruppo": "portale/gara",
    "nota": "gare e richieste di offerta su portali"
   },
   {
    "canale": "contatto diretto",
    "tipo": "diretto",
    "attivo": true,
-   "nota": "telefonata, email o incontro senza un canale preciso"
+   "gruppo": "altro",
+   "nota": "incontro o contatto senza un canale preciso"
   },
   {
    "canale": "Facebook",
    "tipo": "digitale",
    "attivo": false,
+   "gruppo": "altro",
    "nota": "da confermare con Gate"
   },
   {
    "canale": "Instagram",
    "tipo": "digitale",
    "attivo": false,
+   "gruppo": "altro",
    "nota": "da confermare con Gate"
   },
   {
    "canale": "Google Ads",
    "tipo": "digitale",
    "attivo": false,
+   "gruppo": "altro",
    "nota": "da confermare con Gate"
   }
  ],
+ "gruppiCanali": {
+  "sito": "sito web",
+  "LinkedIn": "LinkedIn",
+  "telefono": "telefono",
+  "email": "email",
+  "passaparola": "passaparola",
+  "portale/gara": "portale gare",
+  "altro": "contatto diretto"
+ },
  "settori": [
   "uffici e commercio",
   "GDO",

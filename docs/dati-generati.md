@@ -27,7 +27,7 @@ Database di prova creato da `generatore/genera_dati.py` (seme 20261019, data di 
 - `data_registrazione`: vuota (NULL) nei dati storici; si valorizza per le richieste del modulo e per i dati importati.
 - `consenso_privacy` e `firma_da_link`: 0 nei dati storici. Diventano 1 con le richieste del modulo e con le offerte firmate da link nella demo.
 - `campagna`, `contenuto`, `pagina_arrivo`: valorizzati sul 30% delle opportunità da sito web e LinkedIn (31 su 104), con 4 contenuti di prova. Distribuzione: prova-01 9, prova-02 14, prova-03 6, prova-04 2. **Nessun effetto inserito sui contenuti.**
-- Tabella `canali`: 10 canali attivi; Facebook, Instagram e Google Ads sono spenti, con la nota "da confermare con Gate". Il generatore storico usa solo i 6 canali dello schema v0.
+- Tabella `canali`: 15 canali, 12 attivi (telefono ed email aggiunti il 20/10); Facebook, Instagram e Google Ads sono spenti, con la nota "da confermare con Gate". La colonna `gruppo` li raccoglie nei 7 gruppi della modifica 1 (sito, LinkedIn, telefono, email, passaparola, portale/gara, altro). Il generatore storico usa solo i 6 canali dello schema v0.
 
 ## Anomalie da pulire (volute)
 - **Clienti doppi:** 4 clienti del pilota compaiono due volte con il nome scritto diversamente ("Agenzia Sigma" e "Agenzia Sigma S.r.l.", "Studio Legale Tau srl", "Negozio Sigma" con spazi in fondo, "Negozio Beta (sede)").

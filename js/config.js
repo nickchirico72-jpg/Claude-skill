@@ -87,6 +87,8 @@ const CONFIG = {
 
   // ------------------------------------------- Preventivo indicativo (US-E)
   // VALORI DI PROVA, DA SOSTITUIRE DOPO L'INTERVISTA. Ore al mese = mq ÷ resa oraria × passaggi al mese.
+  // Le tariffe orarie del preventivo sono quelle dei servizi qui sopra: si cambiano in un solo punto,
+  // generatore/parametri.py (SERVIZI_ECONOMIA), che le passa a database e app; costi orari e rese stanno qui.
   preventivo: {
     ambienti: [
       { nome: "Uffici e studi",           resaMqOra: 150, speseDirette: 0.04 },
@@ -100,7 +102,9 @@ const CONFIG = {
       { nome: "1 volta a settimana",  passaggiSettimana: 1, sconto: 0 },
       { nome: "2 volte a settimana",  passaggiSettimana: 2, sconto: 0 },
       { nome: "3 volte a settimana",  passaggiSettimana: 3, sconto: 0.03 },
+      { nome: "4 volte a settimana",  passaggiSettimana: 4, sconto: 0.03 },
       { nome: "5 volte a settimana",  passaggiSettimana: 5, sconto: 0.06 },
+      { nome: "6 volte a settimana",  passaggiSettimana: 6, sconto: 0.06 },
     ],
     settimaneAlMese: 4.33,
     // Il margine minimo è quello del punteggio (punteggio.margine.minimo): sotto compare un avviso
@@ -121,6 +125,8 @@ const CONFIG = {
   // I canali spenti (attivo = false, «da confermare con Gate») non compaiono nei menu né nei costi.
   // I costi dei canali sono quelli mensili del database (tabella costi_canale).
   canali: DIZIONARI.canali,
+  // I 7 gruppi di canale (modifica 1) con il canale che rappresenta ciascuno quando un CSV indica solo il gruppo
+  gruppiCanali: DIZIONARI.gruppiCanali,
 
   // Tipi di attività registrabili nella scheda cliente
   tipiAttivita: ["Chiamata", "Email", "WhatsApp", "Visita", "Nota"],

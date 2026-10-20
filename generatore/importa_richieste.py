@@ -1,7 +1,7 @@
 """
 IMPORTA I DATI VERI DI GATE (fotografia di partenza e test di tre settimane) nella tabella richieste_reali.
-Il CSV ha le colonne del foglio condiviso: data_richiesta, data_registrazione, canale, settore, data_risposta,
-data_offerta, esito, fonte (partenza o test) e, se c'è, note. Le righe che iniziano con # sono commenti.
+Il CSV ha le 7 colonne del foglio condiviso: data_richiesta, data_registrazione (o data_annotazione), canale (canale o gruppo),
+settore, data_risposta, data_offerta, esito; più fonte (partenza o test, oppure --fonte) e, se c'è, note. Le righe che iniziano con # sono commenti.
 Le date si scrivono AAAA-MM-GG oppure GG/MM/AAAA; una data vuota resta vuota (NULL).
 Le righe con errori vengono scartate e stampate con il motivo; le altre sostituiscono quelle già importate con la stessa fonte.
 Un secondo CSV facoltativo (--voti) porta i voti di facilità: colonne fonte, riga (numero della richiesta nel foglio, 1 = la prima), voto_facilita (1-5).
@@ -22,7 +22,11 @@ import esporta
 import parametri as P
 
 DB = Path(__file__).resolve().parent.parent / "data" / "gate.db"
-COLONNE = ["data_richiesta", "data_registrazione", "canale", "settore", "data_risposta", "data_offerta", "esito", "fonte"]
+# Le 7 colonne del CSV (modifica 1); la fonte può stare in una colonna o arrivare da --fonte
+COLONNE = ["data_richiesta", "data_registrazione", "canale", "settore", "data_risposta", "data_offerta", "esito"]
+# Nomi alternativi accettati nell'intestazione (es. «data annotazione» del foglio condiviso)
+SINONIMI = {"data_annotazione": "data_registrazione", "data annotazione": "data_registrazione", "data richiesta": "data_richiesta",
+            "data risposta": "data_risposta", "data offerta": "data_offerta", "data_prima_risposta": "data_risposta"}
 ESITI = ["aperta", "contratto", "persa", "non interessante"]
 FONTI = ["partenza", "test"]
 
@@ -33,7 +37,7 @@ def leggi_csv(percorso):
         righe = [r for r in f.read().splitlines() if r.strip() and not r.lstrip().startswith("#")]
     sep = ";" if righe and righe[0].count(";") > righe[0].count(",") else ","
     lettore = csv.DictReader(righe, delimiter=sep)
-    lettore.fieldnames = [c.strip().lower() for c in lettore.fieldnames or []]
+    lettore.fieldnames = [SINONIMI.get(c.strip().lower(), c.strip().lower()) for c in lettore.fieldnames or []]
     return [{k: (v or "").strip() for k, v in r.items() if k} for r in lettore], lettore.fieldnames
 
 
@@ -47,7 +51,7 @@ def data_iso(testo):
     return date.fromisoformat(testo).isoformat()
 
 
-def controlla(riga, canali):
+def controlla(riga, canali, fonte_predefinita=""):
     """Restituisce (valori puliti, None) oppure (None, motivo dello scarto)."""
     v = {}
     try:
@@ -63,16 +67,18 @@ def controlla(riga, canali):
             return None, f"{c} nel futuro ({v[c]})"
         if v[c] and v[c] < v["data_richiesta"]:
             return None, f"{c} prima della data della richiesta"
-    canale = canali.get(riga.get("canale", "").lower())
+    # Il canale può essere un canale del dizionario o uno dei 7 gruppi (sito, telefono, portale/gara...)
+    gruppi = {g.lower(): c for g, c in P.GRUPPI_CANALI.items()}
+    canale = canali.get(riga.get("canale", "").lower()) or gruppi.get(riga.get("canale", "").lower())
     if not canale:
-        return None, f"canale non ammesso: «{riga.get('canale')}» (vedi la tabella canali)"
+        return None, f"canale non ammesso: «{riga.get('canale')}» (un canale della tabella canali o un gruppo: {', '.join(P.GRUPPI_CANALI)})"
     settore = {s.lower(): s for s in P.SETTORI}.get(riga.get("settore", "").lower())
     if not settore:
         return None, f"settore non ammesso: «{riga.get('settore')}» (ammessi: {', '.join(P.SETTORI)})"
     esito = riga.get("esito", "").lower()
     if esito not in ESITI:
         return None, f"esito non ammesso: «{riga.get('esito')}» (ammessi: {', '.join(ESITI)})"
-    fonte = riga.get("fonte", "").lower()
+    fonte = (riga.get("fonte") or fonte_predefinita).lower()
     if fonte not in FONTI:
         return None, f"fonte non ammessa: «{riga.get('fonte')}» (partenza o test)"
     v.update(canale=canale, settore=settore, esito=esito, fonte=fonte,
@@ -80,7 +86,7 @@ def controlla(riga, canali):
     return v, None
 
 
-def importa(file_richieste, file_voti=None):
+def importa(file_richieste, file_voti=None, fonte=""):
     """Controlla e importa le richieste (e i voti); stampa righe importate e scartate."""
     con = sqlite3.connect(DB)
     canali = {c.lower(): c for (c,) in con.execute("SELECT canale FROM canali")}
@@ -90,7 +96,7 @@ def importa(file_richieste, file_voti=None):
         sys.exit("Colonne mancanti nel CSV: " + ", ".join(mancanti))
     buone, scartate = [], []
     for n, r in enumerate(righe, 1):
-        valori, motivo = controlla(r, canali)
+        valori, motivo = controlla(r, canali, fonte)
         if motivo:
             scartate.append((n, motivo))
         else:
@@ -137,5 +143,6 @@ if __name__ == "__main__":
     a = argparse.ArgumentParser(description="Importa i dati veri di Gate nella tabella richieste_reali")
     a.add_argument("richieste", help="CSV del foglio condiviso")
     a.add_argument("--voti", help="CSV facoltativo con i voti di facilità")
+    a.add_argument("--fonte", choices=FONTI, default="", help="fonte delle righe, se il CSV non ha la colonna fonte")
     argomenti = a.parse_args()
-    importa(argomenti.richieste, argomenti.voti)
+    importa(argomenti.richieste, argomenti.voti, argomenti.fonte)

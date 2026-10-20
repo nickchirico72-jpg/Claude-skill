@@ -79,13 +79,34 @@ KPI = [
      "richieste_reali (voto_facilita)", "reali"),
 ]
 
-COLONNE = ["codice", "nome", "domanda_business", "formula", "livello_anthony", "tipo", "processo_apqc", "soglia",
+# La formula spiegata in parole, per chi legge la dashboard senza conoscere SQL (modifica 4 del 20/10)
+SPIEGAZIONI = {
+    "K1": "Su 100 nuovi contatti, quanti diventano richieste vere da seguire.",
+    "K2": "Su 100 richieste qualificate, quante arrivano al sopralluogo.",
+    "K3": "Su 100 offerte su cui il cliente ha deciso, quante sono firmate.",
+    "K4": "Quanto si è speso su un canale, diviso per i contratti che quel canale ha portato.",
+    "K5": "Il margine che ci si aspetta dalle trattative aperte, pesato con la probabilità di chiuderle.",
+    "K6": "Il fatturato annuo che ci si aspetta dalle trattative aperte, pesato con la probabilità di chiuderle.",
+    "K7": "Su 100 trattative chiuse, quante sono vinte.",
+    "K8": "Quanti giorni passano in media dal primo contatto alla firma.",
+    "K9": "Le trattative aperte che non si muovono da più giorni di quanti ne prevede la loro fase.",
+    "K10": "Per quali motivi si perdono le trattative, in percentuale sulle perse.",
+    "K11": "Quanta parte delle trattative e del loro valore è in classe A, B o C.",
+    "K12": "Quanti giorni passano in media tra la richiesta del cliente e la prima risposta di Gate.",
+    "K13": "Quanti giorni passano in media tra la richiesta del cliente e l'invio dell'offerta.",
+    "K14": "Su 100 richieste annotate, quante sono annotate entro un giorno da quando sono arrivate.",
+    "K15": "Su 100 richieste, quante arrivano da sito, LinkedIn, profilo Google o WhatsApp.",
+    "K16": "Su 100 contratti, quanti sono firmati dal cliente con un link, senza carta.",
+    "K17": "Il voto medio (da 1 a 5) che i clienti danno alla facilità di chiedere e firmare.",
+}
+
+COLONNE = ["codice", "nome", "domanda_business", "formula", "spiegazione", "livello_anthony", "tipo", "processo_apqc", "soglia",
            "dati_necessari", "fonte"]
 
 
 def righe():
-    """Le righe del catalogo come dizionari (colonna: valore)."""
-    return [dict(zip(COLONNE, k)) for k in KPI]
+    """Le righe del catalogo come dizionari (colonna: valore), con la spiegazione in parole."""
+    return [dict(zip(COLONNE, k[:4] + (SPIEGAZIONI[k[0]],) + k[4:])) for k in KPI]
 
 
 def scrivi_markdown(percorso):
@@ -98,11 +119,11 @@ def scrivi_markdown(percorso):
              ""]
     for livello in ["operativo", "tattico", "strategico"]:
         testo += [f"## Livello {livello}", "",
-                  "| Codice | KPI | Domanda di business | Formula | Tipo | APQC | Soglia | Dati necessari | Fonte |",
-                  "|---|---|---|---|---|---|---|---|---|"]
+                  "| Codice | KPI | Domanda di business | Formula | In parole | Tipo | APQC | Soglia | Dati necessari | Fonte |",
+                  "|---|---|---|---|---|---|---|---|---|---|"]
         for r in righe():
             if r["livello_anthony"] == livello:
-                testo.append("| {codice} | {nome} | {domanda_business} | {formula} | {tipo} | {processo_apqc} | {soglia} | {dati_necessari} | {fonte} |".format(**r))
+                testo.append("| {codice} | {nome} | {domanda_business} | {formula} | {spiegazione} | {tipo} | {processo_apqc} | {soglia} | {dati_necessari} | {fonte} |".format(**r))
         testo.append("")
     testo += ["## Note di calcolabilità",
               "- **Fonte**: «fittizi» = solo database di prova; «reali» = solo tabella `richieste_reali` (fotografia di partenza e test); «entrambi» = calcolabile su tutte e due, mai mescolate.",

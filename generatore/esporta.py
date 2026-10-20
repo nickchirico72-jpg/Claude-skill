@@ -23,7 +23,7 @@ TIPI_MYSQL = {
     "margine_pct": "DECIMAL(5,3)", "margine_pct_previsto": "DECIMAL(5,3)", "probabilita": "DECIMAL(4,2)",
     "ore_mese_stimate": "DECIMAL(7,1)", "mese": "CHAR(7)",
     "decisore": "TINYINT", "attivo": "TINYINT", "consenso_privacy": "TINYINT", "firma_da_link": "TINYINT", "voto_facilita": "TINYINT",
-    "formula": "TEXT", "domanda_business": "TEXT", "dati_necessari": "TEXT", "note": "TEXT", "nota": "TEXT", "tema": "TEXT",
+    "formula": "TEXT", "spiegazione": "TEXT", "domanda_business": "TEXT", "dati_necessari": "TEXT", "note": "TEXT", "nota": "TEXT", "tema": "TEXT",
 }
 
 
@@ -96,7 +96,8 @@ def tabella(con, nome, extra=None):
 def esporta_app(con, capacita):
     """Scrive js/dizionari.js (dizionari condivisi, da parametri.py) e js/dati-db.js (tabelle), letti dall'app all'avvio."""
     dizionari = {
-        "canali": [{"canale": c, "tipo": t, "attivo": bool(a), "nota": n} for c, t, a, n in P.CANALI_DIZIONARIO],
+        "canali": [{"canale": c, "tipo": t, "attivo": bool(a), "gruppo": g, "nota": n} for c, t, a, g, n in P.CANALI_DIZIONARIO],
+        "gruppiCanali": P.GRUPPI_CANALI,
         "settori": P.SETTORI,
         "settorePilota": P.SETTORE_PILOTA,
         "servizi": [{"nome": s, "tariffa": e["tariffa"], "margineMedio": e["margine"]} for s, e in P.SERVIZI_ECONOMIA.items()],

@@ -62,7 +62,7 @@ const PROVE = {
         if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, `${nome}-${sigla}.png`) });
       }
       await page.goto(BASE + 'index.html#indicatori');
-      for (const livello of ['tattico', 'strategico']) {
+      for (const livello of ['commerciale', 'operativo', 'altri']) {
         await clic(page, `[data-azione=livello][data-id=${livello}]`);
         verifica(`${dispositivo} indicatori ${livello}: nessuno scorrimento orizzontale`, !(await scorreOrizzontale(page)));
         if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, `indicatori-${livello}-${sigla}.png`), fullPage: dispositivo === 'desktop' });
@@ -145,7 +145,7 @@ const PROVE = {
     verifica('allocazione: primo partner NO, secondo SÌ', allocazione && allocazione.tipo === 'partner' && allocazione.id === 'pa2', JSON.stringify(allocazione));
 
     await page.goto(BASE + 'index.html#indicatori');
-    await clic(page, '[data-azione=livello][data-id=tattico]');
+    await clic(page, '[data-azione=livello][data-id=operativo]');
     const k16 = await page.textContent('#kpi-K16');
     verifica('indicatori: K16 conta la firma da link', /1 contratti firmati da link/.test(k16), k16.slice(0, 120));
     const secondi = (Date.now() - inizio) / 1000;
@@ -160,6 +160,7 @@ const PROVE = {
     await page.goto(BASE + 'index.html#pipeline');
     await clic(page, '[data-azione=nuovo]');
     await page.fill('[name=ragioneSociale]', 'Ambulatorio Prova Preventivo');
+    await page.selectOption('#modulo-contatto [name=canale]', 'telefono');
     await page.selectOption('[name=ambiente]', 'Ambulatori e studi medici');
     await page.fill('[name=mq]', '300');
     await page.selectOption('[name=frequenza]', '5 volte a settimana');
@@ -188,7 +189,7 @@ const PROVE = {
     await page.selectOption('#scelta-fonte', 'test');
     await page.waitForTimeout(300);
     verifica('fonte test: etichetta dati reali con avviso di righe di esempio', /Dati reali/.test(await page.textContent('.etichetta-fonte')) && /esempio/.test(await page.textContent('.etichetta-fonte')));
-    await clic(page, '[data-azione=livello][data-id=strategico]');
+    await clic(page, '[data-azione=livello][data-id=altri]');
     verifica('fonte test: K17 facilità percepita 4,3 su 5', /4,3 su 5/.test(await page.textContent('#kpi-K17')));
     verifica('fonte test: elenco dei KPI non calcolabili', /Non calcolabili/.test(await page.textContent('#schermata')));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
@@ -216,6 +217,104 @@ const PROVE = {
     await clic(page, '#avviso-fisso [data-azione=ripristina]');
     await clic(page, '[data-azione=conferma-ripristino]');
     verifica('ripristino: dati del database (300 opportunità)', (await page.evaluate(() => stato.opportunita.length)) === 300);
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // Modifica 1: canale e data della richiesta obbligatori, date di annotazione e prima risposta
+  async canale() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#pipeline');
+    const prima = await page.evaluate(() => stato.opportunita.length);
+    await clic(page, '[data-azione=nuovo]');
+    await page.fill('[name=ragioneSociale]', 'Studio Prova Canale');
+    await page.fill('[name=ore]', '20');
+    await clic(page, '#modulo-contatto [type=submit]');
+    verifica('senza canale non si salva', (await page.evaluate(() => stato.opportunita.length)) === prima && await page.isVisible('#modulo-contatto'));
+    await page.selectOption('#modulo-contatto [name=canale]', 'email');
+    await page.fill('[name=dataRichiesta]', '');
+    await clic(page, '#modulo-contatto [type=submit]');
+    verifica('senza data della richiesta non si salva', (await page.evaluate(() => stato.opportunita.length)) === prima);
+    const ieri = await page.evaluate(() => traGiorni(-1));
+    await page.fill('[name=dataRichiesta]', ieri);
+    await page.click('#altre-date summary');
+    await page.fill('[name=dataRisposta]', ieri);
+    await clic(page, '#modulo-contatto [type=submit]');
+    const o = await page.evaluate(() => { const x = stato.opportunita[stato.opportunita.length - 1]; return { c: x.canale, r: x.storico.contatto, a: x.dataRegistrazione, p: x.dataPrimaRisposta, oggi: oggi() }; });
+    verifica('salvata con canale, data richiesta, annotazione di oggi e prima risposta', o.c === 'email' && o.r === ieri && o.a === o.oggi && o.p === ieri, JSON.stringify(o));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // Modifica 1: import di un CSV a 7 colonne con 12 righe, elenco a parte, KPI ricalcolati; export
+  async csv() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#indicatori');
+    await clic(page, '[data-azione=importa-csv-reali]');
+    const righe = ['data_richiesta;data_annotazione;canale;settore;data_risposta;data_offerta;esito'];
+    for (let i = 1; i <= 12; i++) righe.push(`2026-09-${String(i).padStart(2, '0')};2026-09-${String(i).padStart(2, '0')};${i % 2 ? 'sito' : 'telefono'};uffici e commercio;2026-09-${String(i + 1).padStart(2, '0')};;${i % 3 ? 'aperta' : 'contratto'}`);
+    await page.setInputFiles('#modulo-csv-reali [name=file]', { name: 'prova.csv', mimeType: 'text/csv', buffer: Buffer.from(righe.join('\n')) });
+    await page.selectOption('#modulo-csv-reali [name=fonte]', 'test');
+    await clic(page, '#modulo-csv-reali [type=submit]');
+    verifica('controllo del file: 12 righe valide', /12 righe valide/.test(await page.textContent('#anteprima-csv-reali')));
+    await clic(page, '#pulsante-csv-reali');
+    await clic(page, '[data-azione=livello][data-id=operativo]');
+    verifica('le 12 righe sono nell\'elenco delle richieste', (await page.$$('#elenco-reali tbody tr')).length === 12);
+    verifica('K12 ricalcolato dal CSV: 1 giorno', /^1 giorno$/.test((await page.textContent('#kpi-K12 .kpi-valore')).trim()));
+    verifica('K14 ricalcolato dal CSV: 100%', (await page.textContent('#kpi-K14 .kpi-valore')).trim() === '100%');
+    verifica('K13 senza date di offerta: «nessun dato», non zero', (await page.textContent('#kpi-K13 .kpi-valore')).trim() === 'nessun dato');
+    verifica('pipeline invariata: le righe reali non entrano tra le opportunità', (await page.evaluate(() => stato.opportunita.length)) === 300);
+    const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-azione=esporta-csv-richieste]')]);
+    const testo = fs.readFileSync(await download.path(), 'utf8');
+    verifica('export CSV a 7 colonne', testo.split('\r\n')[0].replace(/\uFEFF|"/g, '') === 'data_richiesta;data_annotazione;canale;settore;data_risposta;data_offerta;esito' && testo.split('\r\n').length === 13);
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // Modifica 3: «Da ricontattare» bloccato senza data, promemoria quando la data è scaduta; stima su 200 mq x 3 volte
+  async ricontatto() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#pipeline');
+    const id = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && !trattativaFerma(o)).id);
+    await page.evaluate((i) => apriDettaglio(i), id);
+    await clic(page, '[data-azione=da-ricontattare]');
+    await clic(page, '#modulo-ricontatto [type=submit]');
+    verifica('senza data non diventa «Da ricontattare»', !(await page.evaluate((i) => !!trova(i).ricontatto, id)) && await page.isVisible('#modulo-ricontatto'));
+    await clic(page, '#modulo-ricontatto [data-giorni="7"]');
+    await clic(page, '#modulo-ricontatto [type=submit]');
+    verifica('con la data diventa «Da ricontattare»', await page.evaluate((i) => !!trova(i).ricontatto, id));
+    // La data arriva: si simula spostando indietro il ricontatto
+    await page.evaluate((i) => { trova(i).ricontatto.data = traGiorni(-1); salva(); disegna(); }, id);
+    verifica('ricontatto scaduto in «Da seguire» e sulla scheda', /Ricontattare: scaduto/.test(await page.textContent('#da-seguire')) && /scaduto/.test(await page.textContent('#scheda-' + id)));
+    await clic(page, `#scheda-${id} [data-azione=ricontattato]`);
+    verifica('«Ricontattato» toglie l\'etichetta', !(await page.evaluate((i) => !!trova(i).ricontatto, id)));
+    await clic(page, '[data-azione=nuovo]');
+    await page.selectOption('[name=ambiente]', 'Uffici e studi');
+    await page.fill('[name=mq]', '200');
+    await page.selectOption('[name=frequenza]', '3 volte a settimana');
+    await page.waitForTimeout(200);
+    const stima = await page.textContent('#anteprima-punteggio');
+    verifica('200 mq x 3 volte a settimana: stima con ore, prezzo e «stima»', await page.inputValue('[name=ore]') === String(Math.round(200 / 150 * 3 * 4.33)) && /Preventivo indicativo/.test(stima) && /stima/i.test(stima), stima.slice(0, 120));
+    await page.fill('[name=tariffa]', '30');
+    await page.waitForTimeout(200);
+    verifica('la tariffa si cambia e la stima si aggiorna', /30 €\/ora/.test(await page.textContent('#anteprima-punteggio')));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // Modifica 4: livelli Direzione, Commerciale, Operativo/adozione con i codici K e la riga in parole
+  async livelli() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#indicatori');
+    const attesi = { direzione: ['K1', 'K3', 'K6', 'K4'], commerciale: ['K9'], operativo: ['K12', 'K13', 'K14', 'K15', 'K16'] };
+    for (const [livello, codici] of Object.entries(attesi)) {
+      await clic(page, `[data-azione=livello][data-id=${livello}]`);
+      const presenti = await page.$$eval('.kpi[id^=kpi-]', (els) => els.map((e) => e.id.slice(4)));
+      const spiegati = await page.$$eval('.kpi[id^=kpi-] .kpi-spiegazione', (els) => els.filter((e) => e.textContent.trim().length > 20).length);
+      verifica(`${livello}: ${codici.join(', ')} con la spiegazione in parole`, codici.every((c) => presenti.includes(c)) && spiegati === presenti.length, presenti.join(','));
+    }
+    await clic(page, '[data-azione=livello][data-id=commerciale]');
+    verifica('commerciale: ricontatti scaduti e prossimi passi', await page.isVisible('#ricontatti-scaduti'));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },

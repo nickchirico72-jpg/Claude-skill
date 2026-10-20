@@ -54,12 +54,12 @@ CREATE TABLE attivita (
   id_commerciale INTEGER REFERENCES commerciali(id_commerciale), tipo TEXT, data TEXT, esito TEXT
 );
 CREATE TABLE costi_canale (canale TEXT, mese TEXT, costo REAL);
-CREATE TABLE canali (canale TEXT PRIMARY KEY, tipo TEXT, attivo INTEGER, nota TEXT);
+CREATE TABLE canali (canale TEXT PRIMARY KEY, tipo TEXT, attivo INTEGER, gruppo TEXT, nota TEXT);
 CREATE TABLE contenuti (
   id TEXT PRIMARY KEY, data_pubblicazione TEXT, canale TEXT REFERENCES canali(canale), tema TEXT, settore TEXT, formato TEXT
 );
 CREATE TABLE kpi_catalogo (
-  codice TEXT PRIMARY KEY, nome TEXT, domanda_business TEXT, formula TEXT, livello_anthony TEXT, tipo TEXT,
+  codice TEXT PRIMARY KEY, nome TEXT, domanda_business TEXT, formula TEXT, spiegazione TEXT, livello_anthony TEXT, tipo TEXT,
   processo_apqc TEXT, soglia TEXT, dati_necessari TEXT, fonte TEXT
 );
 CREATE TABLE richieste_reali (
@@ -280,7 +280,7 @@ def genera():
             costi.append({"canale": canale, "mese": f"2026-{mese:02d}", "costo": round(base * rnd.uniform(1 - var, 1 + var), 2)})
 
     fasi = [{"fase": f, "ordine": o, "probabilita": p, "giorni_soglia": g} for f, o, p, g in P.FASI]
-    canali = [{"canale": c, "tipo": t, "attivo": a, "nota": n} for c, t, a, n in P.CANALI_DIZIONARIO]
+    canali = [{"canale": c, "tipo": t, "attivo": a, "gruppo": g, "nota": n} for c, t, a, g, n in P.CANALI_DIZIONARIO]
     contenuti = [{"id": i, "data_pubblicazione": d, "canale": c, "tema": t, "settore": st, "formato": f}
                  for i, d, c, t, st, f, _ in P.CONTENUTI]
     return {"clienti": clienti, "referenti": referenti, "commerciali": commerciali, "opportunita": opportunita,

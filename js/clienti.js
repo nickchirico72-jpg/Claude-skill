@@ -76,11 +76,12 @@ function sezioneDaFare() {
     </section>`;
 }
 
-// Trattative aperte da seguire: senza prossima azione o ferme da troppo tempo, dalla più ferma
+// Trattative aperte da seguire: da ricontattare con la data scaduta, senza prossima azione o ferme da troppo tempo
+// I ricontatti scaduti vanno in cima
 function trattativeDaSeguire() {
-  return stato.opportunita.filter(trattativaAperta).map((o) => ({ o, s: statoTrattativa(o) }))
-    .filter(({ s }) => !s.prossima || s.ferma)
-    .sort((a, b) => b.s.giorniInFase - a.s.giorniInFase);
+  return stato.opportunita.filter(trattativaAperta).map((o) => ({ o, s: statoTrattativa(o), r: ricontattoScaduto(o) }))
+    .filter(({ s, r }) => r || !s.prossima || s.ferma)
+    .sort((a, b) => b.r - a.r || b.s.giorniInFase - a.s.giorniInFase);
 }
 
 // Riquadro "Da seguire" accanto a "Da fare oggi"
@@ -96,6 +97,7 @@ function sezioneDaSeguire() {
             <p><a class="link" href="#cliente-${esc(o.aziendaId)}">${esc(nomeCliente(o))}</a>
               <span class="nota-piccola">· ${CONFIG.fasi[faseRaggiunta(o)].nome}${s.ferma ? "" : " da " + giorni(s.giorniInFase)} · ${formattaEuro(valoreAnnuo(o))}/anno</span></p>
             <p class="nota-piccola">
+              ${o.ricontatto && o.ricontatto.data <= oggi() ? `<span class="chip chip-critico">Ricontattare: scaduto il ${formattaData(o.ricontatto.data)}</span>` : ""}
               ${s.ferma ? `<span class="chip chip-critico">Ferma da ${giorni(s.giorniInFase)}</span>` : ""}
               ${s.prossima ? `${scadenza(s.prossima.data)} <span>Prossima: ${esc(s.prossima.testo)}</span>`
                 : '<span class="chip chip-attenzione">Nessuna prossima azione</span>'}
