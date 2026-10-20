@@ -1,0 +1,24 @@
+id,fonte,data_richiesta,data_registrazione,canale,settore,data_risposta,data_offerta,esito,voto_facilita,note
+1,partenza,2026-08-03,,passaparola,uffici e commercio,2026-08-06,2026-08-20,contratto,,ESEMPIO - Studio Prova Alfa
+2,partenza,2026-08-05,2026-08-11,porta a porta,uffici e commercio,2026-08-10,,non interessante,,ESEMPIO - Agenzia Prova Beta
+3,partenza,2026-08-10,,contatto diretto,sanità,2026-08-13,2026-08-31,persa,,ESEMPIO - Ambulatorio Prova Gamma
+4,partenza,2026-08-18,,sito web,uffici e commercio,2026-08-24,,persa,,ESEMPIO - Studio Prova Delta
+5,partenza,2026-08-21,2026-08-25,passaparola,ricettivo,2026-08-25,2026-09-08,contratto,,ESEMPIO - Hotel Prova Epsilon
+6,partenza,2026-08-26,,portale gare,enti pubblici,2026-08-28,2026-09-15,persa,,ESEMPIO - Ente Prova Zeta
+7,partenza,2026-09-01,,porta a porta,uffici e commercio,2026-09-04,,non interessante,,ESEMPIO - Negozio Prova Eta
+8,partenza,2026-09-04,2026-09-09,intermediario,industria,2026-09-08,2026-09-25,persa,,ESEMPIO - Officina Prova Theta
+9,partenza,2026-09-09,,contatto diretto,uffici e commercio,2026-09-14,2026-09-30,aperta,,ESEMPIO - Studio Prova Iota
+10,partenza,2026-09-15,,LinkedIn,uffici e commercio,2026-09-17,,aperta,,ESEMPIO - Studio Prova Kappa
+11,partenza,2026-09-18,,passaparola,sanità,2026-09-22,2026-10-06,aperta,,ESEMPIO - Studio Medico Prova Lambda
+12,partenza,2026-09-22,2026-09-29,porta a porta,GDO,2026-09-28,,aperta,,ESEMPIO - Supermercato Prova Mu
+13,test,2026-09-28,2026-09-28,modulo sito,uffici e commercio,2026-09-28,2026-10-05,contratto,5,ESEMPIO - Studio Prova Nu
+14,test,2026-09-29,2026-09-29,WhatsApp Business,uffici e commercio,2026-09-30,,aperta,4,ESEMPIO - Studio Prova Xi
+15,test,2026-09-30,2026-09-30,LinkedIn,uffici e commercio,2026-09-30,2026-10-08,aperta,5,ESEMPIO - Agenzia Prova Omicron
+16,test,2026-10-01,2026-10-02,passaparola,sanità,2026-10-02,2026-10-09,contratto,4,ESEMPIO - Studio Medico Prova Pi
+17,test,2026-10-02,2026-10-02,sito web,uffici e commercio,2026-10-02,,non interessante,,ESEMPIO - Negozio Prova Rho
+18,test,2026-10-05,2026-10-05,modulo sito,ricettivo,2026-10-06,2026-10-13,aperta,3,ESEMPIO - B&B Prova Sigma
+19,test,2026-10-07,2026-10-09,contatto diretto,industria,2026-10-08,,persa,,ESEMPIO - Laboratorio Prova Tau
+20,test,2026-10-08,2026-10-08,WhatsApp Business,uffici e commercio,2026-10-08,2026-10-14,aperta,5,ESEMPIO - Studio Prova Ypsilon
+21,test,2026-10-12,2026-10-12,profilo Google,uffici e commercio,2026-10-12,,aperta,,ESEMPIO - Studio Prova Phi
+22,test,2026-10-13,2026-10-13,modulo sito,uffici e commercio,2026-10-14,,aperta,4,ESEMPIO - Centro Uffici Prova Chi
+23,test,2026-10-15,2026-10-15,LinkedIn,GDO,2026-10-16,,aperta,,ESEMPIO - Magazzino Prova Psi

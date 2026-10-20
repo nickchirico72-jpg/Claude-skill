@@ -1,7 +1,9 @@
 """
 GENERATORE DI DATI FITTIZI PER IL DATABASE DI PROVA DI GATE
-Crea data/gate.db (SQLite) e un CSV per tabella in data/csv/.
+Crea data/gate.db (SQLite), un CSV per tabella in data/csv/, la copia per MySQL (data/gate_mysql.sql)
+e i dati per l'app (js/dati-db.js): app e database leggono gli stessi dati.
 Solo libreria standard di Python; con lo stesso seme (parametri.py) produce sempre gli stessi dati.
+La tabella richieste_reali (dati veri importati) viene conservata.
 Uso: python3 generatore/genera_dati.py
 """
 
@@ -11,11 +13,14 @@ import sqlite3
 from datetime import date, timedelta
 from pathlib import Path
 
+import esporta
+import kpi_catalogo
 import parametri as P
 
 CARTELLA = Path(__file__).resolve().parent.parent / "data"
 RIF = date.fromisoformat(P.DATA_RIFERIMENTO)
 rnd = random.Random(P.SEME)
+SOGLIA = {f: g for f, _, _, g in P.FASI}   # giorni oltre i quali una trattativa è ferma
 
 SCHEMA = """
 CREATE TABLE clienti (
@@ -32,7 +37,9 @@ CREATE TABLE opportunita (
   id_commerciale INTEGER REFERENCES commerciali(id_commerciale), id_referente INTEGER REFERENCES referenti(id_referente),
   canale TEXT, servizio TEXT, fase TEXT, valore_annuo REAL, margine_pct REAL, ore_mese_stimate REAL,
   data_contatto TEXT, data_ultima_modifica TEXT, data_chiusura TEXT, motivo_perdita TEXT,
-  punteggio_coerenza INTEGER, classe_coerenza TEXT
+  punteggio_coerenza INTEGER, classe_coerenza TEXT,
+  data_prima_risposta TEXT, data_registrazione TEXT, consenso_privacy INTEGER,
+  campagna TEXT, contenuto TEXT, pagina_arrivo TEXT
 );
 CREATE TABLE fasi (fase TEXT PRIMARY KEY, ordine INTEGER, probabilita REAL, giorni_soglia INTEGER);
 CREATE TABLE storico_fasi (
@@ -40,13 +47,25 @@ CREATE TABLE storico_fasi (
 );
 CREATE TABLE offerte (
   id_offerta INTEGER PRIMARY KEY, id_opp INTEGER REFERENCES opportunita(id_opp), versione INTEGER, data_invio TEXT,
-  importo_annuo REAL, margine_pct_previsto REAL, esito TEXT, data_esito TEXT
+  importo_annuo REAL, margine_pct_previsto REAL, esito TEXT, data_esito TEXT, firma_da_link INTEGER
 );
 CREATE TABLE attivita (
   id_attivita INTEGER PRIMARY KEY, id_opp INTEGER REFERENCES opportunita(id_opp),
   id_commerciale INTEGER REFERENCES commerciali(id_commerciale), tipo TEXT, data TEXT, esito TEXT
 );
 CREATE TABLE costi_canale (canale TEXT, mese TEXT, costo REAL);
+CREATE TABLE canali (canale TEXT PRIMARY KEY, tipo TEXT, attivo INTEGER, nota TEXT);
+CREATE TABLE contenuti (
+  id TEXT PRIMARY KEY, data_pubblicazione TEXT, canale TEXT REFERENCES canali(canale), tema TEXT, settore TEXT, formato TEXT
+);
+CREATE TABLE kpi_catalogo (
+  codice TEXT PRIMARY KEY, nome TEXT, domanda_business TEXT, formula TEXT, livello_anthony TEXT, tipo TEXT,
+  processo_apqc TEXT, soglia TEXT, dati_necessari TEXT, fonte TEXT
+);
+CREATE TABLE richieste_reali (
+  id INTEGER PRIMARY KEY, fonte TEXT, data_richiesta TEXT, data_registrazione TEXT, canale TEXT, settore TEXT,
+  data_risposta TEXT, data_offerta TEXT, esito TEXT, voto_facilita INTEGER, note TEXT
+);
 """
 
 # Nomi chiaramente inventati
@@ -81,8 +100,8 @@ def scegli_pesato(valori, pesi):
 
 
 def data_a_caso(da, a):
-    """Una data a caso tra due date, più frequente verso la fine (i contatti crescono con la campagna del pilota)."""
-    return da + timedelta(days=round(rnd.triangular(0, (a - da).days, (a - da).days * P.CRESCITA_CONTATTI)))
+    """Una data a caso tra due date, più frequente verso la fine (H5: i contatti crescono con la campagna del pilota)."""
+    return da + timedelta(days=round((a - da).days * rnd.random() ** (1 / P.CRESCITA_CONTATTI)))
 
 
 def genera_clienti():
@@ -102,7 +121,7 @@ def genera_clienti():
         while nome in usati:   # nomi tutti diversi
             nome = rnd.choice(NOMI_SETTORE[settore]) + " " + rnd.choice(NOMI_FANTASIA)
         usati.add(nome)
-        comune, km = rnd.choice(P.COMUNI[provincia])
+        comune, km, _ = rnd.choice(P.COMUNI[provincia])
         pubblico = settore == "enti pubblici" or (settore == "sanità" and rnd.random() < 0.4)
         superficie = None if rnd.random() < P.QUOTA_SUPERFICIE_VUOTA else rnd.randrange(80, 3000, 10)
         clienti.append({"id_cliente": i, "nome": nome, "settore": settore, "provincia": provincia, "comune": comune,
@@ -122,8 +141,8 @@ def genera_referenti(clienti):
         for k in range(quanti):
             nome = rnd.choice(NOMI_PERSONA) + " " + chr(65 + rnd.randint(0, 25)) + "."
             id_r = len(referenti) + 1
-            email = "" if rnd.random() < P.QUOTA_EMAIL_VUOTE else f"referente{id_r}@cliente{c['id_cliente']}.example"
-            telefono = "" if rnd.random() < P.QUOTA_TELEFONI_VUOTI else f"+39 300 000 {id_r:04d}"
+            email = None if rnd.random() < P.QUOTA_EMAIL_VUOTE else f"referente{id_r}@cliente{c['id_cliente']}.example"
+            telefono = None if rnd.random() < P.QUOTA_TELEFONI_VUOTI else f"+39 300 000 {id_r:04d}"
             referenti.append({"id_referente": id_r, "id_cliente": c["id_cliente"], "nome": nome,
                               "ruolo": rnd.choice(RUOLI), "decisore": 1 if (k == 0 and rnd.random() < 0.7) else 0,
                               "email": email, "telefono": telefono,
@@ -132,8 +151,13 @@ def genera_referenti(clienti):
     return referenti
 
 
+def punti(valore, peso):
+    """Punti di un criterio arrotondati come nell'app (7,5 diventa 8)."""
+    return int(valore * peso + 0.5)
+
+
 def punteggio(cliente, margine, valore, ha_decisore):
-    """Punteggio di coerenza 0-100 con i pesi del prototipo e la classe A/B/C."""
+    """Punteggio di coerenza 0-100 con i pesi del prototipo, la classe A/B/C e la capacità simulata (0, 0,5 o 1)."""
     w = P.PESI
     settore = 1 if cliente["settore"] == P.SETTORE_PILOTA else P.SETTORE_FUORI_PILOTA
     km = cliente["km_da_bari"]
@@ -142,9 +166,9 @@ def punteggio(cliente, margine, valore, ha_decisore):
     marg = 1 if margine >= P.MARGINE_PIENO else 0.5 if margine >= P.MARGINE_META else 0
     dim = 1 if P.DIMENSIONE_PIENA[0] <= valore <= P.DIMENSIONE_PIENA[1] else \
         0.5 if P.DIMENSIONE_META[0] <= valore <= P.DIMENSIONE_META[1] else 0
-    totale = round(settore * w["settore"] + distanza * w["distanza"] + capacita * w["capacita"]
-                   + marg * w["margine"] + dim * w["dimensione"] + (1 if ha_decisore else 0) * w["decisore"])
-    return totale, "A" if totale >= 75 else "B" if totale >= 50 else "C"
+    totale = (punti(settore, w["settore"]) + punti(distanza, w["distanza"]) + punti(capacita, w["capacita"])
+              + punti(marg, w["margine"]) + punti(dim, w["dimensione"]) + punti(1 if ha_decisore else 0, w["decisore"]))
+    return totale, "A" if totale >= 75 else "B" if totale >= 50 else "C", capacita
 
 
 def simula_percorso(opp, cliente, inizio):
@@ -163,10 +187,14 @@ def simula_percorso(opp, cliente, inizio):
             eventi.append((fasi[i + 1], giorno))
             continue
         if rnd.random() < P.PROBABILITA_PERSA_SE_NON_PASSA:
+            # La perdita si registra solo dopo che la trattativa è rimasta ferma oltre la soglia della fase
+            perso_il = eventi[-1][1] + timedelta(days=SOGLIA[fase] + rnd.randint(*P.GIORNI_PRIMA_DI_PERDERE))
+            if perso_il > RIF:
+                return eventi, None                   # non ancora registrata: resta aperta
             motivo = scegli_pesato(P.MOTIVI_PERDITA, P.MOTIVI_PER_FASE[fase])
             if cliente["km_da_bari"] > 60 and rnd.random() < 0.5:
                 motivo = "fuori zona"
-            eventi.append(("perso", giorno))
+            eventi.append(("perso", perso_il))
             return eventi, motivo
         return eventi, None                           # né avanti né persa: resta aperta
     return eventi, None
@@ -200,15 +228,17 @@ def genera():
         valore = round(ore * 12 * eco["tariffa"] * rnd.uniform(0.9, 1.1), 2)
         margine = round(max(0.02, rnd.gauss(eco["margine"], eco["variabilita"]) + P.MARGINE_PER_CANALE[canale]), 3)
         ha_decisore = any(r["decisore"] for r in refs)
-        punti, classe = punteggio(cliente, margine, valore, ha_decisore)
+        totale, classe, capacita = punteggio(cliente, margine, valore, ha_decisore)
         opp = {"id_opp": id_opp, "id_cliente": cliente["id_cliente"], "id_commerciale": commerciale,
                "id_referente": referente["id_referente"], "canale": canale, "servizio": servizio, "fase": None,
                "valore_annuo": valore, "margine_pct": margine,
                "ore_mese_stimate": None if rnd.random() < P.QUOTA_ORE_VUOTE else float(ore),
-               "data_contatto": data_a_caso(da, a), "data_ultima_modifica": None, "data_chiusura": "",
-               "motivo_perdita": "", "punteggio_coerenza": punti, "classe_coerenza": classe}
+               "data_contatto": data_a_caso(da, a), "data_ultima_modifica": None, "data_chiusura": None,
+               "motivo_perdita": None, "punteggio_coerenza": totale, "classe_coerenza": classe,
+               "data_prima_risposta": None, "data_registrazione": None, "consenso_privacy": 0,
+               "campagna": None, "contenuto": None, "pagina_arrivo": None, "_capacita": capacita}
         eventi, motivo = simula_percorso(opp, cliente, opp["data_contatto"])
-        opp["motivo_perdita"] = motivo or ""
+        opp["motivo_perdita"] = motivo
         eventi_opp[id_opp] = eventi
         opportunita.append(opp)
 
@@ -230,11 +260,16 @@ def genera():
         eventi = eventi_opp[o["id_opp"]]
         o["fase"] = eventi[-1][0]
         o["data_ultima_modifica"] = eventi[-1][1].isoformat()
-        o["data_chiusura"] = eventi[-1][1].isoformat() if o["fase"] in ("contratto", "perso") else ""
+        o["data_chiusura"] = eventi[-1][1].isoformat() if o["fase"] in ("contratto", "perso") else None
+        # Prima risposta di Gate: 0-6 giorni dopo la richiesta, mai dopo il passo successivo né dopo il riferimento
+        ritardo = scegli_pesato(list(range(len(P.RITARDO_PRIMA_RISPOSTA))), P.RITARDO_PRIMA_RISPOSTA)
+        limite = eventi[1][1] if len(eventi) > 1 else RIF
+        o["data_prima_risposta"] = min(o["data_contatto"] + timedelta(days=ritardo), limite, RIF).isoformat()
         o["data_contatto"] = o["data_contatto"].isoformat()
         for fase, giorno in eventi:
             storico.append({"id_evento": len(storico) + 1, "id_opp": o["id_opp"], "fase": fase, "data_ingresso": giorno.isoformat()})
 
+    assegna_contenuti(opportunita)
     offerte, attivita = genera_offerte_attivita(opportunita, eventi_opp)
 
     # Costi mensili per canale (gennaio-ottobre 2026)
@@ -245,8 +280,25 @@ def genera():
             costi.append({"canale": canale, "mese": f"2026-{mese:02d}", "costo": round(base * rnd.uniform(1 - var, 1 + var), 2)})
 
     fasi = [{"fase": f, "ordine": o, "probabilita": p, "giorni_soglia": g} for f, o, p, g in P.FASI]
+    canali = [{"canale": c, "tipo": t, "attivo": a, "nota": n} for c, t, a, n in P.CANALI_DIZIONARIO]
+    contenuti = [{"id": i, "data_pubblicazione": d, "canale": c, "tema": t, "settore": st, "formato": f}
+                 for i, d, c, t, st, f, _ in P.CONTENUTI]
     return {"clienti": clienti, "referenti": referenti, "commerciali": commerciali, "opportunita": opportunita,
-            "fasi": fasi, "storico_fasi": storico, "offerte": offerte, "attivita": attivita, "costi_canale": costi}
+            "fasi": fasi, "storico_fasi": storico, "offerte": offerte, "attivita": attivita, "costi_canale": costi,
+            "canali": canali, "contenuti": contenuti, "kpi_catalogo": kpi_catalogo.righe()}
+
+
+def assegna_contenuti(opportunita):
+    """Al 30% delle opportunità da sito web e LinkedIn assegna campagna, contenuto e pagina di arrivo (contenuti già pubblicati)."""
+    candidate = []
+    for o in opportunita:
+        adatti = [c for c in P.CONTENUTI if c[2] == o["canale"] and c[1] <= o["data_contatto"]]
+        if adatti:
+            candidate.append((o, adatti))
+    totale = sum(1 for o in opportunita if o["canale"] in ("sito web", "LinkedIn"))
+    for o, adatti in rnd.sample(candidate, min(len(candidate), round(P.QUOTA_CON_CONTENUTO * totale))):
+        c = rnd.choice(adatti)
+        o["campagna"], o["contenuto"], o["pagina_arrivo"] = P.CAMPAGNA_PILOTA, c[0], c[6]
 
 
 def genera_offerte_attivita(opportunita, eventi_opp):
@@ -290,7 +342,7 @@ def genera_offerte_attivita(opportunita, eventi_opp):
             offerte.append({"id_offerta": len(offerte) + 1, "id_opp": o["id_opp"], "versione": v,
                             "data_invio": data_invio.isoformat(), "importo_annuo": importo,
                             "margine_pct_previsto": o["margine_pct"], "esito": esito,
-                            "data_esito": data_esito.isoformat() if data_esito else ""})
+                            "data_esito": data_esito.isoformat() if data_esito else None, "firma_da_link": 0})
     attivita.sort(key=lambda x: (x["data"], x["id_opp"]))
     for i, x in enumerate(attivita, 1):
         x["id_attivita"] = i
@@ -298,25 +350,38 @@ def genera_offerte_attivita(opportunita, eventi_opp):
 
 
 def salva(tabelle):
-    """Scrive il database SQLite e un CSV per tabella."""
+    """Scrive il database SQLite (conservando richieste_reali), un CSV per tabella, la copia MySQL e i dati dell'app."""
     CARTELLA.mkdir(exist_ok=True)
     (CARTELLA / "csv").mkdir(exist_ok=True)
     db = CARTELLA / "gate.db"
+    reali = []
     if db.exists():
+        vecchio = sqlite3.connect(db)
+        try:
+            vecchio.row_factory = sqlite3.Row
+            reali = [dict(r) for r in vecchio.execute("SELECT * FROM richieste_reali ORDER BY id")]
+        except sqlite3.Error:
+            reali = []   # database di una versione precedente, senza dati reali
+        vecchio.close()
         db.unlink()
     con = sqlite3.connect(db)
     con.executescript(SCHEMA)
+    tabelle["richieste_reali"] = reali
     for nome, righe in tabelle.items():
-        colonne = list(righe[0].keys())
+        colonne = [c for c in righe[0].keys() if not c.startswith("_")] if righe else \
+            [r[1] for r in con.execute(f"PRAGMA table_info({nome})")]
         con.executemany(f"INSERT INTO {nome} ({', '.join(colonne)}) VALUES ({', '.join('?' * len(colonne))})",
                         [tuple(r[c] for c in colonne) for r in righe])
         with open(CARTELLA / "csv" / f"{nome}.csv", "w", newline="", encoding="utf-8") as f:
-            scrittore = csv.DictWriter(f, fieldnames=colonne)
+            scrittore = csv.DictWriter(f, fieldnames=colonne, extrasaction="ignore")
             scrittore.writeheader()
             scrittore.writerows(righe)
     con.commit()
+    capacita = {o["id_opp"]: o["_capacita"] for o in tabelle["opportunita"]}
+    esporta.tutto(con, capacita)
     con.close()
-    print(f"Creato {db} e {len(tabelle)} CSV in {CARTELLA / 'csv'}")
+    kpi_catalogo.scrivi_markdown(CARTELLA.parent / "docs" / "kpi.md")
+    print(f"Creato {db}, {len(tabelle)} CSV in {CARTELLA / 'csv'}, data/gate_mysql.sql, js/dati-db.js e docs/kpi.md")
 
 
 if __name__ == "__main__":

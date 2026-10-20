@@ -1,186 +1,187 @@
 id_referente,id_cliente,nome,ruolo,decisore,email,telefono,base_giuridica,modo_raccolta
-1,1,Enrico H.,titolare,0,referente1@cliente1.example,+39 300 000 0001,da verificare,email
-2,2,Davide L.,responsabile acquisti,1,referente2@cliente2.example,+39 300 000 0002,da verificare,email
-3,2,Sara D.,socio amministratore,0,referente3@cliente2.example,+39 300 000 0003,legittimo interesse B2B,a voce
-4,3,Silvia B.,direttore,1,referente4@cliente3.example,+39 300 000 0004,legittimo interesse B2B,email
-5,3,Marta Y.,responsabile acquisti,0,referente5@cliente3.example,+39 300 000 0005,legittimo interesse B2B,modulo del sito
-6,4,Anna B.,responsabile acquisti,1,referente6@cliente4.example,+39 300 000 0006,legittimo interesse B2B,email
-7,4,Sara G.,responsabile acquisti,0,referente7@cliente4.example,+39 300 000 0007,consenso,email
-8,5,Andrea T.,responsabile acquisti,1,referente8@cliente5.example,+39 300 000 0008,consenso,biglietto da visita
-9,6,Sara C.,responsabile di sede,1,referente9@cliente6.example,+39 300 000 0009,da verificare,email
-10,6,Anna J.,responsabile di sede,0,referente10@cliente6.example,+39 300 000 0010,legittimo interesse B2B,biglietto da visita
-11,7,Silvia B.,responsabile di sede,1,referente11@cliente7.example,+39 300 000 0011,legittimo interesse B2B,email
-12,8,Silvia W.,titolare,1,referente12@cliente8.example,+39 300 000 0012,legittimo interesse B2B,a voce
-13,8,Simona Q.,responsabile acquisti,0,referente13@cliente8.example,+39 300 000 0013,contratto in corso,a voce
-14,9,Paolo E.,facility manager,1,referente14@cliente9.example,+39 300 000 0014,consenso,a voce
-15,10,Giorgio K.,titolare,1,referente15@cliente10.example,+39 300 000 0015,legittimo interesse B2B,modulo del sito
-16,11,Giorgio A.,facility manager,1,referente16@cliente11.example,+39 300 000 0016,consenso,email
-17,11,Luca C.,socio amministratore,0,referente17@cliente11.example,+39 300 000 0017,da verificare,email
-18,12,Luca P.,socio amministratore,1,referente18@cliente12.example,+39 300 000 0018,legittimo interesse B2B,modulo del sito
-19,12,Marco C.,socio amministratore,0,referente19@cliente12.example,+39 300 000 0019,da verificare,modulo del sito
-20,13,Giulia T.,titolare,0,referente20@cliente13.example,+39 300 000 0020,legittimo interesse B2B,email
-21,13,Irene E.,responsabile di sede,0,referente21@cliente13.example,+39 300 000 0021,legittimo interesse B2B,biglietto da visita
-22,14,Simona O.,responsabile acquisti,0,referente22@cliente14.example,+39 300 000 0022,legittimo interesse B2B,modulo del sito
-23,14,Andrea Z.,responsabile di sede,0,referente23@cliente14.example,+39 300 000 0023,da verificare,a voce
-24,15,Paolo U.,direttore,1,,+39 300 000 0024,consenso,a voce
-25,16,Luca J.,segreteria,1,referente25@cliente16.example,+39 300 000 0025,consenso,email
-26,17,Marco O.,facility manager,1,referente26@cliente17.example,+39 300 000 0026,legittimo interesse B2B,biglietto da visita
-27,17,Marta I.,facility manager,0,,+39 300 000 0027,da verificare,a voce
-28,18,Laura U.,direttore,0,referente28@cliente18.example,+39 300 000 0028,legittimo interesse B2B,a voce
-29,19,Simona D.,segreteria,1,referente29@cliente19.example,+39 300 000 0029,da verificare,modulo del sito
-30,20,Andrea T.,facility manager,1,referente30@cliente20.example,+39 300 000 0030,contratto in corso,email
-31,21,Chiara X.,responsabile di sede,0,referente31@cliente21.example,+39 300 000 0031,contratto in corso,email
-32,21,Davide R.,titolare,0,referente32@cliente21.example,+39 300 000 0032,consenso,email
-33,22,Giorgio T.,titolare,1,referente33@cliente22.example,+39 300 000 0033,legittimo interesse B2B,a voce
-34,23,Nadia Q.,titolare,1,referente34@cliente23.example,+39 300 000 0034,consenso,email
-35,23,Marco T.,direttore,0,referente35@cliente23.example,+39 300 000 0035,legittimo interesse B2B,biglietto da visita
-36,24,Anna Q.,office manager,0,referente36@cliente24.example,+39 300 000 0036,contratto in corso,biglietto da visita
-37,24,Anna M.,segreteria,0,referente37@cliente24.example,+39 300 000 0037,contratto in corso,modulo del sito
-38,25,Fabio Y.,socio amministratore,1,referente38@cliente25.example,+39 300 000 0038,da verificare,biglietto da visita
-39,25,Laura M.,facility manager,0,referente39@cliente25.example,+39 300 000 0039,consenso,a voce
-40,26,Giorgio N.,office manager,1,referente40@cliente26.example,+39 300 000 0040,consenso,biglietto da visita
-41,26,Luca M.,segreteria,0,referente41@cliente26.example,+39 300 000 0041,legittimo interesse B2B,modulo del sito
-42,27,Giulia N.,segreteria,1,referente42@cliente27.example,+39 300 000 0042,legittimo interesse B2B,biglietto da visita
-43,28,Simona Q.,responsabile di sede,1,referente43@cliente28.example,+39 300 000 0043,legittimo interesse B2B,a voce
-44,28,Laura T.,titolare,0,referente44@cliente28.example,+39 300 000 0044,legittimo interesse B2B,a voce
-45,29,Luca N.,titolare,1,referente45@cliente29.example,+39 300 000 0045,legittimo interesse B2B,email
-46,29,Enrico D.,responsabile acquisti,0,referente46@cliente29.example,+39 300 000 0046,legittimo interesse B2B,a voce
-47,30,Anna M.,titolare,1,referente47@cliente30.example,+39 300 000 0047,legittimo interesse B2B,a voce
-48,30,Nadia J.,segreteria,0,referente48@cliente30.example,+39 300 000 0048,contratto in corso,modulo del sito
-49,31,Davide H.,responsabile di sede,1,referente49@cliente31.example,+39 300 000 0049,consenso,modulo del sito
-50,31,Davide T.,facility manager,0,referente50@cliente31.example,+39 300 000 0050,da verificare,modulo del sito
-51,32,Fabio I.,facility manager,1,referente51@cliente32.example,+39 300 000 0051,consenso,email
-52,33,Elena T.,direttore,1,referente52@cliente33.example,+39 300 000 0052,consenso,a voce
-53,33,Enrico K.,responsabile acquisti,0,referente53@cliente33.example,+39 300 000 0053,da verificare,a voce
-54,34,Marco R.,titolare,1,referente54@cliente34.example,+39 300 000 0054,legittimo interesse B2B,biglietto da visita
-55,34,Marta K.,responsabile di sede,0,referente55@cliente34.example,+39 300 000 0055,legittimo interesse B2B,a voce
-56,35,Paolo F.,socio amministratore,0,referente56@cliente35.example,+39 300 000 0056,consenso,biglietto da visita
-57,36,Davide A.,responsabile acquisti,1,referente57@cliente36.example,+39 300 000 0057,da verificare,biglietto da visita
-58,37,Chiara U.,direttore,1,referente58@cliente37.example,,consenso,biglietto da visita
-59,38,Giorgio B.,responsabile acquisti,1,referente59@cliente38.example,+39 300 000 0059,legittimo interesse B2B,modulo del sito
-60,38,Davide O.,office manager,0,referente60@cliente38.example,+39 300 000 0060,contratto in corso,a voce
-61,39,Anna U.,facility manager,1,referente61@cliente39.example,+39 300 000 0061,contratto in corso,email
-62,39,Luca B.,titolare,0,referente62@cliente39.example,+39 300 000 0062,legittimo interesse B2B,a voce
-63,40,Nadia Y.,facility manager,0,referente63@cliente40.example,+39 300 000 0063,legittimo interesse B2B,a voce
-64,41,Sara S.,titolare,1,referente64@cliente41.example,+39 300 000 0064,consenso,a voce
-65,41,Roberto P.,titolare,0,referente65@cliente41.example,+39 300 000 0065,da verificare,email
-66,42,Andrea J.,responsabile acquisti,1,referente66@cliente42.example,+39 300 000 0066,consenso,a voce
-67,42,Giulia J.,segreteria,0,referente67@cliente42.example,+39 300 000 0067,legittimo interesse B2B,email
-68,43,Silvia O.,office manager,1,referente68@cliente43.example,+39 300 000 0068,legittimo interesse B2B,biglietto da visita
-69,44,Giulia R.,socio amministratore,0,referente69@cliente44.example,+39 300 000 0069,consenso,a voce
-70,45,Andrea D.,socio amministratore,0,referente70@cliente45.example,+39 300 000 0070,da verificare,biglietto da visita
-71,46,Silvia L.,direttore,1,referente71@cliente46.example,+39 300 000 0071,consenso,a voce
-72,47,Elena A.,direttore,1,referente72@cliente47.example,+39 300 000 0072,consenso,modulo del sito
-73,47,Giulia Z.,titolare,0,referente73@cliente47.example,+39 300 000 0073,consenso,a voce
-74,48,Silvia B.,office manager,0,referente74@cliente48.example,+39 300 000 0074,consenso,modulo del sito
-75,48,Fabio W.,direttore,0,referente75@cliente48.example,+39 300 000 0075,consenso,modulo del sito
-76,49,Chiara K.,socio amministratore,1,referente76@cliente49.example,+39 300 000 0076,contratto in corso,modulo del sito
-77,49,Giorgio K.,responsabile di sede,0,referente77@cliente49.example,+39 300 000 0077,legittimo interesse B2B,email
-78,50,Andrea X.,office manager,1,referente78@cliente50.example,+39 300 000 0078,da verificare,modulo del sito
-79,50,Irene K.,segreteria,0,referente79@cliente50.example,,da verificare,a voce
-80,51,Simona O.,facility manager,1,referente80@cliente51.example,+39 300 000 0080,legittimo interesse B2B,modulo del sito
-81,51,Silvia T.,responsabile di sede,0,referente81@cliente51.example,+39 300 000 0081,legittimo interesse B2B,modulo del sito
-82,52,Laura N.,socio amministratore,1,referente82@cliente52.example,+39 300 000 0082,legittimo interesse B2B,biglietto da visita
-83,53,Sara H.,facility manager,0,referente83@cliente53.example,+39 300 000 0083,consenso,biglietto da visita
-84,53,Simona H.,responsabile di sede,0,referente84@cliente53.example,+39 300 000 0084,legittimo interesse B2B,biglietto da visita
-85,54,Simona T.,responsabile acquisti,1,referente85@cliente54.example,+39 300 000 0085,consenso,a voce
-86,55,Roberto S.,direttore,1,referente86@cliente55.example,+39 300 000 0086,da verificare,a voce
-87,55,Enrico U.,responsabile acquisti,0,referente87@cliente55.example,+39 300 000 0087,legittimo interesse B2B,modulo del sito
-88,56,Anna L.,responsabile acquisti,1,referente88@cliente56.example,+39 300 000 0088,da verificare,modulo del sito
-89,56,Luca R.,office manager,0,referente89@cliente56.example,+39 300 000 0089,consenso,biglietto da visita
-90,57,Marco S.,direttore,1,referente90@cliente57.example,+39 300 000 0090,consenso,biglietto da visita
-91,58,Laura T.,responsabile di sede,1,referente91@cliente58.example,+39 300 000 0091,consenso,biglietto da visita
-92,59,Irene H.,direttore,1,referente92@cliente59.example,+39 300 000 0092,da verificare,email
-93,60,Davide P.,socio amministratore,1,referente93@cliente60.example,+39 300 000 0093,legittimo interesse B2B,email
-94,60,Andrea V.,office manager,0,referente94@cliente60.example,+39 300 000 0094,consenso,biglietto da visita
-95,61,Marco M.,responsabile di sede,1,referente95@cliente61.example,+39 300 000 0095,consenso,a voce
-96,62,Laura K.,socio amministratore,0,referente96@cliente62.example,+39 300 000 0096,legittimo interesse B2B,biglietto da visita
-97,62,Fabio J.,titolare,0,referente97@cliente62.example,+39 300 000 0097,contratto in corso,email
-98,63,Irene I.,titolare,1,referente98@cliente63.example,+39 300 000 0098,da verificare,a voce
-99,64,Sara E.,responsabile acquisti,1,referente99@cliente64.example,+39 300 000 0099,contratto in corso,a voce
-100,64,Giorgio D.,responsabile di sede,0,referente100@cliente64.example,+39 300 000 0100,contratto in corso,a voce
-101,65,Davide I.,direttore,1,referente101@cliente65.example,+39 300 000 0101,da verificare,email
-102,66,Laura H.,direttore,1,referente102@cliente66.example,+39 300 000 0102,legittimo interesse B2B,a voce
-103,66,Irene L.,direttore,0,referente103@cliente66.example,,da verificare,biglietto da visita
-104,67,Marta S.,facility manager,1,referente104@cliente67.example,+39 300 000 0104,legittimo interesse B2B,a voce
-105,67,Giulia I.,socio amministratore,0,referente105@cliente67.example,+39 300 000 0105,da verificare,biglietto da visita
-106,68,Fabio P.,socio amministratore,1,referente106@cliente68.example,+39 300 000 0106,legittimo interesse B2B,modulo del sito
-107,69,Nadia I.,facility manager,1,referente107@cliente69.example,+39 300 000 0107,legittimo interesse B2B,biglietto da visita
-108,69,Marco D.,direttore,0,referente108@cliente69.example,+39 300 000 0108,legittimo interesse B2B,biglietto da visita
-109,70,Paolo N.,socio amministratore,1,referente109@cliente70.example,+39 300 000 0109,da verificare,modulo del sito
-110,70,Chiara S.,responsabile acquisti,0,referente110@cliente70.example,+39 300 000 0110,legittimo interesse B2B,modulo del sito
-111,71,Elena A.,responsabile acquisti,0,,+39 300 000 0111,da verificare,a voce
-112,72,Sara K.,responsabile acquisti,1,referente112@cliente72.example,+39 300 000 0112,legittimo interesse B2B,modulo del sito
-113,72,Andrea G.,segreteria,0,,+39 300 000 0113,legittimo interesse B2B,a voce
-114,73,Silvia P.,responsabile acquisti,1,referente114@cliente73.example,+39 300 000 0114,consenso,modulo del sito
-115,73,Paolo U.,responsabile acquisti,0,referente115@cliente73.example,+39 300 000 0115,da verificare,biglietto da visita
-116,74,Fabio E.,facility manager,1,referente116@cliente74.example,+39 300 000 0116,consenso,a voce
-117,74,Luca B.,responsabile di sede,0,referente117@cliente74.example,+39 300 000 0117,legittimo interesse B2B,biglietto da visita
-118,75,Luca J.,office manager,1,referente118@cliente75.example,+39 300 000 0118,da verificare,modulo del sito
-119,75,Irene R.,responsabile acquisti,0,referente119@cliente75.example,+39 300 000 0119,consenso,a voce
-120,76,Simona E.,segreteria,1,referente120@cliente76.example,+39 300 000 0120,legittimo interesse B2B,biglietto da visita
-121,76,Roberto V.,titolare,0,referente121@cliente76.example,+39 300 000 0121,legittimo interesse B2B,biglietto da visita
-122,77,Sara J.,segreteria,1,,+39 300 000 0122,legittimo interesse B2B,biglietto da visita
-123,77,Anna C.,responsabile di sede,0,referente123@cliente77.example,+39 300 000 0123,da verificare,email
-124,78,Marta E.,socio amministratore,0,referente124@cliente78.example,+39 300 000 0124,legittimo interesse B2B,a voce
-125,78,Nadia R.,direttore,0,referente125@cliente78.example,+39 300 000 0125,legittimo interesse B2B,a voce
-126,79,Nadia D.,socio amministratore,0,referente126@cliente79.example,+39 300 000 0126,legittimo interesse B2B,biglietto da visita
-127,80,Sara G.,responsabile acquisti,1,referente127@cliente80.example,+39 300 000 0127,legittimo interesse B2B,email
-128,81,Irene F.,responsabile di sede,0,referente128@cliente81.example,+39 300 000 0128,legittimo interesse B2B,modulo del sito
-129,82,Nadia T.,titolare,1,referente129@cliente82.example,+39 300 000 0129,legittimo interesse B2B,biglietto da visita
-130,82,Roberto K.,responsabile acquisti,0,referente130@cliente82.example,+39 300 000 0130,consenso,modulo del sito
-131,83,Nadia E.,facility manager,1,referente131@cliente83.example,+39 300 000 0131,legittimo interesse B2B,a voce
-132,84,Anna L.,direttore,1,referente132@cliente84.example,+39 300 000 0132,legittimo interesse B2B,a voce
-133,85,Nadia B.,facility manager,1,referente133@cliente85.example,+39 300 000 0133,consenso,biglietto da visita
-134,86,Nadia N.,office manager,1,referente134@cliente86.example,+39 300 000 0134,consenso,a voce
-135,87,Anna W.,segreteria,0,referente135@cliente87.example,+39 300 000 0135,legittimo interesse B2B,email
-136,87,Roberto P.,socio amministratore,0,referente136@cliente87.example,+39 300 000 0136,consenso,a voce
-137,88,Marco O.,direttore,1,referente137@cliente88.example,+39 300 000 0137,contratto in corso,email
-138,89,Marta R.,responsabile acquisti,1,referente138@cliente89.example,+39 300 000 0138,contratto in corso,email
-139,90,Giorgio H.,socio amministratore,1,referente139@cliente90.example,+39 300 000 0139,consenso,biglietto da visita
-140,90,Roberto R.,segreteria,0,referente140@cliente90.example,+39 300 000 0140,consenso,modulo del sito
-141,91,Roberto Y.,office manager,1,referente141@cliente91.example,+39 300 000 0141,legittimo interesse B2B,a voce
-142,92,Simona N.,segreteria,0,referente142@cliente92.example,,da verificare,a voce
-143,92,Nadia X.,titolare,0,referente143@cliente92.example,+39 300 000 0143,legittimo interesse B2B,modulo del sito
-144,93,Roberto P.,office manager,0,referente144@cliente93.example,+39 300 000 0144,legittimo interesse B2B,biglietto da visita
-145,94,Marco Q.,facility manager,1,referente145@cliente94.example,+39 300 000 0145,consenso,a voce
-146,94,Marco F.,responsabile di sede,0,referente146@cliente94.example,+39 300 000 0146,consenso,email
-147,95,Paolo M.,direttore,1,referente147@cliente95.example,+39 300 000 0147,legittimo interesse B2B,biglietto da visita
-148,95,Fabio J.,responsabile acquisti,0,referente148@cliente95.example,+39 300 000 0148,legittimo interesse B2B,email
-149,96,Enrico E.,office manager,1,referente149@cliente96.example,+39 300 000 0149,da verificare,modulo del sito
-150,97,Anna J.,titolare,0,referente150@cliente97.example,+39 300 000 0150,legittimo interesse B2B,biglietto da visita
-151,98,Anna X.,facility manager,1,referente151@cliente98.example,+39 300 000 0151,da verificare,modulo del sito
-152,99,Paolo N.,direttore,0,referente152@cliente99.example,+39 300 000 0152,legittimo interesse B2B,modulo del sito
-153,99,Andrea O.,office manager,0,referente153@cliente99.example,+39 300 000 0153,legittimo interesse B2B,modulo del sito
-154,100,Chiara L.,responsabile di sede,1,referente154@cliente100.example,,consenso,a voce
-155,101,Roberto N.,responsabile di sede,1,referente155@cliente101.example,+39 300 000 0155,consenso,biglietto da visita
-156,102,Davide O.,socio amministratore,1,referente156@cliente102.example,+39 300 000 0156,legittimo interesse B2B,modulo del sito
-157,102,Luca Q.,facility manager,0,referente157@cliente102.example,,legittimo interesse B2B,modulo del sito
-158,103,Marco O.,facility manager,0,referente158@cliente103.example,+39 300 000 0158,legittimo interesse B2B,biglietto da visita
-159,103,Silvia J.,segreteria,0,referente159@cliente103.example,,consenso,email
-160,104,Davide A.,facility manager,1,referente160@cliente104.example,+39 300 000 0160,legittimo interesse B2B,a voce
-161,104,Andrea F.,facility manager,0,referente161@cliente104.example,+39 300 000 0161,legittimo interesse B2B,a voce
-162,105,Giulia I.,direttore,0,referente162@cliente105.example,+39 300 000 0162,legittimo interesse B2B,a voce
-163,105,Paolo U.,direttore,0,referente163@cliente105.example,+39 300 000 0163,da verificare,a voce
-164,106,Enrico N.,responsabile di sede,0,referente164@cliente106.example,+39 300 000 0164,legittimo interesse B2B,biglietto da visita
-165,107,Silvia G.,facility manager,1,referente165@cliente107.example,+39 300 000 0165,legittimo interesse B2B,modulo del sito
-166,108,Fabio S.,responsabile di sede,1,referente166@cliente108.example,+39 300 000 0166,legittimo interesse B2B,modulo del sito
-167,108,Paolo H.,socio amministratore,0,referente167@cliente108.example,+39 300 000 0167,consenso,a voce
-168,109,Fabio A.,responsabile di sede,1,referente168@cliente109.example,+39 300 000 0168,contratto in corso,a voce
-169,109,Davide S.,segreteria,0,referente169@cliente109.example,+39 300 000 0169,consenso,biglietto da visita
-170,110,Davide C.,office manager,1,referente170@cliente110.example,+39 300 000 0170,legittimo interesse B2B,modulo del sito
-171,111,Chiara E.,segreteria,0,referente171@cliente111.example,,consenso,biglietto da visita
-172,111,Chiara V.,responsabile di sede,0,referente172@cliente111.example,,legittimo interesse B2B,email
-173,112,Giorgio B.,segreteria,1,referente173@cliente112.example,+39 300 000 0173,legittimo interesse B2B,email
-174,112,Fabio A.,responsabile di sede,0,referente174@cliente112.example,+39 300 000 0174,legittimo interesse B2B,modulo del sito
-175,113,Sara T.,direttore,1,referente175@cliente113.example,+39 300 000 0175,contratto in corso,email
-176,114,Laura N.,direttore,0,referente176@cliente114.example,+39 300 000 0176,legittimo interesse B2B,email
-177,114,Nadia B.,facility manager,0,referente177@cliente114.example,+39 300 000 0177,legittimo interesse B2B,modulo del sito
-178,115,Chiara N.,socio amministratore,1,referente178@cliente115.example,+39 300 000 0178,consenso,a voce
-179,116,Andrea M.,segreteria,1,referente179@cliente116.example,+39 300 000 0179,contratto in corso,a voce
-180,117,Laura T.,responsabile acquisti,0,,+39 300 000 0180,legittimo interesse B2B,biglietto da visita
-181,118,Giulia C.,responsabile di sede,0,referente181@cliente118.example,+39 300 000 0181,consenso,email
-182,118,Marco X.,socio amministratore,0,referente182@cliente118.example,+39 300 000 0182,da verificare,modulo del sito
-183,119,Irene B.,office manager,1,referente183@cliente119.example,+39 300 000 0183,contratto in corso,biglietto da visita
-184,119,Paolo C.,segreteria,0,referente184@cliente119.example,+39 300 000 0184,legittimo interesse B2B,biglietto da visita
-185,120,Elena R.,segreteria,1,referente185@cliente120.example,+39 300 000 0185,legittimo interesse B2B,email
+1,1,Giorgio F.,office manager,0,referente1@cliente1.example,+39 300 000 0001,consenso,biglietto da visita
+2,1,Luca W.,facility manager,0,referente2@cliente1.example,+39 300 000 0002,legittimo interesse B2B,a voce
+3,2,Irene Q.,segreteria,0,referente3@cliente2.example,+39 300 000 0003,da verificare,a voce
+4,2,Silvia M.,responsabile di sede,0,referente4@cliente2.example,+39 300 000 0004,consenso,modulo del sito
+5,3,Elena S.,titolare,0,referente5@cliente3.example,+39 300 000 0005,da verificare,email
+6,4,Davide L.,responsabile acquisti,1,referente6@cliente4.example,+39 300 000 0006,da verificare,email
+7,4,Sara D.,socio amministratore,0,referente7@cliente4.example,+39 300 000 0007,legittimo interesse B2B,a voce
+8,5,Silvia B.,direttore,1,referente8@cliente5.example,+39 300 000 0008,legittimo interesse B2B,email
+9,5,Marta Y.,responsabile acquisti,0,referente9@cliente5.example,+39 300 000 0009,legittimo interesse B2B,modulo del sito
+10,6,Anna B.,responsabile acquisti,1,referente10@cliente6.example,+39 300 000 0010,legittimo interesse B2B,email
+11,6,Sara G.,responsabile acquisti,0,referente11@cliente6.example,+39 300 000 0011,consenso,email
+12,7,Andrea T.,responsabile acquisti,1,referente12@cliente7.example,+39 300 000 0012,consenso,biglietto da visita
+13,8,Sara C.,responsabile di sede,1,referente13@cliente8.example,+39 300 000 0013,da verificare,email
+14,8,Anna J.,responsabile di sede,0,referente14@cliente8.example,+39 300 000 0014,legittimo interesse B2B,biglietto da visita
+15,9,Silvia B.,responsabile di sede,1,referente15@cliente9.example,+39 300 000 0015,legittimo interesse B2B,email
+16,10,Silvia W.,titolare,1,referente16@cliente10.example,+39 300 000 0016,legittimo interesse B2B,a voce
+17,10,Simona Q.,responsabile acquisti,0,referente17@cliente10.example,+39 300 000 0017,contratto in corso,a voce
+18,11,Paolo E.,facility manager,1,referente18@cliente11.example,+39 300 000 0018,consenso,a voce
+19,12,Giorgio K.,titolare,1,referente19@cliente12.example,+39 300 000 0019,legittimo interesse B2B,modulo del sito
+20,13,Giorgio A.,facility manager,1,referente20@cliente13.example,+39 300 000 0020,consenso,email
+21,13,Luca C.,socio amministratore,0,referente21@cliente13.example,+39 300 000 0021,da verificare,email
+22,14,Luca P.,socio amministratore,1,referente22@cliente14.example,+39 300 000 0022,legittimo interesse B2B,modulo del sito
+23,14,Marco C.,socio amministratore,0,referente23@cliente14.example,+39 300 000 0023,da verificare,modulo del sito
+24,15,Giulia T.,titolare,0,referente24@cliente15.example,+39 300 000 0024,legittimo interesse B2B,email
+25,15,Irene E.,responsabile di sede,0,referente25@cliente15.example,+39 300 000 0025,legittimo interesse B2B,biglietto da visita
+26,16,Simona O.,responsabile acquisti,0,referente26@cliente16.example,+39 300 000 0026,legittimo interesse B2B,modulo del sito
+27,16,Andrea Z.,responsabile di sede,0,referente27@cliente16.example,+39 300 000 0027,da verificare,a voce
+28,17,Paolo U.,direttore,1,,+39 300 000 0028,consenso,a voce
+29,18,Luca J.,segreteria,1,referente29@cliente18.example,+39 300 000 0029,consenso,email
+30,19,Marco O.,facility manager,1,referente30@cliente19.example,+39 300 000 0030,legittimo interesse B2B,biglietto da visita
+31,19,Marta I.,facility manager,0,,+39 300 000 0031,da verificare,a voce
+32,20,Laura U.,direttore,0,referente32@cliente20.example,+39 300 000 0032,legittimo interesse B2B,a voce
+33,21,Simona D.,segreteria,1,referente33@cliente21.example,+39 300 000 0033,da verificare,modulo del sito
+34,22,Andrea T.,facility manager,1,referente34@cliente22.example,+39 300 000 0034,contratto in corso,email
+35,23,Chiara X.,responsabile di sede,0,referente35@cliente23.example,+39 300 000 0035,contratto in corso,email
+36,23,Davide R.,titolare,0,referente36@cliente23.example,+39 300 000 0036,consenso,email
+37,24,Giorgio T.,titolare,1,referente37@cliente24.example,+39 300 000 0037,legittimo interesse B2B,a voce
+38,25,Nadia Q.,titolare,1,referente38@cliente25.example,+39 300 000 0038,consenso,email
+39,25,Marco T.,direttore,0,referente39@cliente25.example,+39 300 000 0039,legittimo interesse B2B,biglietto da visita
+40,26,Anna Q.,office manager,0,referente40@cliente26.example,+39 300 000 0040,contratto in corso,biglietto da visita
+41,26,Anna M.,segreteria,0,referente41@cliente26.example,+39 300 000 0041,contratto in corso,modulo del sito
+42,27,Fabio Y.,socio amministratore,1,referente42@cliente27.example,+39 300 000 0042,da verificare,biglietto da visita
+43,27,Laura M.,facility manager,0,referente43@cliente27.example,+39 300 000 0043,consenso,a voce
+44,28,Giorgio N.,office manager,1,referente44@cliente28.example,+39 300 000 0044,consenso,biglietto da visita
+45,28,Luca M.,segreteria,0,referente45@cliente28.example,+39 300 000 0045,legittimo interesse B2B,modulo del sito
+46,29,Giulia N.,segreteria,1,referente46@cliente29.example,+39 300 000 0046,legittimo interesse B2B,biglietto da visita
+47,30,Simona Q.,responsabile di sede,1,referente47@cliente30.example,+39 300 000 0047,legittimo interesse B2B,a voce
+48,30,Laura T.,titolare,0,referente48@cliente30.example,+39 300 000 0048,legittimo interesse B2B,a voce
+49,31,Luca N.,titolare,1,referente49@cliente31.example,+39 300 000 0049,legittimo interesse B2B,email
+50,31,Enrico D.,responsabile acquisti,0,referente50@cliente31.example,+39 300 000 0050,legittimo interesse B2B,a voce
+51,32,Anna M.,titolare,1,referente51@cliente32.example,+39 300 000 0051,legittimo interesse B2B,a voce
+52,32,Nadia J.,segreteria,0,referente52@cliente32.example,+39 300 000 0052,contratto in corso,modulo del sito
+53,33,Davide H.,responsabile di sede,1,referente53@cliente33.example,+39 300 000 0053,consenso,modulo del sito
+54,33,Davide T.,facility manager,0,referente54@cliente33.example,+39 300 000 0054,da verificare,modulo del sito
+55,34,Fabio I.,facility manager,1,referente55@cliente34.example,+39 300 000 0055,consenso,email
+56,35,Elena T.,direttore,1,referente56@cliente35.example,+39 300 000 0056,consenso,a voce
+57,35,Enrico K.,responsabile acquisti,0,referente57@cliente35.example,+39 300 000 0057,da verificare,a voce
+58,36,Marco R.,titolare,1,referente58@cliente36.example,+39 300 000 0058,legittimo interesse B2B,biglietto da visita
+59,36,Marta K.,responsabile di sede,0,referente59@cliente36.example,+39 300 000 0059,legittimo interesse B2B,a voce
+60,37,Paolo F.,socio amministratore,0,referente60@cliente37.example,+39 300 000 0060,consenso,biglietto da visita
+61,38,Davide A.,responsabile acquisti,1,referente61@cliente38.example,+39 300 000 0061,da verificare,biglietto da visita
+62,39,Chiara U.,direttore,1,referente62@cliente39.example,,consenso,biglietto da visita
+63,40,Giorgio B.,responsabile acquisti,1,referente63@cliente40.example,+39 300 000 0063,legittimo interesse B2B,modulo del sito
+64,40,Davide O.,office manager,0,referente64@cliente40.example,+39 300 000 0064,contratto in corso,a voce
+65,41,Anna U.,facility manager,1,referente65@cliente41.example,+39 300 000 0065,contratto in corso,email
+66,41,Luca B.,titolare,0,referente66@cliente41.example,+39 300 000 0066,legittimo interesse B2B,a voce
+67,42,Nadia Y.,facility manager,0,referente67@cliente42.example,+39 300 000 0067,legittimo interesse B2B,a voce
+68,43,Sara S.,titolare,1,referente68@cliente43.example,+39 300 000 0068,consenso,a voce
+69,43,Roberto P.,titolare,0,referente69@cliente43.example,+39 300 000 0069,da verificare,email
+70,44,Andrea J.,responsabile acquisti,1,referente70@cliente44.example,+39 300 000 0070,consenso,a voce
+71,44,Giulia J.,segreteria,0,referente71@cliente44.example,+39 300 000 0071,legittimo interesse B2B,email
+72,45,Silvia O.,office manager,1,referente72@cliente45.example,+39 300 000 0072,legittimo interesse B2B,biglietto da visita
+73,46,Giulia R.,socio amministratore,0,referente73@cliente46.example,+39 300 000 0073,consenso,a voce
+74,47,Andrea D.,socio amministratore,0,referente74@cliente47.example,+39 300 000 0074,da verificare,biglietto da visita
+75,48,Silvia L.,direttore,1,referente75@cliente48.example,+39 300 000 0075,consenso,a voce
+76,49,Elena A.,direttore,1,referente76@cliente49.example,+39 300 000 0076,consenso,modulo del sito
+77,49,Giulia Z.,titolare,0,referente77@cliente49.example,+39 300 000 0077,consenso,a voce
+78,50,Silvia B.,office manager,0,referente78@cliente50.example,+39 300 000 0078,consenso,modulo del sito
+79,50,Fabio W.,direttore,0,referente79@cliente50.example,+39 300 000 0079,consenso,modulo del sito
+80,51,Chiara K.,socio amministratore,1,referente80@cliente51.example,+39 300 000 0080,contratto in corso,modulo del sito
+81,51,Giorgio K.,responsabile di sede,0,referente81@cliente51.example,+39 300 000 0081,legittimo interesse B2B,email
+82,52,Andrea X.,office manager,1,referente82@cliente52.example,+39 300 000 0082,da verificare,modulo del sito
+83,52,Irene K.,segreteria,0,referente83@cliente52.example,,da verificare,a voce
+84,53,Simona O.,facility manager,1,referente84@cliente53.example,+39 300 000 0084,legittimo interesse B2B,modulo del sito
+85,53,Silvia T.,responsabile di sede,0,referente85@cliente53.example,+39 300 000 0085,legittimo interesse B2B,modulo del sito
+86,54,Laura N.,socio amministratore,1,referente86@cliente54.example,+39 300 000 0086,legittimo interesse B2B,biglietto da visita
+87,55,Sara H.,facility manager,0,referente87@cliente55.example,+39 300 000 0087,consenso,biglietto da visita
+88,55,Simona H.,responsabile di sede,0,referente88@cliente55.example,+39 300 000 0088,legittimo interesse B2B,biglietto da visita
+89,56,Simona T.,responsabile acquisti,1,referente89@cliente56.example,+39 300 000 0089,consenso,a voce
+90,57,Roberto S.,direttore,1,referente90@cliente57.example,+39 300 000 0090,da verificare,a voce
+91,57,Enrico U.,responsabile acquisti,0,referente91@cliente57.example,+39 300 000 0091,legittimo interesse B2B,modulo del sito
+92,58,Anna L.,responsabile acquisti,1,referente92@cliente58.example,+39 300 000 0092,da verificare,modulo del sito
+93,58,Luca R.,office manager,0,referente93@cliente58.example,+39 300 000 0093,consenso,biglietto da visita
+94,59,Marco S.,direttore,1,referente94@cliente59.example,+39 300 000 0094,consenso,biglietto da visita
+95,60,Laura T.,responsabile di sede,1,referente95@cliente60.example,+39 300 000 0095,consenso,biglietto da visita
+96,61,Irene H.,direttore,1,referente96@cliente61.example,+39 300 000 0096,da verificare,email
+97,62,Davide P.,socio amministratore,1,referente97@cliente62.example,+39 300 000 0097,legittimo interesse B2B,email
+98,62,Andrea V.,office manager,0,referente98@cliente62.example,+39 300 000 0098,consenso,biglietto da visita
+99,63,Marco M.,responsabile di sede,1,referente99@cliente63.example,+39 300 000 0099,consenso,a voce
+100,64,Laura K.,socio amministratore,0,referente100@cliente64.example,+39 300 000 0100,legittimo interesse B2B,biglietto da visita
+101,64,Fabio J.,titolare,0,referente101@cliente64.example,+39 300 000 0101,contratto in corso,email
+102,65,Irene I.,titolare,1,referente102@cliente65.example,+39 300 000 0102,da verificare,a voce
+103,66,Sara E.,responsabile acquisti,1,referente103@cliente66.example,+39 300 000 0103,contratto in corso,a voce
+104,66,Giorgio D.,responsabile di sede,0,referente104@cliente66.example,+39 300 000 0104,contratto in corso,a voce
+105,67,Davide I.,direttore,1,referente105@cliente67.example,+39 300 000 0105,da verificare,email
+106,68,Laura H.,direttore,1,referente106@cliente68.example,+39 300 000 0106,legittimo interesse B2B,a voce
+107,68,Irene L.,direttore,0,referente107@cliente68.example,,da verificare,biglietto da visita
+108,69,Marta S.,facility manager,1,referente108@cliente69.example,+39 300 000 0108,legittimo interesse B2B,a voce
+109,69,Giulia I.,socio amministratore,0,referente109@cliente69.example,+39 300 000 0109,da verificare,biglietto da visita
+110,70,Fabio P.,socio amministratore,1,referente110@cliente70.example,+39 300 000 0110,legittimo interesse B2B,modulo del sito
+111,71,Nadia I.,facility manager,1,referente111@cliente71.example,+39 300 000 0111,legittimo interesse B2B,biglietto da visita
+112,71,Marco D.,direttore,0,referente112@cliente71.example,+39 300 000 0112,legittimo interesse B2B,biglietto da visita
+113,72,Paolo N.,socio amministratore,1,referente113@cliente72.example,+39 300 000 0113,da verificare,modulo del sito
+114,72,Chiara S.,responsabile acquisti,0,referente114@cliente72.example,+39 300 000 0114,legittimo interesse B2B,modulo del sito
+115,73,Elena A.,responsabile acquisti,0,,+39 300 000 0115,da verificare,a voce
+116,74,Sara K.,responsabile acquisti,1,referente116@cliente74.example,+39 300 000 0116,legittimo interesse B2B,modulo del sito
+117,74,Andrea G.,segreteria,0,,+39 300 000 0117,legittimo interesse B2B,a voce
+118,75,Silvia P.,responsabile acquisti,1,referente118@cliente75.example,+39 300 000 0118,consenso,modulo del sito
+119,75,Paolo U.,responsabile acquisti,0,referente119@cliente75.example,+39 300 000 0119,da verificare,biglietto da visita
+120,76,Fabio E.,facility manager,1,referente120@cliente76.example,+39 300 000 0120,consenso,a voce
+121,76,Luca B.,responsabile di sede,0,referente121@cliente76.example,+39 300 000 0121,legittimo interesse B2B,biglietto da visita
+122,77,Luca J.,office manager,1,referente122@cliente77.example,+39 300 000 0122,da verificare,modulo del sito
+123,77,Irene R.,responsabile acquisti,0,referente123@cliente77.example,+39 300 000 0123,consenso,a voce
+124,78,Simona E.,segreteria,1,referente124@cliente78.example,+39 300 000 0124,legittimo interesse B2B,biglietto da visita
+125,78,Roberto V.,titolare,0,referente125@cliente78.example,+39 300 000 0125,legittimo interesse B2B,biglietto da visita
+126,79,Sara J.,segreteria,1,,+39 300 000 0126,legittimo interesse B2B,biglietto da visita
+127,79,Anna C.,responsabile di sede,0,referente127@cliente79.example,+39 300 000 0127,da verificare,email
+128,80,Marta E.,socio amministratore,0,referente128@cliente80.example,+39 300 000 0128,legittimo interesse B2B,a voce
+129,80,Nadia R.,direttore,0,referente129@cliente80.example,+39 300 000 0129,legittimo interesse B2B,a voce
+130,81,Nadia D.,socio amministratore,0,referente130@cliente81.example,+39 300 000 0130,legittimo interesse B2B,biglietto da visita
+131,82,Sara G.,responsabile acquisti,1,referente131@cliente82.example,+39 300 000 0131,legittimo interesse B2B,email
+132,83,Irene F.,responsabile di sede,0,referente132@cliente83.example,+39 300 000 0132,legittimo interesse B2B,modulo del sito
+133,84,Nadia T.,titolare,1,referente133@cliente84.example,+39 300 000 0133,legittimo interesse B2B,biglietto da visita
+134,84,Roberto K.,responsabile acquisti,0,referente134@cliente84.example,+39 300 000 0134,consenso,modulo del sito
+135,85,Nadia E.,facility manager,1,referente135@cliente85.example,+39 300 000 0135,legittimo interesse B2B,a voce
+136,86,Anna L.,direttore,1,referente136@cliente86.example,+39 300 000 0136,legittimo interesse B2B,a voce
+137,87,Nadia B.,facility manager,1,referente137@cliente87.example,+39 300 000 0137,consenso,biglietto da visita
+138,88,Nadia N.,office manager,1,referente138@cliente88.example,+39 300 000 0138,consenso,a voce
+139,89,Anna W.,segreteria,0,referente139@cliente89.example,+39 300 000 0139,legittimo interesse B2B,email
+140,89,Roberto P.,socio amministratore,0,referente140@cliente89.example,+39 300 000 0140,consenso,a voce
+141,90,Marco O.,direttore,1,referente141@cliente90.example,+39 300 000 0141,contratto in corso,email
+142,91,Marta R.,responsabile acquisti,1,referente142@cliente91.example,+39 300 000 0142,contratto in corso,email
+143,92,Giorgio H.,socio amministratore,1,referente143@cliente92.example,+39 300 000 0143,consenso,biglietto da visita
+144,92,Roberto R.,segreteria,0,referente144@cliente92.example,+39 300 000 0144,consenso,modulo del sito
+145,93,Roberto Y.,office manager,1,referente145@cliente93.example,+39 300 000 0145,legittimo interesse B2B,a voce
+146,94,Simona N.,segreteria,0,referente146@cliente94.example,,da verificare,a voce
+147,94,Nadia X.,titolare,0,referente147@cliente94.example,+39 300 000 0147,legittimo interesse B2B,modulo del sito
+148,95,Roberto P.,office manager,0,referente148@cliente95.example,+39 300 000 0148,legittimo interesse B2B,biglietto da visita
+149,96,Marco Q.,facility manager,1,referente149@cliente96.example,+39 300 000 0149,consenso,a voce
+150,96,Marco F.,responsabile di sede,0,referente150@cliente96.example,+39 300 000 0150,consenso,email
+151,97,Paolo M.,direttore,1,referente151@cliente97.example,+39 300 000 0151,legittimo interesse B2B,biglietto da visita
+152,97,Fabio J.,responsabile acquisti,0,referente152@cliente97.example,+39 300 000 0152,legittimo interesse B2B,email
+153,98,Enrico E.,office manager,1,referente153@cliente98.example,+39 300 000 0153,da verificare,modulo del sito
+154,99,Anna J.,titolare,0,referente154@cliente99.example,+39 300 000 0154,legittimo interesse B2B,biglietto da visita
+155,100,Anna X.,facility manager,1,referente155@cliente100.example,+39 300 000 0155,da verificare,modulo del sito
+156,101,Paolo N.,direttore,0,referente156@cliente101.example,+39 300 000 0156,legittimo interesse B2B,modulo del sito
+157,101,Andrea O.,office manager,0,referente157@cliente101.example,+39 300 000 0157,legittimo interesse B2B,modulo del sito
+158,102,Chiara L.,responsabile di sede,1,referente158@cliente102.example,,consenso,a voce
+159,103,Roberto N.,responsabile di sede,1,referente159@cliente103.example,+39 300 000 0159,consenso,biglietto da visita
+160,104,Davide O.,socio amministratore,1,referente160@cliente104.example,+39 300 000 0160,legittimo interesse B2B,modulo del sito
+161,104,Luca Q.,facility manager,0,referente161@cliente104.example,,legittimo interesse B2B,modulo del sito
+162,105,Marco O.,facility manager,0,referente162@cliente105.example,+39 300 000 0162,legittimo interesse B2B,biglietto da visita
+163,105,Silvia J.,segreteria,0,referente163@cliente105.example,,consenso,email
+164,106,Davide A.,facility manager,1,referente164@cliente106.example,+39 300 000 0164,legittimo interesse B2B,a voce
+165,106,Andrea F.,facility manager,0,referente165@cliente106.example,+39 300 000 0165,legittimo interesse B2B,a voce
+166,107,Giulia I.,direttore,0,referente166@cliente107.example,+39 300 000 0166,legittimo interesse B2B,a voce
+167,107,Paolo U.,direttore,0,referente167@cliente107.example,+39 300 000 0167,da verificare,a voce
+168,108,Enrico N.,responsabile di sede,0,referente168@cliente108.example,+39 300 000 0168,legittimo interesse B2B,biglietto da visita
+169,109,Silvia G.,facility manager,1,referente169@cliente109.example,+39 300 000 0169,legittimo interesse B2B,modulo del sito
+170,110,Fabio S.,responsabile di sede,1,referente170@cliente110.example,+39 300 000 0170,legittimo interesse B2B,modulo del sito
+171,110,Paolo H.,socio amministratore,0,referente171@cliente110.example,+39 300 000 0171,consenso,a voce
+172,111,Fabio A.,responsabile di sede,1,referente172@cliente111.example,+39 300 000 0172,contratto in corso,a voce
+173,111,Davide S.,segreteria,0,referente173@cliente111.example,+39 300 000 0173,consenso,biglietto da visita
+174,112,Davide C.,office manager,1,referente174@cliente112.example,+39 300 000 0174,legittimo interesse B2B,modulo del sito
+175,113,Chiara E.,segreteria,0,referente175@cliente113.example,,consenso,biglietto da visita
+176,113,Chiara V.,responsabile di sede,0,referente176@cliente113.example,,legittimo interesse B2B,email
+177,114,Giorgio B.,segreteria,1,referente177@cliente114.example,+39 300 000 0177,legittimo interesse B2B,email
+178,114,Fabio A.,responsabile di sede,0,referente178@cliente114.example,+39 300 000 0178,legittimo interesse B2B,modulo del sito
+179,115,Sara T.,direttore,1,referente179@cliente115.example,+39 300 000 0179,contratto in corso,email
+180,116,Laura N.,direttore,0,referente180@cliente116.example,+39 300 000 0180,legittimo interesse B2B,email
+181,116,Nadia B.,facility manager,0,referente181@cliente116.example,+39 300 000 0181,legittimo interesse B2B,modulo del sito
+182,117,Chiara N.,socio amministratore,1,referente182@cliente117.example,+39 300 000 0182,consenso,a voce
+183,118,Andrea M.,segreteria,1,referente183@cliente118.example,+39 300 000 0183,contratto in corso,a voce
+184,119,Laura T.,responsabile acquisti,0,,+39 300 000 0184,legittimo interesse B2B,biglietto da visita
+185,120,Giulia C.,responsabile di sede,0,referente185@cliente120.example,+39 300 000 0185,consenso,email
+186,120,Marco X.,socio amministratore,0,referente186@cliente120.example,+39 300 000 0186,da verificare,modulo del sito

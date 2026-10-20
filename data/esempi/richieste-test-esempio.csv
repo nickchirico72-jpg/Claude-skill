@@ -1,0 +1,15 @@
+# ESEMPIO DI PROVA: righe inventate per verificare l'import, NON sono dati di Gate. Sostituire con il foglio del test di tre settimane.
+# La riga 7 contiene apposta un errore (esito "vinta"): l'import deve scartarla e dire perché.
+data_richiesta;data_registrazione;canale;settore;data_risposta;data_offerta;esito;fonte;note
+2026-09-28;2026-09-28;modulo sito;uffici e commercio;2026-09-28;2026-10-05;contratto;test;ESEMPIO - Studio Prova Nu
+2026-09-29;2026-09-29;WhatsApp Business;uffici e commercio;2026-09-30;;aperta;test;ESEMPIO - Studio Prova Xi
+2026-09-30;2026-09-30;LinkedIn;uffici e commercio;2026-09-30;2026-10-08;aperta;test;ESEMPIO - Agenzia Prova Omicron
+2026-10-01;2026-10-02;passaparola;sanità;2026-10-02;2026-10-09;contratto;test;ESEMPIO - Studio Medico Prova Pi
+2026-10-02;2026-10-02;sito web;uffici e commercio;2026-10-02;;non interessante;test;ESEMPIO - Negozio Prova Rho
+2026-10-05;2026-10-05;modulo sito;ricettivo;2026-10-06;2026-10-13;aperta;test;ESEMPIO - B&B Prova Sigma
+2026-10-06;2026-10-06;porta a porta;uffici e commercio;2026-10-07;;vinta;test;ESEMPIO - riga sbagliata apposta
+2026-10-07;2026-10-09;contatto diretto;industria;2026-10-08;;persa;test;ESEMPIO - Laboratorio Prova Tau
+2026-10-08;2026-10-08;WhatsApp Business;uffici e commercio;2026-10-08;2026-10-14;aperta;test;ESEMPIO - Studio Prova Ypsilon
+2026-10-12;2026-10-12;profilo Google;uffici e commercio;2026-10-12;;aperta;test;ESEMPIO - Studio Prova Phi
+2026-10-13;2026-10-13;modulo sito;uffici e commercio;2026-10-14;;aperta;test;ESEMPIO - Centro Uffici Prova Chi
+2026-10-15;2026-10-15;LinkedIn;GDO;2026-10-16;;aperta;test;ESEMPIO - Magazzino Prova Psi

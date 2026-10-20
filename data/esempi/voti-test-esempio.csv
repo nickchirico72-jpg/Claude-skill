@@ -1,0 +1,9 @@
+# ESEMPIO DI PROVA: voti inventati (1 = molto difficile, 5 = molto facile). riga = numero della richiesta nel foglio del test (1 = la prima).
+fonte;riga;voto_facilita
+test;1;5
+test;2;4
+test;3;5
+test;4;4
+test;6;3
+test;9;5
+test;11;4

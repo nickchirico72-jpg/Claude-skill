@@ -1,121 +1,121 @@
 id_cliente,nome,settore,provincia,comune,km_da_bari,superficie_mq,tipo_cliente
-1,Centro Uffici Lambda,uffici e commercio,BA,Modugno,11,2840,privato
-2,Studio Tecnico Iota,uffici e commercio,BA,Bari,0,100,privato
-3,Negozio Sigma,uffici e commercio,BA,Casamassima,20,1460,privato
-4,Studio Legale Gamma,uffici e commercio,BA,Conversano,31,1250,privato
-5,Agenzia Gamma,uffici e commercio,BA,Triggiano,10,1810,privato
-6,Studio Legale Orione,uffici e commercio,BA,Monopoli,44,1790,privato
-7,Studio Tecnico Ponente,uffici e commercio,BA,Triggiano,10,1960,privato
-8,Centro Uffici Beta,uffici e commercio,BA,Altamura,46,1890,privato
-9,Studio Tecnico Pi,uffici e commercio,BA,Altamura,46,2860,privato
-10,Studio Tecnico Lambda,uffici e commercio,BA,Casamassima,20,770,privato
-11,Agenzia Pi,uffici e commercio,BA,Modugno,11,1170,privato
-12,Agenzia Beta,uffici e commercio,BA,Molfetta,29,1330,privato
-13,Studio Legale Tau,uffici e commercio,BA,Bitonto,19,1380,privato
-14,Studio Legale Lambda,uffici e commercio,BA,Bari,0,920,privato
-15,Centro Uffici Tau,uffici e commercio,BA,Casamassima,20,410,privato
-16,Centro Uffici Kappa,uffici e commercio,BA,Bitonto,19,2590,privato
-17,Negozio Zeta,uffici e commercio,BA,Casamassima,20,1760,privato
-18,Studio Commercialisti Iota,uffici e commercio,BA,Altamura,46,320,privato
-19,Studio Tecnico Beta,uffici e commercio,BA,Monopoli,44,1700,privato
-20,Centro Uffici Psi,uffici e commercio,BA,Gioia del Colle,41,2750,privato
-21,Studio Legale Xi,uffici e commercio,BA,Gioia del Colle,41,1130,privato
-22,Centro Uffici Sirio,uffici e commercio,BA,Casamassima,20,1170,privato
-23,Studio Legale Alfa,uffici e commercio,BA,Molfetta,29,1450,privato
-24,Studio Tecnico Levante,uffici e commercio,BA,Casamassima,20,1150,privato
-25,Centro Uffici Orione,uffici e commercio,BA,Molfetta,29,990,privato
-26,Studio Commercialisti Zeta,uffici e commercio,BA,Gioia del Colle,41,170,privato
-27,Agenzia Delta,uffici e commercio,BA,Triggiano,10,1930,privato
-28,Studio Tecnico Aurora,uffici e commercio,BA,Bari,0,,privato
-29,Studio Legale Ypsilon,uffici e commercio,BA,Modugno,11,230,privato
-30,Agenzia Chi,uffici e commercio,BA,Triggiano,10,2540,privato
-31,Centro Uffici Xi,uffici e commercio,BA,Altamura,46,2790,privato
-32,Centro Uffici Omicron,uffici e commercio,BA,Casamassima,20,920,privato
-33,Agenzia Eta,uffici e commercio,BA,Molfetta,29,1010,privato
-34,Studio Tecnico Sigma,uffici e commercio,BA,Altamura,46,570,privato
-35,Studio Legale Zeta,uffici e commercio,BA,Bari,0,1310,privato
-36,Studio Commercialisti Lambda,uffici e commercio,BA,Molfetta,29,1200,privato
-37,Studio Commercialisti Ypsilon,uffici e commercio,BA,Bari,0,710,privato
-38,Negozio Chi,uffici e commercio,BA,Modugno,11,240,privato
-39,Negozio Delta,uffici e commercio,BA,Gioia del Colle,41,940,privato
-40,Agenzia Kappa,uffici e commercio,BA,Conversano,31,280,privato
-41,Studio Tecnico Chi,uffici e commercio,BA,Conversano,31,1140,privato
-42,Studio Tecnico Ypsilon,uffici e commercio,BA,Altamura,46,1470,privato
-43,Centro Uffici Mu,uffici e commercio,BA,Casamassima,20,880,privato
-44,Studio Commercialisti Beta,uffici e commercio,BA,Altamura,46,950,privato
-45,Logistica Vega,trasporti,BA,Bari,0,1850,privato
-46,Ristorante Sigma,ricettivo,BA,Triggiano,10,2280,privato
-47,Officine Eta,industria,TA,Taranto,94,1910,privato
-48,Laboratorio Iota,industria,BA,Modugno,11,1610,privato
-49,Ufficio Comunale Delta,enti pubblici,BA,Bitonto,19,2650,pubblico
-50,Magazzino Alfa,GDO,FG,San Severo,160,1570,privato
-51,Studio Tecnico Zeta,uffici e commercio,BT,Bisceglie,37,2490,privato
-52,Laboratorio Analisi Tau,sanità,BT,Bisceglie,37,1890,pubblico
-53,Hotel Eta,ricettivo,TA,Massafra,76,750,privato
-54,Hotel Chi,ricettivo,BR,Fasano,60,340,privato
-55,Consorzio Xi,enti pubblici,FG,Foggia,132,420,pubblico
-56,Istituto Chi,enti pubblici,BA,Gioia del Colle,41,1250,pubblico
-57,Clinica Orione,sanità,BA,Monopoli,44,1620,pubblico
-58,Ente Eta,enti pubblici,BA,Modugno,11,,pubblico
-59,Agenzia Levante,uffici e commercio,FG,Cerignola,96,1190,privato
-60,Ente Delta,enti pubblici,BA,Monopoli,44,2300,pubblico
-61,Centro Uffici Phi,uffici e commercio,TA,Martina Franca,74,1480,privato
-62,Magazzino Sirio,GDO,BA,Casamassima,20,1070,privato
-63,Stabilimento Ypsilon,industria,BR,Ostuni,82,370,privato
-64,Stabilimento Nu,industria,BA,Conversano,31,1930,privato
-65,Magazzino Vega,GDO,BR,Fasano,60,2200,privato
-66,Ufficio Comunale Ypsilon,enti pubblici,BT,Barletta,58,370,pubblico
-67,Studio Legale Psi,uffici e commercio,TA,Taranto,94,1890,privato
-68,Centro Uffici Gamma,uffici e commercio,BR,Ostuni,82,940,privato
-69,Ente Aurora,enti pubblici,FG,Foggia,132,,pubblico
-70,Ufficio Comunale Eta,enti pubblici,TA,Martina Franca,74,2080,pubblico
-71,Studio Medico Iota,sanità,BT,Barletta,58,2430,privato
-72,Istituto Sirio,enti pubblici,BA,Bari,0,2920,pubblico
-73,Poliambulatorio Nu,sanità,BA,Casamassima,20,1530,pubblico
-74,Deposito Omicron,trasporti,BA,Gioia del Colle,41,1880,privato
-75,Centro Uffici Chi,uffici e commercio,BT,Bisceglie,37,890,privato
-76,Logistica Epsilon,trasporti,BA,Conversano,31,1100,privato
-77,Officine Orione,industria,BA,Modugno,11,90,privato
-78,Agenzia Theta,uffici e commercio,BT,Andria,57,310,privato
-79,Ente Orione,enti pubblici,BA,Casamassima,20,400,pubblico
-80,Autotrasporti Tau,trasporti,BR,Ostuni,82,570,privato
-81,Autostazione Omicron,trasporti,BA,Triggiano,10,1390,privato
-82,B&B Epsilon,ricettivo,BA,Molfetta,29,2880,privato
-83,Deposito Aurora,trasporti,BT,Barletta,58,850,privato
-84,Ufficio Comunale Xi,enti pubblici,BA,Bitonto,19,1210,pubblico
-85,Studio Tecnico Phi,uffici e commercio,TA,Taranto,94,1730,privato
-86,Clinica Lambda,sanità,BA,Molfetta,29,2140,privato
-87,Laboratorio Analisi Eta,sanità,BA,Altamura,46,2230,privato
-88,Autotrasporti Lambda,trasporti,BA,Altamura,46,660,privato
-89,Laboratorio Theta,industria,BA,Modugno,11,750,privato
-90,Stabilimento Aurora,industria,BT,Trani,45,2790,privato
-91,Studio Commercialisti Kappa,uffici e commercio,TA,Martina Franca,74,1090,privato
-92,Clinica Omega,sanità,BA,Triggiano,10,490,privato
-93,Supermercato Aurora,GDO,BA,Triggiano,10,850,privato
-94,Studio Medico Sigma,sanità,FG,Foggia,132,1450,pubblico
-95,Manifattura Mu,industria,BA,Gioia del Colle,41,1010,privato
-96,Studio Legale Nu,uffici e commercio,LE,Nardò,175,640,privato
-97,B&B Eta,ricettivo,FG,Foggia,132,2050,privato
-98,Deposito Theta,trasporti,LE,Nardò,175,750,privato
-99,B&B Omicron,ricettivo,FG,Cerignola,96,2670,privato
-100,Officine Iota,industria,BA,Monopoli,44,690,privato
-101,Studio Medico Omicron,sanità,BA,Gioia del Colle,41,1160,privato
-102,Istituto Epsilon,enti pubblici,BA,Modugno,11,530,pubblico
-103,Agenzia Omicron,uffici e commercio,BT,Barletta,58,1420,privato
-104,Ente Mu,enti pubblici,BA,Casamassima,20,640,pubblico
-105,Agenzia Rho,uffici e commercio,BT,Barletta,58,100,privato
-106,Istituto Nu,enti pubblici,BA,Altamura,46,200,pubblico
-107,B&B Chi,ricettivo,TA,Massafra,76,1750,privato
-108,Autotrasporti Kappa,trasporti,BR,Fasano,60,,privato
-109,Centro Commerciale Omicron,GDO,BA,Monopoli,44,1520,privato
-110,Supermercato Xi,GDO,BA,Altamura,46,2880,privato
-111,B&B Lambda,ricettivo,LE,Lecce,152,2750,privato
-112,Studio Commercialisti Omicron,uffici e commercio,LE,Nardò,175,2630,privato
-113,Magazzino Tau,GDO,BT,Barletta,58,1220,privato
-114,Autostazione Psi,trasporti,BA,Triggiano,10,300,privato
-115,Centro Uffici Rho,uffici e commercio,FG,Foggia,132,2720,privato
-116,Officine Chi,industria,FG,Foggia,132,2570,privato
-117,Negozio Zeta S.r.l.,uffici e commercio,BA,Casamassima,20,1760,privato
-118,Centro Uffici Tau srl,uffici e commercio,BA,Casamassima,20,410,privato
-119,Centro Uffici Orione  ,uffici e commercio,BA,Molfetta,29,990,privato
-120,Studio Tecnico Ypsilon (sede),uffici e commercio,BA,Altamura,46,1470,privato
+1,Centro Uffici Lambda,uffici e commercio,BA,Conversano,31,1160,privato
+2,Agenzia Sigma,uffici e commercio,BA,Valenzano,13,220,privato
+3,Studio Tecnico Epsilon,uffici e commercio,BA,Bari,0,1580,privato
+4,Agenzia Phi,uffici e commercio,BA,Valenzano,13,470,privato
+5,Studio Legale Nu,uffici e commercio,BA,Molfetta,29,2390,privato
+6,Studio Legale Zeta,uffici e commercio,BA,Bitonto,19,1810,privato
+7,Studio Legale Orione,uffici e commercio,BA,Giovinazzo,21,1790,privato
+8,Studio Tecnico Ponente,uffici e commercio,BA,Triggiano,10,1960,privato
+9,Centro Uffici Beta,uffici e commercio,BA,Altamura,46,80,privato
+10,Negozio Mu,uffici e commercio,BA,Monopoli,44,2580,privato
+11,Centro Uffici Psi,uffici e commercio,BA,Valenzano,13,1740,privato
+12,Studio Tecnico Ypsilon,uffici e commercio,BA,Modugno,11,770,privato
+13,Agenzia Pi,uffici e commercio,BA,Modugno,11,1170,privato
+14,Agenzia Beta,uffici e commercio,BA,Monopoli,44,1330,privato
+15,Studio Legale Tau,uffici e commercio,BA,Gioia del Colle,41,1310,privato
+16,Agenzia Orione,uffici e commercio,BA,Conversano,31,620,privato
+17,Studio Tecnico Alfa,uffici e commercio,BA,Giovinazzo,21,920,privato
+18,Centro Uffici Tau,uffici e commercio,BA,Altamura,46,410,privato
+19,Centro Uffici Kappa,uffici e commercio,BA,Capurso,12,2590,privato
+20,Studio Legale Lambda,uffici e commercio,BA,Molfetta,29,1760,privato
+21,Studio Commercialisti Iota,uffici e commercio,BA,Conversano,31,1370,privato
+22,Negozio Beta,uffici e commercio,BA,Noicattaro,17,,privato
+23,Negozio Orione,uffici e commercio,BA,Noicattaro,17,2360,privato
+24,Studio Commercialisti Psi,uffici e commercio,BA,Conversano,31,2270,privato
+25,Agenzia Kappa,uffici e commercio,BA,Casamassima,20,1430,privato
+26,Studio Commercialisti Mu,uffici e commercio,BA,Capurso,12,1900,privato
+27,Studio Commercialisti Delta,uffici e commercio,BA,Valenzano,13,1360,privato
+28,Studio Commercialisti Epsilon,uffici e commercio,BA,Monopoli,44,1830,privato
+29,Negozio Sigma,uffici e commercio,BA,Triggiano,10,2430,privato
+30,Centro Uffici Ponente,uffici e commercio,BA,Bari,0,590,privato
+31,Negozio Levante,uffici e commercio,BA,Triggiano,10,1930,privato
+32,Studio Tecnico Aurora,uffici e commercio,BA,Bari,0,,privato
+33,Studio Legale Ypsilon,uffici e commercio,BA,Modugno,11,230,privato
+34,Studio Legale Xi,uffici e commercio,BA,Casamassima,20,850,privato
+35,Studio Legale Sigma,uffici e commercio,BA,Altamura,46,2220,privato
+36,Centro Uffici Aurora,uffici e commercio,BA,Noicattaro,17,2910,privato
+37,Agenzia Iota,uffici e commercio,BA,Altamura,46,2330,privato
+38,Studio Commercialisti Omicron,uffici e commercio,BA,Monopoli,44,2890,privato
+39,Negozio Tau,uffici e commercio,BA,Altamura,46,570,privato
+40,Centro Uffici Theta,uffici e commercio,BA,Capurso,12,1350,privato
+41,Studio Commercialisti Theta,uffici e commercio,BA,Giovinazzo,21,1290,privato
+42,Centro Uffici Phi,uffici e commercio,BA,Altamura,46,2580,privato
+43,Centro Uffici Delta,uffici e commercio,BA,Molfetta,29,1540,privato
+44,Studio Legale Beta,uffici e commercio,BA,Molfetta,29,2790,privato
+45,Magazzino Pi,GDO,BA,Conversano,31,,privato
+46,Deposito Kappa,trasporti,TA,Taranto,94,1600,privato
+47,Magazzino Rho,GDO,BA,Valenzano,13,1650,privato
+48,B&B Eta,ricettivo,FG,Cerignola,96,1700,privato
+49,Centro Commerciale Vega,GDO,BR,Fasano,60,1850,privato
+50,Ristorante Sigma,ricettivo,BA,Triggiano,10,2280,privato
+51,Officine Eta,industria,TA,Taranto,94,1910,privato
+52,Laboratorio Iota,industria,BA,Modugno,11,1610,privato
+53,Ufficio Comunale Delta,enti pubblici,BA,Capurso,12,2650,pubblico
+54,Magazzino Alfa,GDO,FG,San Severo,160,1570,privato
+55,Studio Tecnico Zeta,uffici e commercio,BT,Bisceglie,37,2490,privato
+56,Laboratorio Analisi Tau,sanità,BT,Bisceglie,37,1890,pubblico
+57,Hotel Eta,ricettivo,TA,Massafra,76,750,privato
+58,Hotel Chi,ricettivo,BR,Fasano,60,340,privato
+59,Consorzio Xi,enti pubblici,FG,Foggia,132,420,pubblico
+60,Istituto Chi,enti pubblici,BA,Casamassima,20,1250,pubblico
+61,Clinica Orione,sanità,BA,Gioia del Colle,41,2400,privato
+62,Officine Alfa,industria,FG,Cerignola,96,780,privato
+63,Ente Ponente,enti pubblici,BA,Casamassima,20,1190,pubblico
+64,Ente Delta,enti pubblici,BA,Conversano,31,2300,pubblico
+65,Studio Commercialisti Phi,uffici e commercio,TA,Massafra,76,1480,privato
+66,Magazzino Sirio,GDO,BA,Valenzano,13,1070,privato
+67,Stabilimento Ypsilon,industria,BR,Ostuni,82,370,privato
+68,Stabilimento Nu,industria,BA,Altamura,46,1930,privato
+69,Magazzino Vega,GDO,BR,Fasano,60,2200,privato
+70,Ufficio Comunale Ypsilon,enti pubblici,BT,Barletta,58,370,pubblico
+71,Studio Legale Psi,uffici e commercio,TA,Taranto,94,1890,privato
+72,Centro Uffici Gamma,uffici e commercio,BR,Ostuni,82,940,privato
+73,Ente Aurora,enti pubblici,FG,Foggia,132,,pubblico
+74,Ufficio Comunale Eta,enti pubblici,TA,Martina Franca,74,2080,pubblico
+75,Studio Medico Iota,sanità,BT,Barletta,58,2430,privato
+76,Istituto Sirio,enti pubblici,BA,Bari,0,2920,pubblico
+77,Poliambulatorio Nu,sanità,BA,Valenzano,13,1530,pubblico
+78,Deposito Omicron,trasporti,BA,Molfetta,29,1880,privato
+79,Centro Uffici Chi,uffici e commercio,BT,Bisceglie,37,890,privato
+80,Logistica Epsilon,trasporti,BA,Bitonto,19,1100,privato
+81,Officine Orione,industria,BA,Modugno,11,90,privato
+82,Agenzia Theta,uffici e commercio,BT,Andria,57,310,privato
+83,Ente Orione,enti pubblici,BA,Valenzano,13,400,pubblico
+84,Autotrasporti Tau,trasporti,BR,Ostuni,82,570,privato
+85,Autostazione Omicron,trasporti,BA,Gioia del Colle,41,640,privato
+86,Laboratorio Eta,industria,BA,Triggiano,10,2880,privato
+87,Deposito Aurora,trasporti,BT,Barletta,58,850,privato
+88,Ufficio Comunale Xi,enti pubblici,BA,Capurso,12,1210,pubblico
+89,Studio Tecnico Phi,uffici e commercio,TA,Taranto,94,1730,privato
+90,Clinica Lambda,sanità,BA,Monopoli,44,2140,pubblico
+91,Laboratorio Analisi Eta,sanità,BA,Mola di Bari,22,2230,privato
+92,Autotrasporti Lambda,trasporti,BA,Molfetta,29,490,privato
+93,Studio Tecnico Sirio,uffici e commercio,BT,Trani,45,1290,privato
+94,Istituto Rho,enti pubblici,BA,Modugno,11,1350,pubblico
+95,Manifattura Chi,industria,BA,Capurso,12,1620,privato
+96,Manifattura Phi,industria,FG,San Severo,160,490,privato
+97,Supermercato Aurora,GDO,BA,Triggiano,10,850,privato
+98,Studio Medico Sigma,sanità,FG,Foggia,132,1450,pubblico
+99,Manifattura Mu,industria,BA,Molfetta,29,1010,privato
+100,Centro Uffici Sirio,uffici e commercio,LE,Lecce,152,2760,privato
+101,Poliambulatorio Epsilon,sanità,BA,Capurso,12,2110,privato
+102,Consorzio Theta,enti pubblici,TA,Massafra,76,750,pubblico
+103,B&B Omicron,ricettivo,FG,Cerignola,96,2670,privato
+104,Officine Iota,industria,BA,Giovinazzo,21,690,privato
+105,Studio Medico Omicron,sanità,BA,Casamassima,20,1160,privato
+106,Istituto Epsilon,enti pubblici,BA,Gioia del Colle,41,650,pubblico
+107,Ente Rho,enti pubblici,BA,Capurso,12,340,pubblico
+108,Manifattura Omicron,industria,BA,Bitonto,19,1420,privato
+109,Ente Mu,enti pubblici,BA,Valenzano,13,640,pubblico
+110,Agenzia Rho,uffici e commercio,BT,Barletta,58,100,privato
+111,Istituto Nu,enti pubblici,BA,Mola di Bari,22,200,pubblico
+112,B&B Chi,ricettivo,TA,Massafra,76,1750,privato
+113,Autotrasporti Kappa,trasporti,BR,Fasano,60,,privato
+114,Centro Commerciale Omicron,GDO,BA,Giovinazzo,21,1520,privato
+115,Supermercato Xi,GDO,BA,Mola di Bari,22,2880,privato
+116,B&B Lambda,ricettivo,LE,Lecce,152,2750,privato
+117,Agenzia Sigma S.r.l.,uffici e commercio,BA,Valenzano,13,220,privato
+118,Studio Legale Tau srl,uffici e commercio,BA,Gioia del Colle,41,1310,privato
+119,Negozio Sigma  ,uffici e commercio,BA,Triggiano,10,2430,privato
+120,Negozio Beta (sede),uffici e commercio,BA,Noicattaro,17,,privato
