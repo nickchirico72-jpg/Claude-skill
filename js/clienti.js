@@ -458,7 +458,7 @@ function cambiaQuandoAttivita(modulo, campo) {
 function chipPrivacy(r) {
   const p = r.privacy;
   if (p.opposizione) return `<span class="chip chip-critico">${icona("x")} Non contattare per proposte</span>`;
-  if (p.base === "Da verificare") return `<span class="chip chip-attenzione">${icona("attenzione")} Privacy da verificare</span>`;
+  if (p.base === CONFIG.basiGiuridiche[0]) return `<span class="chip chip-attenzione">${icona("attenzione")} Privacy da verificare</span>`;
   return `<span class="chip chip-ok">${icona("spunta")} Privacy: ${esc(p.base)}${p.data ? " del " + formattaData(p.data) : ""}</span>`;
 }
 

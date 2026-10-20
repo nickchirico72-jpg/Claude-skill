@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Richiedi un sopralluogo · Gate S.R.L. (prototipo)</title>
+  <meta name="description" content="Modulo breve per chiedere un sopralluogo, senza registrazione. Prototipo dimostrativo.">
+  <meta name="theme-color" content="#1E3A5F">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@600;700&display=swap">
+  <link rel="stylesheet" href="css/stile.css">
+  <style>
+    /* Pagina pubblica: una colonna centrata, senza menu del CRM */
+    .pagina-modulo { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+    .pagina-modulo .marchio-pubblico { margin-bottom: 20px; color: var(--secondary); font-family: Sora, system-ui, sans-serif; font-size: 24px; font-weight: 700; }
+    .pagina-modulo .marchio-pubblico span { color: var(--accent-testo); font-size: 12px; letter-spacing: 0.12em; }
+    .invio { display: flex; flex-wrap: wrap; gap: 8px; }
+    .anteprima-messaggio { white-space: pre-wrap; font-size: 13px; }
+    .informativa { font-size: 13px; color: var(--muted-foreground); }
+    .informativa summary { cursor: pointer; font-weight: 600; color: var(--primary); }
+  </style>
+</head>
+<body>
+  <main class="pagina-modulo">
+    <p class="marchio-pubblico">Gate <span>S.R.L.</span></p>
+    <p class="nota-dati">Prototipo dimostrativo: il modulo non è ancora pubblicato da Gate.</p>
+    <h1>Richiedi un sopralluogo</h1>
+    <p class="istruzione">Un minuto, senza registrarti. Ti ricontattiamo entro un giorno lavorativo per fissare il sopralluogo.</p>
+
+    <!-- Il modulo non invia nulla a un server: prepara un messaggio che si invia su WhatsApp o per email -->
+    <form class="modulo riquadro" id="modulo-richiesta" novalidate style="margin-top:16px">
+      <label>Azienda o studio * <input name="azienda" required autocomplete="organization"></label>
+      <div class="riga-doppia">
+        <label>Settore <select name="settore" id="campo-settore"></select></label>
+        <label>Comune <select name="comune" id="campo-comune"></select></label>
+      </div>
+      <div class="riga-doppia">
+        <label>Tipo di ambienti <select name="ambiente" id="campo-ambiente"></select></label>
+        <label>Metri quadri indicativi <input name="mq" type="number" inputmode="numeric" min="1" step="10" placeholder="Es. 300"></label>
+      </div>
+      <label>Frequenza desiderata <select name="frequenza" id="campo-frequenza"></select></label>
+      <div class="riga-doppia">
+        <label>Nome e cognome * <input name="nome" required autocomplete="name"></label>
+        <label>Ruolo <input name="ruolo" autocomplete="organization-title" placeholder="Es. titolare"></label>
+      </div>
+      <div class="riga-doppia">
+        <label>Telefono <input name="telefono" type="tel" inputmode="tel" autocomplete="tel"></label>
+        <label>Email <input name="email" type="email" inputmode="email" autocomplete="email"></label>
+      </div>
+      <p class="nota-piccola">Indica almeno il telefono o l'email.</p>
+      <label class="spunta"><input name="privacy" type="checkbox" required> Ho letto l'informativa e acconsento a essere ricontattato per questa richiesta *</label>
+      <details class="informativa">
+        <summary>Informativa breve sulla privacy</summary>
+        <p>I dati che scrivi (azienda, nome, ruolo, telefono, email e la descrizione degli ambienti) servono solo a rispondere a questa richiesta
+          e a organizzare il sopralluogo. Non vengono ceduti a terzi né usati per altre comunicazioni senza il tuo consenso.
+          Puoi chiederne in ogni momento la modifica o la cancellazione scrivendo all'indirizzo di Gate indicato nel sito.
+          Testo di prova del prototipo: va validato con il consulente privacy di Gate.</p>
+      </details>
+      <p class="nota-piccola">* obbligatorio.</p>
+      <div class="invio">
+        <button class="pulsante whatsapp" type="submit" data-invio="whatsapp">Invia su WhatsApp</button>
+        <button class="pulsante secondario" type="submit" data-invio="email">Invia per email</button>
+      </div>
+    </form>
+
+    <section class="riquadro" id="esito" hidden style="margin-top:16px">
+      <h2>Richiesta pronta</h2>
+      <p class="nota-piccola">Si è aperta l'app per l'invio con il messaggio già scritto: premi Invia. Se non si è aperta, copia il testo qui sotto.</p>
+      <pre class="anteprima-messaggio" id="testo-richiesta"></pre>
+    </section>
+  </main>
+
+  <script src="js/dizionari.js"></script>
+  <script src="js/config.js"></script>
+  <script>
+    // Da dove arriva il visitatore: canale, campagna e contenuto dal link tracciato (senza parametri = modulo del sito)
+    const link = new URLSearchParams(location.search);
+    const tracciamento = {
+      canale: link.get("utm_source") || "modulo-sito",
+      campagna: link.get("utm_campaign") || "",
+      contenuto: link.get("utm_content") || "",
+      pagina: link.get("pagina") || (DIZIONARI_DB.pagineContenuti || {})[link.get("utm_content")] || "",
+    };
+
+    // Elenchi presi dai dizionari condivisi e da config.js, così restano uguali a quelli del CRM
+    const opzioni = (valori, scelto) => valori.map((v) => `<option ${v === scelto ? "selected" : ""}>${v}</option>`).join("");
+    document.getElementById("campo-settore").innerHTML = opzioni(CONFIG.settori, CONFIG.pilota.settore);
+    document.getElementById("campo-comune").innerHTML = opzioni(CONFIG.comuni.filter((c) => c.provincia === "BA" || c.provincia === "BT").map((c) => c.nome), "Bari") + "<option>Altro comune</option>";
+    document.getElementById("campo-ambiente").innerHTML = opzioni(CONFIG.preventivo.ambienti.map((a) => a.nome), CONFIG.preventivo.ambienti[0].nome);
+    document.getElementById("campo-frequenza").innerHTML = opzioni(CONFIG.preventivo.frequenze.map((f) => f.nome), CONFIG.preventivo.frequenze[2].nome);
+
+    // Testo della richiesta: righe "Chiave: valore" che il CRM sa rileggere (Clienti → Sito e social → Importa)
+    function testoRichiesta(d) {
+      const oggi = new Date().toLocaleDateString("it-IT");
+      return [
+        "Richiesta di sopralluogo – Gate S.R.L.",
+        "Azienda: " + d.get("azienda"),
+        "Settore: " + d.get("settore"),
+        "Comune: " + d.get("comune"),
+        "Tipo di ambienti: " + d.get("ambiente"),
+        "Metri quadri: " + (d.get("mq") || ""),
+        "Frequenza: " + d.get("frequenza"),
+        "Referente: " + d.get("nome"),
+        "Ruolo: " + (d.get("ruolo") || ""),
+        "Telefono: " + (d.get("telefono") || ""),
+        "Email: " + (d.get("email") || ""),
+        "Canale: " + tracciamento.canale,
+        "Campagna: " + tracciamento.campagna,
+        "Contenuto: " + tracciamento.contenuto,
+        "Pagina: " + tracciamento.pagina,
+        "Consenso privacy: sì (" + oggi + ")",
+      ].join("\n");
+    }
+
+    document.getElementById("modulo-richiesta").addEventListener("submit", (evento) => {
+      evento.preventDefault();
+      const modulo = evento.target;
+      // Controllo dei campi obbligatori con i messaggi del browser
+      for (const campo of modulo.querySelectorAll("[required]")) {
+        if (!campo.checkValidity() || (campo.type !== "checkbox" && !campo.value.trim())) {
+          campo.reportValidity();
+          return;
+        }
+      }
+      if (!modulo.telefono.value.trim() && !modulo.email.value.trim()) {
+        modulo.telefono.setCustomValidity("Indica almeno il telefono o l'email");
+        modulo.telefono.reportValidity();
+        modulo.telefono.setCustomValidity("");
+        return;
+      }
+      if (modulo.email.value && !modulo.email.checkValidity()) return modulo.email.reportValidity();
+      const testo = testoRichiesta(new FormData(modulo));
+      const via = evento.submitter ? evento.submitter.dataset.invio : "whatsapp";
+      const destinazione = via === "email"
+        ? "mailto:" + CONFIG.contattiGate.email + "?subject=" + encodeURIComponent("Richiesta di sopralluogo") + "&body=" + encodeURIComponent(testo)
+        : "https://wa.me/" + CONFIG.contattiGate.whatsapp + "?text=" + encodeURIComponent(testo);
+      document.getElementById("testo-richiesta").textContent = testo;
+      document.getElementById("esito").hidden = false;
+      window.open(destinazione, "_blank", "noopener");
+    });
+  </script>
+</body>
+</html>

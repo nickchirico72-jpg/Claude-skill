@@ -3203,3 +3203,188 @@ h1[tabindex="-1"]:focus {
     display: none;
   }
 }
+
+/* ------------------------------------------- PASSAGGIO 3: offerta, preventivo, Indicatori su tre livelli */
+/* Scheda in Offerta: «Contratto firmato» su una riga, «Firma da link» e «Perso» sotto */
+.scheda-azioni.con-firma {
+  flex-wrap: wrap;
+}
+
+.scheda-azioni.con-firma .pulsante.primario {
+  flex: 1 1 100%;
+}
+
+.firma-anteprima {
+  margin: 12px 0;
+  border-left: 4px solid var(--accent);
+}
+
+/* Preventivo indicativo nell'anteprima del modulo «Nuovo contatto» */
+.preventivo {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--muted);
+  font-size: 13.5px;
+}
+
+.avviso-margine {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  color: var(--critico);
+  font-weight: 700;
+}
+
+/* Livelli della piramide di Anthony: tre pulsanti grandi */
+.livelli {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.livello-pulsante {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.livello-pulsante strong {
+  font-family: Sora, system-ui, sans-serif;
+  font-size: 15px;
+}
+
+.livello-pulsante span {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.livello-pulsante:hover {
+  border-color: var(--primary);
+}
+
+.livello-pulsante[aria-pressed="true"] {
+  border-color: var(--secondary);
+  background: var(--secondary);
+  color: #fff;
+}
+
+.livello-pulsante[aria-pressed="true"] span {
+  color: hsl(210 20% 85%);
+}
+
+/* Fonte dei dati: etichetta ben visibile e selettore */
+.barra-fonte {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.etichetta-fonte {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--attenzione-sfondo);
+  color: var(--attenzione);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.etichetta-fonte.reali {
+  background: var(--ok-sfondo);
+  color: var(--ok);
+}
+
+.scegli-fonte {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.scegli-fonte select {
+  min-height: 40px;
+  max-width: 100%;
+}
+
+.kpi-codice {
+  display: inline-block;
+  margin-right: 2px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--secondary);
+  color: #fff;
+  font-size: 11px;
+}
+
+.kpi-meta {
+  margin-bottom: 6px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.elenco-semplice,
+.elenco-non-calcolabili {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
+.matrice .cella-A { background: var(--ok-sfondo); }
+.matrice .cella-C { background: var(--critico-sfondo); }
+
+@media (max-width: 639px) {
+  .livello-pulsante span {
+    display: none;
+  }
+
+  .scegli-fonte {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+}
+
+/* Piano dei contenuti: aggiunta di un contenuto su una riga (su telefono in colonna) */
+.riga-contenuto {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  align-items: end;
+  gap: 8px;
+  margin: 10px 0 18px;
+}
+
+.riga-contenuto .largo {
+  grid-column: span 2;
+}
+
+@media (max-width: 639px) {
+  .riga-contenuto .largo {
+    grid-column: auto;
+  }
+}

@@ -7,24 +7,25 @@ Prototipo web per l'Open Challenge by Enterprise 2026 (Digital Transformation, L
 - HTML, CSS e JavaScript puro, script classici (niente moduli ES, framework, librerie o build).
 - Interfaccia in italiano sobrio, con il lessico di Gate (commessa, squadra, caposquadra, sede di lavoro, referente, margine). Facile per chi non è tecnico: ogni schermata dice in una riga cosa fare, azioni con un clic, niente menu nascosti. Deve funzionare da telefono.
 - Palette e font del sito gatesrl.it (variabili in cima a css/stile.css; Sora per i titoli, Manrope per il testo). Logo solo testuale finché Gate non autorizza quello vero.
-- Dati fittizi, dichiarati nell'interfaccia. Non inventare dati su Gate. Ipotesi e dati di esempio solo in js/config.js.
+- Dati fittizi, dichiarati nell'interfaccia. Non inventare dati su Gate. Ipotesi dell'app in js/config.js; dati di esempio e dizionari condivisi (canali, settori, servizi, comuni, fasi, pesi del punteggio) in generatore/parametri.py, da cui nascono data/gate.db, js/dizionari.js e js/dati-db.js: app e SQL lavorano sugli stessi dati (database unificato, decisione del 20/10).
 - Il riferimento al progetto universitario va solo nel piè di pagina.
 - Mai alert(), confirm() o prompt(): il prototipo è pubblicato anche in un visualizzatore che li blocca. Le conferme si fanno con finestre o messaggi nella pagina.
 - Commenti essenziali in italiano, una riga per funzione: il team deve poter spiegare il codice.
 - Ogni sezione analitica dice a quale delle quattro domande risponde: cosa è successo, perché, cosa succederà, cosa conviene fare (js/analisi.js). I consigli sono regole leggibili con il loro "perché", soglie in config.js.
 
 ## Struttura
-- index.html: il CRM (schermate Pipeline, Clienti, Allocazione, Indicatori). modulo.html: modulo pubblico "Richiedi un preventivo" per sito e social.
-- js/config.js: ipotesi e dati di esempio (l'unico file da cambiare con i dati reali). Ordine di caricamento degli script: config, formato, dati, allocazione, punteggio, kpi, analisi, clienti, canali, app.
-- js/dati.js: stato, migrazione e validazione dei dati salvati, backup, CSV, doppioni, privacy. js/allocazione.js: squadre interne, partner, DURC, WhatsApp. js/punteggio.js: punteggio A/B/C. js/kpi.js: KPI, funnel, settori, canali. js/analisi.js: quattro domande e consigli. js/clienti.js: schermata Clienti. js/canali.js: collegamento con sito e social. js/app.js: schermate, finestre, applica() con Annulla, eventi.
+- index.html: il CRM (schermate Pipeline, Clienti, Allocazione, Indicatori su tre livelli). Moduli pubblici per sito e social: sopralluogo.html "Richiedi un sopralluogo" e modulo.html "Richiedi un preventivo" (due moduli distinti, decisione del team), con utm_source, utm_campaign e utm_content.
+- js/dizionari.js e js/dati-db.js: generati da generatore/genera_dati.py, non si modificano a mano. js/config.js: ipotesi dell'app (squadre, partner, costi, preventivo, soglie, funzioni.partner). Ordine di caricamento degli script: dizionari, dati-db, config, formato, dati, allocazione, punteggio, kpi, analisi, clienti, canali, indicatori, app. I moduli pubblici caricano solo dizionari e config.
+- js/dati.js: stato, migrazione e validazione dei dati salvati, backup, CSV, doppioni, privacy. js/allocazione.js: squadre interne, partner, DURC, WhatsApp. js/punteggio.js: punteggio A/B/C. js/kpi.js: KPI del catalogo (K1-K17), funnel, settori, canali, contenuti, dati reali. js/indicatori.js: schermata Indicatori (operativo, tattico, strategico; fonte fittizi o reali). js/analisi.js: quattro domande e consigli. js/clienti.js: schermata Clienti. js/canali.js: collegamento con sito e social. js/app.js: schermate, finestre, applica() con Annulla, eventi.
 - Ogni modifica ai dati passa da applica() (copia per Annulla, salvataggio, ridisegno). Ogni valore salvato che entra nell'HTML passa da esc().
 
 ## Prove e pubblicazione
 - Server locale: python3 -m http.server 8765 --bind 127.0.0.1 dalla cartella del progetto.
 - Playwright: NODE_PATH=$(npm root -g), chromium.launch({ args: ['--proxy-server=' + process.env.HTTPS_PROXY, '--proxy-bypass-list=127.0.0.1;localhost'] }); non usare l'opzione proxy di Playwright (fa passare anche localhost dal proxy). Contesti con locale it-IT. Verifica sempre a 1440x900 e 390x844: zero errori in console e nessuno scorrimento orizzontale.
-- La suite di prove end-to-end (e2e.js) oggi è fuori dal repository: se manca, va ricreata coprendo il flusso demo (nuovo contatto → fasi fino a contratto → allocazione con partner NO poi SÌ → indicatori).
+- Suite di prove end-to-end: prove/e2e.js (NODE_PATH=$(npm root -g) node prove/e2e.js; FOTO=1 rifà gli screenshot in docs/screenshot/). Copre il flusso demo (modulo → import → preventivo e classe → fasi → firma da link → allocazione con partner NO poi SÌ → indicatori), app = database, fonti reali, partner spenti, migrazione, contenuti.
+- Dati: python3 generatore/genera_dati.py rigenera database, CSV, copia MySQL e dati dell'app; python3 generatore/controlla_dati.py verifica tutto (deve finire con "tutti i controlli superati"); python3 generatore/importa_richieste.py importa i CSV dei dati veri.
 - Branch di lavoro: claude/new-session-ihkyfm. Commit in italiano. Dopo ogni modifica importante aggiorna README e screenshot in docs/screenshot/.
-- Versione in un solo file per la condivisione: si ottiene inserendo css/stile.css e i file js dentro index.html.
+- Versione in un solo file per la condivisione: python3 strumenti/versione_unica.py (inserisce css e js dentro index.html; scrive dist/gate-crm-prototipo.html, non versionato).
 
 # Coordinamento con il progetto di analisi ed esperimento SQL (19/10/2026)
 

@@ -1,7 +1,8 @@
 """
 ESPORTAZIONI DEL DATABASE
  - data/gate_mysql.sql: lo stesso database per MySQL o MariaDB (anche da MySQL Workbench), con tipi e chiavi esterne;
- - js/dati-db.js: gli stessi dati e dizionari per l'app HTML (che non può leggere un file SQLite da sola).
+ - js/dizionari.js: i dizionari condivisi (canali, settori, servizi, comuni, fasi, punteggio), letti anche dai moduli pubblici;
+ - js/dati-db.js: le tabelle del database per l'app HTML (che non può leggere un file SQLite da sola).
 Le chiamano genera_dati.py e importa_richieste.py: non serve lanciarlo a mano.
 """
 
@@ -93,38 +94,39 @@ def tabella(con, nome, extra=None):
 
 
 def esporta_app(con, capacita):
-    """Scrive js/dati-db.js: dizionari condivisi (da parametri.py) e tabelle del database, letti dall'app all'avvio."""
-    dati = {
-        "dataRiferimento": P.DATA_RIFERIMENTO,
-        "seme": P.SEME,
-        "dizionari": {
-            "canali": [{"canale": c, "tipo": t, "attivo": bool(a), "nota": n} for c, t, a, n in P.CANALI_DIZIONARIO],
-            "settori": P.SETTORI,
-            "settorePilota": P.SETTORE_PILOTA,
-            "servizi": [{"nome": s, "tariffa": e["tariffa"], "margineMedio": e["margine"]} for s, e in P.SERVIZI_ECONOMIA.items()],
-            "comuni": [{"nome": c, "provincia": prov, "km": km, "zona": zona} for prov, elenco in P.COMUNI.items() for c, km, zona in elenco],
-            "fasi": [{"id": f, "probabilita": p, "giorniFerma": g} for f, _, p, g in P.FASI if f != "perso"],
-            "motiviPerdita": P.MOTIVI_PERDITA,
-            "basiGiuridiche": ["da verificare"] + [b for b in P.BASI_GIURIDICHE if b != "da verificare"],
-            "modiRaccolta": P.MODI_RACCOLTA,
-            "campagnaPilota": P.CAMPAGNA_PILOTA,
-            "punteggio": {
-                "pesi": P.PESI, "soglie": {"A": 75, "B": 50}, "settoreFuoriPilota": P.SETTORE_FUORI_PILOTA,
-                "distanzaKm": {"piena": P.DISTANZA_PIENA, "massima": P.DISTANZA_META},
-                "margine": {"obiettivo": P.MARGINE_PIENO, "minimo": P.MARGINE_META},
-                "valoreAnnuo": {"idealeDa": P.DIMENSIONE_PIENA[0], "idealeA": P.DIMENSIONE_PIENA[1],
-                                "accettabileDa": P.DIMENSIONE_META[0], "accettabileA": P.DIMENSIONE_META[1]},
-            },
+    """Scrive js/dizionari.js (dizionari condivisi, da parametri.py) e js/dati-db.js (tabelle), letti dall'app all'avvio."""
+    dizionari = {
+        "canali": [{"canale": c, "tipo": t, "attivo": bool(a), "nota": n} for c, t, a, n in P.CANALI_DIZIONARIO],
+        "settori": P.SETTORI,
+        "settorePilota": P.SETTORE_PILOTA,
+        "servizi": [{"nome": s, "tariffa": e["tariffa"], "margineMedio": e["margine"]} for s, e in P.SERVIZI_ECONOMIA.items()],
+        "comuni": [{"nome": c, "provincia": prov, "km": km, "zona": zona} for prov, elenco in P.COMUNI.items() for c, km, zona in elenco],
+        "fasi": [{"id": f, "probabilita": p, "giorniFerma": g} for f, _, p, g in P.FASI if f != "perso"],
+        "motiviPerdita": P.MOTIVI_PERDITA,
+        "basiGiuridiche": ["da verificare"] + [b for b in P.BASI_GIURIDICHE if b != "da verificare"],
+        "modiRaccolta": P.MODI_RACCOLTA,
+        "campagnaPilota": P.CAMPAGNA_PILOTA,
+        "punteggio": {
+            "pesi": P.PESI, "soglie": {"A": 75, "B": 50}, "settoreFuoriPilota": P.SETTORE_FUORI_PILOTA,
+            "distanzaKm": {"piena": P.DISTANZA_PIENA, "massima": P.DISTANZA_META},
+            "margine": {"obiettivo": P.MARGINE_PIENO, "minimo": P.MARGINE_META},
+            "valoreAnnuo": {"idealeDa": P.DIMENSIONE_PIENA[0], "idealeA": P.DIMENSIONE_PIENA[1],
+                            "accettabileDa": P.DIMENSIONE_META[0], "accettabileA": P.DIMENSIONE_META[1]},
         },
         "pagineContenuti": {c[0]: c[6] for c in P.CONTENUTI},
     }
+    testo = ("/*\n * DIZIONARI CONDIVISI TRA DATABASE E APP (canali, settori, servizi, comuni, fasi, punteggio)\n"
+             " * File generato da generatore/genera_dati.py a partire da generatore/parametri.py: NON modificarlo a mano.\n */\n"
+             "const DIZIONARI_DB = " + json.dumps(dizionari, ensure_ascii=False, indent=1) + ";\n")
+    (RADICE / "js" / "dizionari.js").write_text(testo, encoding="utf-8")
+    dati = {"dataRiferimento": P.DATA_RIFERIMENTO, "seme": P.SEME}
     for nome in ["clienti", "referenti", "commerciali", "storico_fasi", "offerte", "attivita", "costi_canale",
                  "contenuti", "kpi_catalogo", "richieste_reali"]:
         dati[nome] = tabella(con, nome)
     dati["opportunita"] = tabella(con, "opportunita", ("capacita_simulata", capacita))
     testo = ("/*\n * DATI DEL DATABASE PER L'APP (FITTIZI, tranne la tabella richieste_reali)\n"
              " * File generato da generatore/genera_dati.py a partire da data/gate.db: NON modificarlo a mano.\n"
-             " * Così l'app e le query SQL lavorano sugli stessi dati e sugli stessi dizionari (canali, settori, servizi, comuni).\n */\n"
+             " * Così l'app e le query SQL lavorano sugli stessi dati. I dizionari sono in js/dizionari.js.\n */\n"
              "const DATI_DB = " + json.dumps(dati, ensure_ascii=False, separators=(",", ":")) + ";\n")
     (RADICE / "js" / "dati-db.js").write_text(testo, encoding="utf-8")
 

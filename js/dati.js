@@ -8,9 +8,19 @@ function clona(x) {
   return JSON.parse(JSON.stringify(x));
 }
 
-// Canali di acquisizione (fonti dei contatti), presi dalla configurazione dei costi
+// Canali di acquisizione attivi (fonti dei contatti), dal dizionario unico dei canali
 function fonti() {
-  return Object.keys(CONFIG.costiAcquisizione.fissiPerCanale);
+  return CONFIG.canali.filter((c) => c.attivo).map((c) => c.canale);
+}
+
+// Dati di un canale del dizionario (tipo digitale, diretto...), o null se non c'è
+function infoCanale(nome) {
+  return CONFIG.canali.find((c) => c.canale === nome) || null;
+}
+
+// Codice del canale nei link tracciati (utm_source): "sito web" → "sito-web", "LinkedIn" → "linkedin"
+function codiceCanale(nome) {
+  return String(nome).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 // Codice di riferimento progressivo, es. GT-2026-017 (diventa il codice della commessa alla firma)
@@ -18,59 +28,110 @@ function codiceRiferimento(numero) {
   return "GT-" + new Date().getFullYear() + "-" + String(numero).padStart(3, "0");
 }
 
-// Costruisce lo stato iniziale a partire dai dati di esempio di config.js
-function datiIniziali() {
-  const aziende = [];
-  const referenti = [];
-  CONFIG.aziende.forEach((a) => {
-    const { referenti: elenco, ...dati } = clona(a);
-    aziende.push({ piva: "", note: "", creata: null, ...dati });
-    elenco.forEach((r, i) => referenti.push({ id: a.id + "-r" + (i + 1), aziendaId: a.id, ...r }));
-  });
-
-  const opportunita = CONFIG.opportunita.map((esempio, i) => {
-    const { azienda, ...dati } = clona(esempio);
-    const refs = referenti.filter((r) => r.aziendaId === azienda);
-    return {
-      id: "op" + (i + 1),
-      codice: codiceRiferimento(i + 1),
-      aziendaId: azienda,
-      referenteId: (refs.find((r) => r.decisore) || refs[0] || {}).id || null,
-      tariffa: null,
-      scadenzaOfferta: null,
-      avvio: null,
-      note: "",
-      perso: null,
-      allocazione: null,
-      proposte: [],
-      ...dati,
-    };
-  });
-
-  // Data di creazione dell'azienda = primo contatto (o la prima attività)
-  aziende.forEach((a) => {
-    const date = opportunita.filter((o) => o.aziendaId === a.id).map((o) => o.storico.contatto)
-      .concat(CONFIG.attivita.filter((x) => x.azienda === a.id).map((x) => x.data)).sort();
-    a.creata = date[0] || oggi();
-  });
-
-  const attivita = CONFIG.attivita.map((x, i) => {
-    // Promemoria automatico: collegato alla trattativa dell'azienda, così sparisce quando la fase cambia
-    const o = x.automatica && opportunita.find((y) => y.aziendaId === x.azienda && !y.perso);
-    return {
-      id: "at" + (i + 1),
-      aziendaId: x.azienda,
-      referenteId: null,
-      tipo: x.tipo,
-      data: x.data,
-      testo: x.testo,
-      daFare: !!x.daFare,
-      ...(o ? { opportunitaId: o.id, automatica: true } : {}),
-    };
-  });
-
-  return migra({ aziende, referenti, opportunita, attivita, contatore: opportunita.length, contatoreId: 1000, ultimoBackup: null });
+// Righe di una tabella di js/dati-db.js come oggetti { colonna: valore }
+function righeDb(nome) {
+  const t = DATI_DB[nome];
+  return t.righe.map((r) => Object.fromEntries(t.colonne.map((c, i) => [c, r[i]])));
 }
+
+// Prima lettera maiuscola, per i tipi di attività del database ("chiamata" → "Chiamata")
+function maiuscola(testo) {
+  const s = String(testo ?? "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// Costruisce lo stato iniziale dal database di prova (js/dati-db.js): stessi clienti, opportunità e attività delle query SQL.
+// Le date si spostano in avanti in modo che la data di riferimento del database (19/10/2026) sia oggi: la demo resta attuale.
+function datiIniziali() {
+  const spostamento = giorniTra(DATI_DB.dataRiferimento, oggi());
+  const data = (d) => (d ? aggiungiGiorni(d, spostamento) : null);
+  const clienti = righeDb("clienti");
+  const opp = righeDb("opportunita");
+  const storicoDb = righeDb("storico_fasi");
+  const offerteDb = righeDb("offerte");
+
+  // Fonte dell'azienda = canale della sua prima opportunità
+  const primaOpp = new Map();
+  [...opp].sort((a, b) => a.data_contatto.localeCompare(b.data_contatto)).forEach((o) => {
+    if (!primaOpp.has(o.id_cliente)) primaOpp.set(o.id_cliente, o);
+  });
+  const aziende = clienti.map((c) => ({
+    id: "c" + c.id_cliente, ragioneSociale: c.nome, piva: "", settore: c.settore, comune: c.comune,
+    fonte: primaOpp.has(c.id_cliente) ? primaOpp.get(c.id_cliente).canale : "contatto diretto",
+    note: "", creata: data(primaOpp.has(c.id_cliente) ? primaOpp.get(c.id_cliente).data_contatto : DATI_DB.dataRiferimento),
+    superficie: c.superficie_mq, tipoCliente: c.tipo_cliente,
+  }));
+  const creata = Object.fromEntries(aziende.map((a) => [a.id, a.creata]));
+
+  const referenti = righeDb("referenti").map((r) => ({
+    id: "r" + r.id_referente, aziendaId: "c" + r.id_cliente, nome: r.nome, ruolo: r.ruolo || "",
+    telefono: telefonoDaSalvare(r.telefono || ""), email: r.email || "", canale: r.telefono ? "Telefono" : "Email", decisore: !!r.decisore,
+    privacy: { base: r.base_giuridica, data: r.base_giuridica === CONFIG.basiGiuridiche[0] ? null : creata["c" + r.id_cliente],
+      raccolta: r.modo_raccolta || "", opposizione: false },
+  }));
+
+  // Contratti recenti: ancora da assegnare; gli altri già avviati prima del prototipo
+  const limite = aggiungiGiorni(DATI_DB.dataRiferimento, -CONFIG.giorniContrattiDaAssegnare);
+  const opportunita = opp.map((o) => {
+    const storico = {};
+    let perso = null;
+    storicoDb.filter((e) => e.id_opp === o.id_opp).forEach((e) => {
+      if (e.fase === "perso") perso = { data: data(e.data_ingresso), motivo: o.motivo_perdita };
+      else storico[e.fase] = data(e.data_ingresso);
+    });
+    const offerte = offerteDb.filter((f) => f.id_opp === o.id_opp).sort((a, b) => b.versione - a.versione);
+    const tariffa = (CONFIG.servizi[o.servizio] || {}).tariffa || 1;
+    return {
+      id: "op" + o.id_opp, codice: codiceRiferimento(o.id_opp), aziendaId: "c" + o.id_cliente, referenteId: "r" + o.id_referente,
+      canale: o.canale, comune: (clienti.find((c) => c.id_cliente === o.id_cliente) || {}).comune || "Bari", servizio: o.servizio,
+      ore: o.ore_mese_stimate ?? Math.round(o.valore_annuo / 12 / tariffa),
+      // Valori del database: restano finché non si cambiano servizio, sede, ore o tariffa nell'app
+      valore: o.valore_annuo, margine: o.margine_pct, capacitaSimulata: o.capacita_simulata,
+      tariffa: null, note: "", perso, storico, proposte: [],
+      scadenzaOfferta: !perso && !storico.contratto && offerte.length ? aggiungiGiorni(data(offerte[0].data_invio), CONFIG.giorniValiditaOfferta) : null,
+      avvio: storico.contratto ? aggiungiGiorni(storico.contratto, CONFIG.giorniAvvioServizio) : null,
+      allocazione: storico.contratto && o.data_chiusura < limite ? { tipo: "storico", data: storico.contratto } : null,
+      dataPrimaRisposta: data(o.data_prima_risposta), dataRegistrazione: data(o.data_registrazione), consensoPrivacy: !!o.consenso_privacy,
+      campagna: o.campagna || "", contenuto: o.contenuto || "", paginaArrivo: o.pagina_arrivo || "",
+      firmaDaLink: offerte.some((f) => f.firma_da_link === 1),
+    };
+  });
+
+  // Attività svolte (dal database) e promemoria delle trattative aperte non ferme (creati dall'app: il database registra solo il passato)
+  const perOpp = Object.fromEntries(opportunita.map((o) => [o.id, o]));
+  const attivita = righeDb("attivita").map((x) => {
+    const o = perOpp["op" + x.id_opp];
+    return { id: "at" + x.id_attivita, aziendaId: o.aziendaId, referenteId: o.referenteId, opportunitaId: o.id, daFare: false,
+      tipo: x.tipo === "sopralluogo" ? "Visita" : maiuscola(x.tipo), data: data(x.data),
+      testo: x.tipo === "sopralluogo" ? "Sopralluogo svolto" : maiuscola(x.esito) };
+  });
+  let n = 0;
+  opportunita.filter((o) => !o.perso && !o.storico.contratto).forEach((o, i) => {
+    const fase = CONFIG.fasi[faseRaggiunta(o)];
+    if (giorniTra(o.storico[fase.id], oggi()) > fase.giorniFerma) return; // le ferme restano senza prossima azione: finiscono in «Da seguire»
+    let quando = aggiungiGiorni(o.storico[fase.id], fase.followUp.giorni);
+    if (quando < oggi() && i % 4 !== 0) quando = traGiorni(i % 3); // qualche promemoria resta in ritardo, come nella realtà
+    attivita.push({ id: "pr" + (++n), aziendaId: o.aziendaId, referenteId: o.referenteId, opportunitaId: o.id, daFare: true,
+      automatica: true, tipo: fase.followUp.tipo, data: quando, testo: fase.followUp.testo });
+  });
+
+  return { versione: CONFIG.versioneDati, aziende, referenti, opportunita, attivita, contenuti: [], contatore: opp.length, contatoreId: 10000, ultimoBackup: null };
+}
+
+// Dati salvati prima della versione 4 (esempi di config.js): c'è un avviso per passare ai dati del database
+let datiDiVersionePrecedente = false;
+
+// Valori della versione 3 tradotti nei dizionari del database
+const DIZIONARI_V3 = {
+  servizio: { "Pulizia Professionale": "cleaning e hospitality", "Pest Control": "servizi alle strutture", "Manutenzioni": "servizi alle strutture",
+    "Giardinaggio": "servizi alle strutture", "Logistica": "logistica e retail" },
+  settore: { "Uffici e studi professionali": "uffici e commercio", "Sanità privata": "sanità", "GDO e logistica": "GDO",
+    "Industria": "industria", "Enti pubblici": "enti pubblici" },
+  fonte: { "Sito web": "sito web", "Porta a porta": "porta a porta", "Intermediario": "intermediario", "Portale gare": "portale gare",
+    "Eventi e LinkedIn": "LinkedIn", "Passaparola": "passaparola", "Contatto diretto": "contatto diretto" },
+  base: { "Da verificare": "da verificare", "Consenso": "consenso", "Legittimo interesse (B2B)": "legittimo interesse B2B", "Contratto in corso": "contratto in corso" },
+  raccolta: { "A voce": "a voce", "Modulo del sito": "modulo del sito", "Email": "email", "Biglietto da visita": "biglietto da visita" },
+};
 
 // Porta i dati (salvati nel browser o da un backup) alla versione attuale, un passo alla volta
 function migra(d) {
@@ -80,12 +141,32 @@ function migra(d) {
   // Versione 3: la privacy del referente da sì/no diventa base giuridica, data, modo di raccolta e opposizione
   if (d.versione === 2) {
     (Array.isArray(d.referenti) ? d.referenti : []).forEach((r) => {
-      if (r && typeof r === "object") r.privacy = privacyVuota(r.privacy === true ? "Consenso" : "Da verificare");
+      if (r && typeof r === "object") r.privacy = { base: r.privacy === true ? "Consenso" : "Da verificare", data: null, raccolta: "", opposizione: false };
     });
     d.versione = 3;
   }
+  // Versione 4: dizionari unici con il database (servizi, settori, canali, privacy, motivi) e canale per opportunità
+  if (d.versione === 3) {
+    const traduci = (tipo, v) => DIZIONARI_V3[tipo][v] || v;
+    const elenco = (x) => (Array.isArray(x) ? x.filter((y) => y && typeof y === "object") : []);
+    elenco(d.aziende).forEach((a) => { a.settore = traduci("settore", a.settore); a.fonte = traduci("fonte", a.fonte); });
+    elenco(d.referenti).forEach((r) => {
+      if (r.privacy && typeof r.privacy === "object") {
+        r.privacy.base = traduci("base", r.privacy.base);
+        r.privacy.raccolta = traduci("raccolta", r.privacy.raccolta);
+      }
+    });
+    const fonte = Object.fromEntries(elenco(d.aziende).map((a) => [a.id, a.fonte]));
+    elenco(d.opportunita).forEach((o) => {
+      o.servizio = traduci("servizio", o.servizio);
+      o.canale = fonte[o.aziendaId] || "contatto diretto";
+      if (o.perso && typeof o.perso.motivo === "string") o.perso.motivo = o.perso.motivo.toLowerCase();
+    });
+    d.versione = 4;
+    datiDiVersionePrecedente = true;
+  }
   // Ogni intervento che cambia la struttura dei dati aggiunge qui il suo passo, per esempio:
-  // if (d.versione === 3) { ...trasforma i dati...; d.versione = 4; }
+  // if (d.versione === 4) { ...trasforma i dati...; d.versione = 5; }
   return d;
 }
 
@@ -97,6 +178,9 @@ function strutturaValida(d) {
   const isOggetto = (x) => !!x && typeof x === "object" && !Array.isArray(x);
   if (!isOggetto(d) || d.versione !== CONFIG.versioneDati) return false;
   if (![d.aziende, d.referenti, d.opportunita, d.attivita].every(Array.isArray)) return false;
+  // Contenuti aggiunti nell'app al piano editoriale (facoltativi)
+  if (d.contenuti !== undefined && !(Array.isArray(d.contenuti) && d.contenuti.every((c) => c && typeof c === "object" &&
+    /^[\w-]+$/.test(c.id) && /^\d{4}-\d{2}-\d{2}$/.test(c.data_pubblicazione) && ["canale", "tema", "settore", "formato"].every((k) => typeof c[k] === "string")))) return false;
   // Contatori interi e non negativi: da contatoreId nascono i nuovi id (es. "at1001")
   if (![d.contatore, d.contatoreId].every((n) => Number.isSafeInteger(n) && n >= 0)) return false;
   if (d.ultimoBackup != null && !isData(d.ultimoBackup)) return false;
@@ -106,7 +190,8 @@ function strutturaValida(d) {
   const testoFacoltativo = (x) => facoltativo(x, isTesto);
   const propostaOk = (p) => isOggetto(p) && isId(p.partnerId) && isData(p.data) && ["attesa", "si", "no"].includes(p.esito);
   return d.aziende.every((a) => isOggetto(a) && isId(a.id) && isTesto(a.ragioneSociale) && a.ragioneSociale.trim() !== "" &&
-      ["settore", "comune", "fonte", "piva", "note"].every((k) => testoFacoltativo(a[k])) ) &&
+      ["settore", "comune", "fonte", "piva", "note", "tipoCliente"].every((k) => testoFacoltativo(a[k])) &&
+      facoltativo(a.superficie, Number.isFinite)) &&
     d.referenti.every((r) => isOggetto(r) && isId(r.id) && aziendaEsiste(r.aziendaId) && isTesto(r.nome) &&
       ["ruolo", "telefono", "email", "canale"].every((k) => testoFacoltativo(r[k])) && facoltativo(r.decisore, (v) => typeof v === "boolean") &&
       isOggetto(r.privacy) && isTesto(r.privacy.base) && (r.privacy.data === null || isData(r.privacy.data)) &&
@@ -118,12 +203,17 @@ function strutturaValida(d) {
       facoltativo(x.opportunitaId, isId) && facoltativo(x.fase, isId) && facoltativo(x.automatica, (v) => typeof v === "boolean")) &&
     d.opportunita.every((o) => isOggetto(o) && isId(o.id) && isTesto(o.codice) && aziendaEsiste(o.aziendaId) &&
       isTesto(o.servizio) && testoFacoltativo(o.comune) && facoltativo(o.referenteId, isId) && Number.isFinite(o.ore) && o.ore >= 0 &&
+      ["canale", "campagna", "contenuto", "paginaArrivo"].every((k) => testoFacoltativo(o[k])) &&
+      ["valore", "margine", "capacitaSimulata"].every((k) => facoltativo(o[k], Number.isFinite)) &&
+      ["dataPrimaRisposta", "dataRegistrazione"].every((k) => facoltativo(o[k], isData)) &&
+      ["consensoPrivacy", "firmaDaLink"].every((k) => facoltativo(o[k], (v) => typeof v === "boolean")) &&
+      facoltativo(o.preventivo, (v) => isOggetto(v) && isTesto(v.ambiente) && isTesto(v.frequenza) && Number.isFinite(v.mq)) &&
       (o.tariffa == null || (Number.isFinite(o.tariffa) && o.tariffa >= 0)) &&
       isOggetto(o.storico) && isData(o.storico.contatto) && Object.values(o.storico).every(isData) &&
       facoltativo(o.scadenzaOfferta, isData) && facoltativo(o.avvio, isData) && facoltativo(o.riaperta, isData) && facoltativo(o.note, isTesto) && facoltativo(o.motivazioneC, isTesto) &&
       (o.perso == null || (isOggetto(o.perso) && isData(o.perso.data) && isTesto(o.perso.motivo) && facoltativo(o.perso.nota, isTesto))) &&
-      (o.allocazione == null || (isOggetto(o.allocazione) && ["squadra", "partner"].includes(o.allocazione.tipo) &&
-        isId(o.allocazione.id) && isData(o.allocazione.data))) &&
+      (o.allocazione == null || (isOggetto(o.allocazione) && isData(o.allocazione.data) &&
+        (o.allocazione.tipo === "storico" || (["squadra", "partner"].includes(o.allocazione.tipo) && isId(o.allocazione.id))))) &&
       (o.proposte === undefined || (Array.isArray(o.proposte) && o.proposte.every(propostaOk))));
 }
 
@@ -243,13 +333,13 @@ function statoAzienda(aziendaId) {
 // ------------------------------------------------------------------- Privacy
 
 // Privacy di un referente: base giuridica, data, come sono stati raccolti i dati, opposizione alle proposte
-function privacyVuota(base = "Da verificare", data = null) {
+function privacyVuota(base = CONFIG.basiGiuridiche[0], data = null) {
   return { base, data, raccolta: "", opposizione: false };
 }
 
 // Si può contattare per proposte commerciali: base giuridica verificata e nessuna opposizione
 function privacyOk(r) {
-  return !!r && !!r.privacy && r.privacy.base !== "Da verificare" && !r.privacy.opposizione;
+  return !!r && !!r.privacy && r.privacy.base !== CONFIG.basiGiuridiche[0] && !r.privacy.opposizione;
 }
 
 // Perché i pulsanti di contatto mostrano l'avviso ("" se è tutto in regola)
@@ -301,9 +391,13 @@ function controllaAzienda({ ragioneSociale, piva }, escludiAziendaId = null) {
   return null;
 }
 
-// Registra un'attività nella cronologia dell'azienda
+// Registra un'attività nella cronologia dell'azienda; un contatto svolto è la prima risposta di Gate (K12) delle trattative che non l'hanno ancora
 function registraAttivita(dati) {
-  stato.attivita.push({ id: nuovoId("at"), referenteId: null, daFare: false, data: oggi(), ...dati });
+  const x = { id: nuovoId("at"), referenteId: null, daFare: false, data: oggi(), ...dati };
+  stato.attivita.push(x);
+  if (!x.daFare && ["Chiamata", "Email", "WhatsApp", "Visita"].includes(x.tipo)) {
+    opportunitaDi(x.aziendaId).filter((o) => !o.dataPrimaRisposta && x.data >= o.storico.contatto).forEach((o) => (o.dataPrimaRisposta = x.data));
+  }
 }
 
 // ------------------------------------------------------ Contatto con un clic

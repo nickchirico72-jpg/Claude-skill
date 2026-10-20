@@ -1,8 +1,10 @@
 /*
  * INDICATORI DI PERFORMANCE
- * I 5 KPI richiesti da Gate, il funnel commerciale e i risultati per settore e per canale.
+ * I KPI del catalogo (K1-K17, tabella kpi_catalogo: stesse formule delle query SQL), il funnel,
+ * i risultati per settore, per canale, per contenuto e la matrice canale × classe.
  * Un'opportunità "ha raggiunto" una fase se nello storico c'è la data di quella fase.
- * Contatti = opportunità + aziende ancora senza opportunità (lead "Da qualificare").
+ * Le aziende ancora senza opportunità (lead "Da qualificare") si contano a parte, come nel database.
+ * I dati reali (tabella richieste_reali) si calcolano con kpiReali(): non si mescolano mai con quelli fittizi.
  */
 
 // Indice dell'ultima fase raggiunta (0 = Contatto ... 4 = Contratto)
@@ -47,15 +49,16 @@ function contaRaggiunte(opportunita, idFase) {
   return opportunita.filter((o) => faseRaggiunta(o) >= soglia).length;
 }
 
-// Margine atteso di un'opportunità = valore annuo x margine % x probabilità di chiusura della fase
+// Margine atteso di un'opportunità aperta = valore annuo x margine % x probabilità di chiusura della fase (K5)
 function margineAtteso(opp, opportunita) {
-  if (opp.perso) return 0;
+  if (!trattativaAperta(opp)) return 0;
   const fase = CONFIG.fasi[faseRaggiunta(opp)];
   return valoreAnnuo(opp) * marginePercentuale(opp, opportunita) * fase.probabilita;
 }
 
+// Ricavi attesi di un'opportunità aperta = valore annuo x probabilità della fase (K6)
 function ricaviAttesi(opp) {
-  if (opp.perso) return 0;
+  if (!trattativaAperta(opp)) return 0;
   return valoreAnnuo(opp) * CONFIG.fasi[faseRaggiunta(opp)].probabilita;
 }
 
@@ -64,13 +67,18 @@ function rapporto(a, b) {
   return b > 0 ? a / b : 0;
 }
 
+// Media dei numeri di un elenco (null se l'elenco è vuoto)
+function media(numeri) {
+  return numeri.length ? numeri.reduce((s, n) => s + n, 0) / numeri.length : null;
+}
+
 // Lead: aziende che non hanno ancora nessuna opportunità (stato "Da qualificare")
 function leadSenzaOpportunita(opportunita, aziende) {
   const conOpportunita = new Set(opportunita.map((o) => o.aziendaId));
   return aziende.filter((a) => !conOpportunita.has(a.id));
 }
 
-// Previsione ponderata: valore annuo delle trattative aperte × probabilità di chiusura della loro fase
+// Previsione ponderata (K6): valore annuo delle trattative aperte × probabilità di chiusura della loro fase
 function previsionePonderata(opportunita) {
   const aperte = opportunita.filter(trattativaAperta);
   return {
@@ -80,56 +88,122 @@ function previsionePonderata(opportunita) {
   };
 }
 
+// Trattativa aperta ferma oltre la soglia della sua fase (K9)
+function trattativaFerma(o) {
+  if (!trattativaAperta(o)) return false;
+  const fase = CONFIG.fasi[faseRaggiunta(o)];
+  return giorniTra(dataFaseAttuale(o), oggi()) > fase.giorniFerma;
+}
+
+// Costi dei canali (tabella costi_canale del database), totali per canale
+function costiPerCanale() {
+  const costi = {};
+  righeDb("costi_canale").forEach((r) => (costi[r.canale] = (costi[r.canale] || 0) + r.costo));
+  return costi;
+}
+
+// Somma dei costi di tutti i canali
+function costiFissiTotali() {
+  return Object.values(costiPerCanale()).reduce((s, v) => s + v, 0);
+}
+
+// Tutti i KPI del catalogo calcolabili sui dati fittizi (stato dell'app), con i numeri che servono alle formule
 function calcolaKpi(opportunita, aziende = stato.aziende) {
   const lead = leadSenzaOpportunita(opportunita, aziende).length;
-  const contatti = opportunita.length + lead;
+  const n = opportunita.length;
   const qualificati = contaRaggiunte(opportunita, "qualificato");
   const sopralluoghi = contaRaggiunte(opportunita, "sopralluogo");
   const offerte = contaRaggiunte(opportunita, "offerta");
-  const contratti = contaRaggiunte(opportunita, "contratto");
-
-  const c = CONFIG.costiAcquisizione;
-  const costiCommerciali = contatti * c.perContatto + sopralluoghi * c.perSopralluogo + offerte * c.perOfferta + costiFissiTotali();
-
+  const contrattiOpp = opportunita.filter((o) => o.storico.contratto && !o.perso);
+  const contratti = contrattiOpp.length;
+  const perse = opportunita.filter((o) => o.perso).length;
+  // K3: opportunità con l'offerta decisa (firmate + perse dopo essere arrivate in offerta)
+  const offerteDecise = opportunita.filter((o) => o.storico.offerta && (o.perso || o.storico.contratto)).length;
+  const aperte = opportunita.filter(trattativaAperta);
+  const costiCommerciali = costiFissiTotali();
   const margine = opportunita.reduce((s, o) => s + margineAtteso(o, opportunita), 0);
   const ricavi = opportunita.reduce((s, o) => s + ricaviAttesi(o), 0);
+  const conRisposta = opportunita.filter((o) => o.dataPrimaRisposta);
+  const conOfferta = opportunita.filter((o) => o.storico.offerta);
+  const registrate = opportunita.filter((o) => o.dataRegistrazione);
+  const digitali = opportunita.filter((o) => (infoCanale(o.canale) || {}).tipo === "digitale").length;
 
   return {
-    contatti, lead, qualificati, sopralluoghi, offerte, contratti,
-    persi: opportunita.filter((o) => o.perso).length,
-    tassoQualificati: rapporto(qualificati, contatti),
-    tassoSopralluoghi: rapporto(sopralluoghi, qualificati),
-    conversioneOfferte: rapporto(contratti, offerte),
+    contatti: n, lead, qualificati, sopralluoghi, offerte, offerteDecise, contratti, persi: perse,
+    tassoQualificati: rapporto(qualificati, n),                                // K1
+    tassoSopralluoghi: rapporto(sopralluoghi, qualificati),                    // K2
+    conversioneOfferte: rapporto(contratti, offerteDecise),                    // K3
     costiCommerciali,
-    costoAcquisizione: rapporto(costiCommerciali, contratti),
-    margineAtteso: margine,
-    ricaviAttesi: ricavi,
+    costoAcquisizione: rapporto(costiCommerciali, contratti),                  // K4 (tutti i canali)
+    margineAtteso: margine,                                                    // K5
+    ricaviAttesi: ricavi,                                                      // K6
     marginalitaMedia: rapporto(margine, ricavi),
+    winRate: rapporto(contratti, contratti + perse),                           // K7
+    durataCiclo: media(contrattiOpp.map((o) => giorniTra(o.storico.contatto, o.storico.contratto))),   // K8
+    aperte: aperte.length,
+    ferme: aperte.filter(trattativaFerma).length,                              // K9
+    primaRisposta: media(conRisposta.map((o) => giorniTra(o.storico.contatto, o.dataPrimaRisposta))),  // K12
+    conRisposta: conRisposta.length,
+    entroUnGiorno: conRisposta.filter((o) => giorniTra(o.storico.contatto, o.dataPrimaRisposta) <= 1).length,
+    tempoOfferta: media(conOfferta.map((o) => giorniTra(o.storico.contatto, o.storico.offerta))),      // K13
+    conOfferta: conOfferta.length,
+    registrate: registrate.length,
+    registrateEntro24: registrate.filter((o) => giorniTra(o.storico.contatto, o.dataRegistrazione) <= 1).length,   // K14
+    digitali, quotaDigitali: rapporto(digitali, n),                            // K15
+    firmateDaLink: contrattiOpp.filter((o) => o.firmaDaLink).length,           // K16
   };
+}
+
+// I KPI del catalogo calcolabili su una fonte di dati reali (fotografia di partenza o test)
+function kpiReali(fonte) {
+  const righe = righeDb("richieste_reali").filter((r) => r.fonte === fonte);
+  const giorniDa = (r, campo) => giorniTra(r.data_richiesta, r[campo]);
+  const conRisposta = righe.filter((r) => r.data_risposta);
+  const conOfferta = righe.filter((r) => r.data_offerta);
+  const registrate = righe.filter((r) => r.data_registrazione);
+  const decise = conOfferta.filter((r) => ["contratto", "persa"].includes(r.esito));
+  const contratti = righe.filter((r) => r.esito === "contratto").length;
+  const perse = righe.filter((r) => r.esito === "persa").length;
+  const voti = righe.filter((r) => r.voto_facilita != null).map((r) => r.voto_facilita);
+  const digitali = righe.filter((r) => (infoCanale(r.canale) || {}).tipo === "digitale").length;
+  return {
+    righe, totale: righe.length, contratti, perse, esempio: righe.length > 0 && righe.every((r) => /^ESEMPIO/i.test(r.note || "")),
+    conversioneOfferte: rapporto(decise.filter((r) => r.esito === "contratto").length, decise.length), offerteDecise: decise.length,   // K3
+    winRate: rapporto(contratti, contratti + perse),                                                   // K7
+    primaRisposta: media(conRisposta.map((r) => giorniDa(r, "data_risposta"))), conRisposta: conRisposta.length,   // K12
+    entroUnGiorno: conRisposta.filter((r) => giorniDa(r, "data_risposta") <= 1).length,
+    tempoOfferta: media(conOfferta.map((r) => giorniDa(r, "data_offerta"))), conOfferta: conOfferta.length,        // K13
+    registrate: registrate.length, registrateEntro24: registrate.filter((r) => giorniDa(r, "data_registrazione") <= 1).length,   // K14
+    digitali, quotaDigitali: rapporto(digitali, righe.length),                                         // K15
+    facilita: media(voti), voti: voti.length,                                                          // K17
+  };
+}
+
+// Fonti dei dati reali presenti nel database (partenza, test)
+function fontiReali() {
+  return [...new Set(righeDb("richieste_reali").map((r) => r.fonte))].sort();
 }
 
 // I 5 obiettivi del pilota: valore, obiettivo e se è raggiunto (l'id è anche la chiave di CONFIG.suggerimenti)
 function obiettiviPilota(k) {
   const ob = CONFIG.obiettivi;
   return [
-    { id: "tassoQualificati", nome: "Contatti qualificati", valore: formattaPercentuale(k.tassoQualificati),
+    { id: "tassoQualificati", nome: "K1 Contatti qualificati", valore: formattaPercentuale(k.tassoQualificati),
       obiettivo: "≥ " + formattaPercentuale(ob.tassoQualificati), raggiunto: k.tassoQualificati >= ob.tassoQualificati },
-    { id: "tassoSopralluoghi", nome: "Appuntamenti (sopralluoghi)", valore: formattaPercentuale(k.tassoSopralluoghi),
+    { id: "tassoSopralluoghi", nome: "K2 Sopralluoghi", valore: formattaPercentuale(k.tassoSopralluoghi),
       obiettivo: "≥ " + formattaPercentuale(ob.tassoSopralluoghi), raggiunto: k.tassoSopralluoghi >= ob.tassoSopralluoghi },
-    { id: "conversioneOfferte", nome: "Conversione delle offerte", valore: formattaPercentuale(k.conversioneOfferte),
+    { id: "conversioneOfferte", nome: "K3 Conversione offerte", valore: formattaPercentuale(k.conversioneOfferte),
       obiettivo: "≥ " + formattaPercentuale(ob.conversioneOfferte), raggiunto: k.conversioneOfferte >= ob.conversioneOfferte },
-    { id: "costoAcquisizioneMax", nome: "Costo di acquisizione", valore: k.contratti ? formattaEuro(k.costoAcquisizione) : "n.d.",
+    { id: "costoAcquisizioneMax", nome: "K4 Costo di acquisizione", valore: k.contratti ? formattaEuro(k.costoAcquisizione) : "n.d.",
       obiettivo: "≤ " + formattaEuro(ob.costoAcquisizioneMax), raggiunto: k.contratti > 0 && k.costoAcquisizione <= ob.costoAcquisizioneMax },
-    { id: "marginalitaMedia", nome: "Marginalità media", valore: formattaPercentuale(k.marginalitaMedia),
+    { id: "marginalitaMedia", nome: "Marginalità media delle trattative aperte", valore: formattaPercentuale(k.marginalitaMedia),
       obiettivo: "≥ " + formattaPercentuale(ob.marginalitaMedia), raggiunto: k.marginalitaMedia >= ob.marginalitaMedia },
   ];
 }
 
-// Funnel: per ogni fase, quanti contatti l'hanno raggiunta e la conversione dalla fase precedente.
-// La prima riga «Contatto» conta anche i lead ancora senza opportunità
-function calcolaFunnel(opportunita, aziende = stato.aziende) {
-  const lead = leadSenzaOpportunita(opportunita, aziende).length;
-  const raggiunte = CONFIG.fasi.map((f, i) => contaRaggiunte(opportunita, f.id) + (i === 0 ? lead : 0));
+// Funnel: per ogni fase, quante opportunità l'hanno raggiunta e la conversione dalla fase precedente
+function calcolaFunnel(opportunita) {
+  const raggiunte = CONFIG.fasi.map((f) => contaRaggiunte(opportunita, f.id));
   return CONFIG.fasi.map((f, i) => ({ nome: f.nome, n: raggiunte[i], conversione: i === 0 ? null : rapporto(raggiunte[i], raggiunte[i - 1]) }));
 }
 
@@ -151,15 +225,14 @@ function elencoConSalvati(elenco, salvati) {
   return elenco.concat(altri);
 }
 
-// Risultati per settore: i contatti sono le opportunità più i lead del settore.
-// Un settore tolto da config.js ma ancora nei dati resta, con fuoriElenco = true (così i totali tornano)
-function risultatiPerSettore(opportunita, aziende = stato.aziende) {
-  const lead = leadSenzaOpportunita(opportunita, aziende);
-  const settori = elencoConSalvati(CONFIG.settori, opportunita.map(settoreDi).concat(lead.map((a) => a.settore)));
+// Risultati per settore (contatti = opportunità del settore, come nel database).
+// Un settore tolto dal dizionario ma ancora nei dati resta, con fuoriElenco = true (così i totali tornano)
+function risultatiPerSettore(opportunita) {
+  const settori = elencoConSalvati(CONFIG.settori, opportunita.map(settoreDi));
   return settori.map((settore) => {
     const gruppo = opportunita.filter((o) => settoreDi(o) === settore);
-    const firmati = gruppo.filter((o) => o.storico.contratto);
-    const contatti = gruppo.length + lead.filter((a) => a.settore === settore).length;
+    const firmati = gruppo.filter((o) => o.storico.contratto && !o.perso);
+    const contatti = gruppo.length;
     return {
       settore,
       fuoriElenco: !CONFIG.settori.includes(settore),
@@ -174,32 +247,57 @@ function risultatiPerSettore(opportunita, aziende = stato.aziende) {
   });
 }
 
-// Somma dei costi fissi di tutti i canali di acquisizione
-function costiFissiTotali() {
-  return Object.values(CONFIG.costiAcquisizione.fissiPerCanale).reduce((s, v) => s + v, 0);
-}
-
-// Risultati per canale di acquisizione (fonte dell'azienda): quale canale porta contratti e a che costo.
-// I contatti sono le opportunità più i lead del canale; anche i lead pagano il costo per contatto.
-// Un canale tolto da config.js ma ancora nei dati resta, senza costo fisso (non più noto)
-function risultatiPerCanale(opportunita, aziende = stato.aziende) {
-  const c = CONFIG.costiAcquisizione;
-  const lead = leadSenzaOpportunita(opportunita, aziende);
-  const canali = elencoConSalvati(fonti(), opportunita.map((o) => (aziendaDi(o) || {}).fonte).concat(lead.map((a) => a.fonte)));
+// Risultati per canale di acquisizione (canale dell'opportunità, come nel database): quale canale porta contratti,
+// clienti coerenti (classe A/B/C) e margine, e a che costo (K4 = costi del canale ÷ contratti del canale).
+// I canali spenti compaiono solo se hanno dati; un canale fuori dal dizionario resta, con fuoriElenco = true
+function risultatiPerCanale(opportunita) {
+  const costi = costiPerCanale();
+  const canali = elencoConSalvati(fonti(), opportunita.map((o) => o.canale)).filter((c) => fonti().includes(c) || opportunita.some((o) => o.canale === c));
   return canali.map((fonte) => {
-    const gruppo = opportunita.filter((o) => (aziendaDi(o) || {}).fonte === fonte);
-    const contatti = gruppo.length + lead.filter((a) => a.fonte === fonte).length;
-    const conta = (id) => contaRaggiunte(gruppo, id);
-    const contratti = conta("contratto");
-    const costi = contatti * c.perContatto + conta("sopralluogo") * c.perSopralluogo + conta("offerta") * c.perOfferta + (Object.hasOwn(c.fissiPerCanale, fonte) ? c.fissiPerCanale[fonte] : 0);
+    const gruppo = opportunita.filter((o) => o.canale === fonte);
+    const contratti = gruppo.filter((o) => o.storico.contratto && !o.perso).length;
+    const chiuse = gruppo.filter((o) => o.perso || o.storico.contratto).length;
+    const classi = { A: 0, B: 0, C: 0 };
+    gruppo.forEach((o) => classi[calcolaPunteggio(o, opportunita).classe]++);
+    const costo = Object.hasOwn(costi, fonte) ? costi[fonte] : null;
     return {
       fonte,
-      fuoriElenco: !Object.hasOwn(c.fissiPerCanale, fonte),
-      contatti,
+      tipo: (infoCanale(fonte) || {}).tipo || "",
+      fuoriElenco: !infoCanale(fonte),
+      contatti: gruppo.length,
       contratti,
-      conversione: rapporto(contratti, contatti),
-      costi,
-      costoAcquisizione: contratti ? costi / contratti : null,
+      conversione: rapporto(contratti, chiuse),
+      classi,
+      quotaA: rapporto(classi.A, gruppo.length),
+      margineMedio: gruppo.length ? media(gruppo.map((o) => marginePercentuale(o, opportunita))) : null,
+      margineAtteso: gruppo.reduce((s, o) => s + margineAtteso(o, opportunita), 0),
+      costi: costo,
+      costoAcquisizione: costo !== null && contratti ? costo / contratti : null,
     };
   });
+}
+
+// Richieste qualificate per contenuto (utm_content): quali contenuti portano richieste coerenti, non solo contatti
+function risultatiPerContenuto(opportunita) {
+  const riga = (nome, gruppo, extra = {}) => ({
+    nome, ...extra,
+    richieste: gruppo.length,
+    qualificate: contaRaggiunte(gruppo, "qualificato"),
+    classeA: gruppo.filter((o) => calcolaPunteggio(o, opportunita).classe === "A").length,
+    contratti: gruppo.filter((o) => o.storico.contratto && !o.perso).length,
+  });
+  const contenuti = righeDb("contenuti").map((c) => riga(c.id, opportunita.filter((o) => o.contenuto === c.id), { contenuto: c }));
+  const senza = opportunita.filter((o) => !o.contenuto && ["sito web", "LinkedIn"].includes(o.canale));
+  return contenuti.concat(riga("Senza contenuto (sito web e LinkedIn)", senza));
+}
+
+// Coerenza del portafoglio (K11): opportunità e valore annuo per classe A, B, C
+function coerenzaPortafoglio(opportunita) {
+  const classi = { A: { n: 0, valore: 0 }, B: { n: 0, valore: 0 }, C: { n: 0, valore: 0 } };
+  opportunita.forEach((o) => {
+    const c = classi[calcolaPunteggio(o, opportunita).classe];
+    c.n++;
+    c.valore += valoreAnnuo(o);
+  });
+  return classi;
 }

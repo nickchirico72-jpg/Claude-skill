@@ -14,7 +14,8 @@ let elenchiAperti = { "da-fare": false, "da-seguire": false }; // «Mostra tutte
 // Stato dell'interfaccia, separato dai dati: sopravvive ai ridisegni.
 // filtri = ricerca e filtri dei Clienti; bozze = testo di «Registra un'attività» per azienda;
 // provenienza = schermata da cui si è arrivati (per il link «← Pipeline» della scheda cliente)
-const interfaccia = { filtri: { testo: "", settore: "", stato: "" }, bozze: {}, provenienza: "" };
+// indicatori = livello (operativo, tattico, strategico) e fonte dei dati (fittizi, partenza, test) della schermata Indicatori
+const interfaccia = { filtri: { testo: "", settore: "", stato: "" }, bozze: {}, provenienza: "", indicatori: { livello: "operativo", fonte: "fittizi" } };
 
 // ================================================================== ICONE
 
@@ -217,7 +218,8 @@ function schedaOpportunita(o, p) {
     const pulsante = fase === "qualificato" && !fissato
       ? `<button class="pulsante primario piccolo" type="button" data-azione="fissa-sopralluogo" data-id="${esc(o.id)}">${icona("calendario")} Fissa sopralluogo</button>`
       : `<button class="pulsante primario piccolo" type="button" data-azione="avanza" data-id="${esc(o.id)}" title="Registra che è già avvenuto">${icona("spunta")} ${CONFIG.fasi[faseRaggiunta(o)].azione}</button>`;
-    azioni = pulsante + `<button class="pulsante-testo" type="button" data-azione="perso" data-id="${esc(o.id)}" title="Segna come perso">Perso</button>`;
+    azioni = pulsante + (fase === "offerta" ? `<button class="pulsante secondario piccolo" type="button" data-azione="firma-link" data-id="${esc(o.id)}" title="Invia l'offerta da firmare con un link">Firma da link</button>` : "")
+      + `<button class="pulsante-testo" type="button" data-azione="perso" data-id="${esc(o.id)}" title="Segna come perso">Perso</button>`;
   }
 
   return `
@@ -228,7 +230,7 @@ function schedaOpportunita(o, p) {
       <p class="scheda-cifre"><strong>${formattaEuro(valoreAnnuo(o))}<small>/anno</small></strong>
         <span class="chip ${tonoMargine}" title="Margine stimato">margine ${formattaPercentuale(margine)}</span></p>
       ${stati ? `<div class="scheda-stati">${stati}</div>` : ""}
-      ${azioni ? `<div class="scheda-azioni">${azioni}</div>` : ""}
+      ${azioni ? `<div class="scheda-azioni${fase === "offerta" ? " con-firma" : ""}">${azioni}</div>` : ""}
     </article>`;
 }
 
@@ -272,6 +274,7 @@ function rigaStatoTrattativa(o, fissato = null) {
 
 // Riga di stato per i contratti: assegnato, in attesa del partner o da assegnare
 function statoCommessa(o) {
+  if (o.allocazione && o.allocazione.tipo === "storico") return rigaScheda("spunta", "Commessa già avviata", "ok");
   if (o.allocazione) {
     return o.allocazione.tipo === "squadra"
       ? rigaScheda("spunta", `<strong>${esc(nomeSquadra(o.allocazione.id))}</strong>`, "ok")
@@ -290,7 +293,9 @@ function disegnaAllocazione() {
   const firmati = tutte.filter((o) => o.storico.contratto && !o.perso);
   const daAssegnare = firmati.filter((o) => !o.allocazione)
     .sort((a, b) => b.storico.contratto.localeCompare(a.storico.contratto));
-  const assegnate = firmati.filter((o) => o.allocazione);
+  const avviate = firmati.filter((o) => o.allocazione && o.allocazione.tipo === "storico").length;
+  const assegnate = firmati.filter((o) => o.allocazione && o.allocazione.tipo !== "storico");
+  const conPartner = CONFIG.funzioni.partner;
 
   // Tutte le proposte inviate ai partner, dalla più recente
   const registro = tutte
@@ -305,14 +310,15 @@ function disegnaAllocazione() {
   return `
     ${intestazione({
       titolo: "Chi esegue il servizio",
-      istruzione: "Assegna ogni contratto firmato: prima a una squadra Gate con ore libere nella zona, altrimenti proponilo a un'impresa partner su WhatsApp.",
+      istruzione: conPartner ? "Assegna ogni contratto firmato: prima a una squadra Gate con ore libere nella zona, altrimenti proponilo a un'impresa partner su WhatsApp."
+        : "Assegna ogni contratto firmato a una squadra Gate con ore libere nella zona.",
     })}
 
     ${sezioneCapacitaFutura()}
 
     <ul class="regole" aria-label="Regole">
       <li>${icona("spunta")} Prima le squadre interne con ore libere nella zona</li>
-      <li>${icona("spunta")} Solo imprese partner con DURC regolare, nessun lavoratore autonomo</li>
+      ${conPartner ? `<li>${icona("spunta")} Solo imprese partner con DURC regolare, nessun lavoratore autonomo</li>` : ""}
       <li>${icona("spunta")} Il cliente resta di Gate: Gate firma il contratto e controlla la qualità</li>
     </ul>
 
@@ -324,6 +330,7 @@ function disegnaAllocazione() {
 
     <section class="sezione">
       <h2>Commesse assegnate <span class="conteggio">${assegnate.length}</span></h2>
+      ${avviate ? `<p class="nota-piccola">Altre ${avviate} commesse del database di prova erano già avviate prima del prototipo: le loro ore sono già nelle ore impegnate delle squadre.</p>` : ""}
       ${assegnate.length ? `
         <div class="tabella-scorrevole">
           <table class="tabella impilata">
@@ -352,12 +359,12 @@ function disegnaAllocazione() {
       <div class="griglia tre">${CONFIG.squadre.map(schedaSquadra).join("")}</div>
     </section>
 
-    <section class="sezione">
+    ${conPartner ? `<section class="sezione">
       <h2>Imprese partner <span class="sottotitolo">in ordine di priorità</span></h2>
       <div class="griglia tre">${CONFIG.partner.map(schedaPartner).join("")}</div>
-    </section>
+    </section>` : ""}
 
-    <section class="sezione">
+    ${conPartner ? `<section class="sezione">
       <h2>Registro delle proposte <span class="conteggio">${registro.length}</span></h2>
       ${registro.length ? `
         <div class="tabella-scorrevole">
@@ -373,7 +380,7 @@ function disegnaAllocazione() {
             </tbody>
           </table>
         </div>` : '<p class="vuoto">Nessuna proposta inviata.</p>'}
-    </section>
+    </section>` : ""}
 
     <section class="sezione futura" aria-label="Evoluzione futura">
       <p class="etichetta-futura">Evoluzione futura · non incluso nel pilota</p>
@@ -491,206 +498,6 @@ function schedaPartner(p) {
     </article>`;
 }
 
-// ============================================================== INDICATORI
-
-function disegnaIndicatori() {
-  const tutte = stato.opportunita;
-  const k = calcolaKpi(tutte);
-  const c = CONFIG.costiAcquisizione;
-  const obiettivi = obiettiviPilota(k);
-  // Obiettivo e raggiunto di una tessera, presi dall'elenco degli obiettivi
-  const esito = (id) => {
-    const o = obiettivi.find((x) => x.id === id);
-    return { obiettivo: o.obiettivo, raggiunto: o.raggiunto };
-  };
-  const funnel = calcolaFunnel(tutte);
-  const settori = risultatiPerSettore(tutte);
-  const previsione = previsionePonderata(tutte);
-  const firmati = tutte.filter((o) => o.storico.contratto && !o.perso);
-  const interne = firmati.filter((o) => o.allocazione && o.allocazione.tipo === "squadra").length;
-  const aPartner = firmati.filter((o) => o.allocazione && o.allocazione.tipo === "partner").length;
-  const perdite = motiviPerdita(tutte);
-  const raggiunti = obiettivi.filter((o) => o.raggiunto).length;
-  // Formula dei contatti, es. "16 opportunità + 2 aziende ancora da qualificare = 18"
-  const formulaContatti = `${tutte.length} opportunità + ${quanti(k.lead, "azienda ancora da qualificare", "aziende ancora da qualificare")} = ${k.contatti}`;
-
-  const efficacia = [
-    tesseraKpi({
-      etichetta: "Contatti qualificati",
-      valore: formattaPercentuale(k.tassoQualificati),
-      dettaglio: k.qualificati + " su " + k.contatti + " contatti",
-      formula: `Contatti = ${formulaContatti}.<br>
-        Contatti arrivati almeno a «Qualificato» ÷ contatti = ${k.qualificati} ÷ ${k.contatti} = ${formattaPercentuale(k.tassoQualificati)}`,
-      ...esito("tassoQualificati"),
-    }),
-    tesseraKpi({
-      etichetta: "Appuntamenti (sopralluoghi)",
-      valore: formattaPercentuale(k.tassoSopralluoghi),
-      dettaglio: k.sopralluoghi + " su " + k.qualificati + " contatti qualificati",
-      formula: `Sopralluoghi fatti ÷ contatti qualificati = ${k.sopralluoghi} ÷ ${k.qualificati} = ${formattaPercentuale(k.tassoSopralluoghi)}`,
-      ...esito("tassoSopralluoghi"),
-    }),
-    tesseraKpi({
-      etichetta: "Conversione delle offerte",
-      valore: formattaPercentuale(k.conversioneOfferte),
-      dettaglio: k.contratti + " contratti su " + k.offerte + " offerte presentate",
-      formula: `Contratti firmati ÷ offerte presentate (comprese quelle ancora in attesa di risposta) = ${k.contratti} ÷ ${k.offerte} = ${formattaPercentuale(k.conversioneOfferte)}`,
-      ...esito("conversioneOfferte"),
-    }),
-  ];
-
-  const efficienza = [
-    tesseraKpi({
-      etichetta: "Costo di acquisizione",
-      valore: k.contratti ? formattaEuro(k.costoAcquisizione) : "n.d.",
-      dettaglio: "per ogni contratto firmato",
-      formula: `(${k.contatti} contatti × ${formattaEuro(c.perContatto)} + ${k.sopralluoghi} sopralluoghi × ${formattaEuro(c.perSopralluogo)} + ${k.offerte} offerte × ${formattaEuro(c.perOfferta)} + ${formattaEuro(costiFissiTotali())} di costi dei canali) ÷ ${k.contratti} contratti = ${formattaEuro(k.costiCommerciali)} ÷ ${k.contratti} = ${k.contratti ? formattaEuro(k.costoAcquisizione) : "n.d."}`,
-      ...esito("costoAcquisizioneMax"),
-    }),
-    tesseraKpi({
-      etichetta: "Margine atteso",
-      valore: formattaEuro(k.margineAtteso),
-      dettaglio: "all'anno · marginalità media " + formattaPercentuale(k.marginalitaMedia),
-      formula: `Somma di (valore annuo × margine % × probabilità di chiusura della fase) sulle opportunità non perse = ${formattaEuro(k.margineAtteso)}.<br>
-        Probabilità: ${CONFIG.fasi.map((f) => f.nome + " " + formattaPercentuale(f.probabilita)).join(" · ")}.<br>
-        Il margine % usa il costo della squadra interna o del partner, secondo chi esegue.`,
-      ...esito("marginalitaMedia"),
-      obiettivo: "marginalità " + esito("marginalitaMedia").obiettivo,
-    }),
-  ];
-
-  const massimo = funnel[0].n || 1;
-
-  return `
-    ${intestazione({
-      titolo: "Dai contatti ai contratti",
-      istruzione: "Leggi il pilota con quattro domande: cosa è successo, perché, cosa succederà e cosa conviene fare.",
-    })}
-    ${legendaDomande({ descrittiva: "domanda-descrittiva", diagnostica: "domanda-diagnostica", predittiva: "domanda-predittiva", prescrittiva: "domanda-prescrittiva" })}
-
-    <section class="riquadro sintesi" aria-labelledby="titolo-sintesi">
-      <h2 id="titolo-sintesi" class="titolo-riquadro">Il pilota in sintesi ${domanda("descrittiva")}</h2>
-      <p class="sintesi-numero ${raggiunti === obiettivi.length ? "ok" : ""}">Obiettivi raggiunti: <strong>${raggiunti} su ${obiettivi.length}</strong></p>
-      ${raggiunti < obiettivi.length ? `<ul class="sintesi-elenco">
-        ${obiettivi.filter((o) => !o.raggiunto).map((o) => `
-          <li>${icona("attenzione")}
-            <span><strong>${o.nome}: ${o.valore}</strong> (obiettivo ${o.obiettivo})<br>
-              <span class="sintesi-suggerimento">${esc((CONFIG.suggerimenti || {})[o.id] || "")}</span></span></li>`).join("")}
-      </ul>` : '<p class="nota-piccola">Tutti gli obiettivi del pilota sono raggiunti.</p>'}
-      <p class="sintesi-previsione">${icona("freccia")} <span>Previsione ponderata: <strong>${formattaEuro(previsione.ponderata)} all'anno</strong>
-        da ${quanti(previsione.aperte, "trattativa aperta", "trattative aperte")}</span></p>
-    </section>
-
-    <section class="sezione">
-      <h2 id="domanda-descrittiva">${domanda("descrittiva")} Efficacia <span class="sottotitolo">quanto il processo porta risultati</span></h2>
-      <div class="griglia tre">${efficacia.join("")}</div>
-    </section>
-
-    <section class="sezione">
-      <h2>${domanda("descrittiva")} Efficienza <span class="sottotitolo">quanto costa acquisire e quanto rende</span></h2>
-      <div class="griglia">${efficienza.join("")}</div>
-    </section>
-
-    <section class="sezione">
-      <h2>${domanda("descrittiva")} Funnel commerciale <span class="sottotitolo">contatti che hanno raggiunto ogni fase, persi compresi</span></h2>
-      <div class="riquadro">
-        <div class="funnel">
-          ${funnel.map((f) => {
-            const conv = f.conversione === null ? "" : formattaPercentuale(f.conversione) + " della fase prima";
-            return `
-              <div class="funnel-riga" tabindex="0" title="${f.nome}: ${f.n} contatti${conv ? " · " + conv : ""}">
-                <span class="funnel-fase">${f.nome}</span>
-                <span class="funnel-barra"><span style="width:${(f.n / massimo) * 100}%"></span></span>
-                <span class="funnel-numero">${f.n}</span>
-                <span class="funnel-conv">${conv}</span>
-              </div>`;
-          }).join("")}
-        </div>
-        <p class="nota-piccola" style="margin-top:10px">
-          Contatto = ${formulaContatti}.
-          Commesse firmate: ${firmati.length}, di cui ${interne} a squadre interne, ${aPartner} a partner, ${firmati.length - interne - aPartner} da assegnare.
-        </p>
-      </div>
-    </section>
-
-    <section class="sezione">
-      <h2 id="domanda-diagnostica">${domanda("diagnostica")} Perché perdiamo <span class="sottotitolo">${quanti(perdite.reduce((s, m) => s + m.numero, 0), "trattativa persa", "trattative perse")}</span></h2>
-      ${perdite.length ? `
-        <div class="tabella-scorrevole">
-          <table class="tabella">
-            <thead><tr><th>Motivo</th><th class="num">Trattative</th><th class="num">Valore annuo perso</th></tr></thead>
-            <tbody>
-              ${perdite.map((m) => `<tr>
-                <td>${esc(m.motivo)}</td>
-                <td class="num">${m.numero}</td>
-                <td class="num">${formattaEuro(m.valore)}</td>
-              </tr>`).join("")}
-            </tbody>
-          </table>
-        </div>` : '<p class="vuoto">Nessuna trattativa persa.</p>'}
-    </section>
-
-    <section class="sezione">
-      <h2>${domanda("diagnostica")} Risultati per settore <span class="sottotitolo">settore pilota: ${CONFIG.pilota.settore.toLowerCase()}</span></h2>
-      <div class="tabella-scorrevole">
-        <table class="tabella">
-          <thead><tr>
-            <th>Settore</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Conversione</th>
-            <th class="num">Valore annuo contratti</th><th class="num">Margine atteso</th><th class="num">Quota A</th>
-          </tr></thead>
-          <tbody>
-            ${settori.map((s) => `<tr>
-              <td>${esc(s.settore)}${s.fuoriElenco ? " (non più in elenco)" : ""}${s.pilota ? '<span class="chip-pilota">pilota</span>' : ""}</td>
-              <td class="num">${s.contatti}</td>
-              <td class="num">${s.contratti}</td>
-              <td class="num">${s.contatti ? formattaPercentuale(s.conversione) : "–"}</td>
-              <td class="num">${formattaEuro(s.valoreContratti)}</td>
-              <td class="num">${formattaEuro(s.margineAtteso)}</td>
-              <td class="num">${s.quotaA === null ? "–" : formattaPercentuale(s.quotaA)}</td>
-            </tr>`).join("")}
-          </tbody>
-        </table>
-      </div>
-      <p class="nota-piccola" style="margin-top:8px">Contatti = opportunità + aziende ancora da qualificare del settore. Conversione = contratti ÷ contatti. Quota A = opportunità con punteggio A sul totale delle opportunità del settore.</p>
-    </section>
-
-    <section class="sezione">
-      <h2>${domanda("diagnostica")} Risultati per canale di acquisizione <span class="sottotitolo">da dove arrivano i clienti e quanto costano</span></h2>
-      <div class="tabella-scorrevole">
-        <table class="tabella">
-          <thead><tr>
-            <th>Canale</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Conversione</th>
-            <th class="num">Costi del canale</th><th class="num">Costo di acquisizione</th>
-          </tr></thead>
-          <tbody>
-            ${risultatiPerCanale(tutte).map((r) => `<tr>
-              <td>${esc(r.fonte)}${r.fuoriElenco ? " (non più in elenco)" : ""}</td>
-              <td class="num">${r.contatti}</td>
-              <td class="num">${r.contratti}</td>
-              <td class="num">${r.contatti ? formattaPercentuale(r.conversione) : "–"}</td>
-              <td class="num">${formattaEuro(r.costi)}</td>
-              <td class="num">${r.costoAcquisizione === null ? "nessun contratto" : formattaEuro(r.costoAcquisizione)}</td>
-            </tr>`).join("")}
-          </tbody>
-        </table>
-      </div>
-      <p class="nota-piccola" style="margin-top:8px">Contatti = opportunità + aziende ancora da qualificare del canale. Costi del canale = contatti × ${formattaEuro(CONFIG.costiAcquisizione.perContatto)} + sopralluoghi × ${formattaEuro(CONFIG.costiAcquisizione.perSopralluogo)} + offerte × ${formattaEuro(CONFIG.costiAcquisizione.perOfferta)} + spesa fissa del canale. Il canale è la fonte indicata nella scheda cliente.</p>
-    </section>
-    ${sezioniPrevisioneEConsigli()}`;
-}
-
-function tesseraKpi({ etichetta, valore, dettaglio, formula, obiettivo, raggiunto }) {
-  return `
-    <article class="riquadro kpi">
-      <p class="kpi-etichetta">${etichetta}</p>
-      <p class="kpi-valore">${valore}</p>
-      <p class="kpi-dettaglio">${dettaglio}</p>
-      <p class="kpi-formula"><span class="kpi-formula-titolo">Formula</span>${formula}</p>
-      <p class="kpi-obiettivo ${raggiunto ? "ok" : "sotto"}">${icona(raggiunto ? "spunta" : "attenzione")}
-        Obiettivo ${obiettivo}: ${raggiunto ? "raggiunto" : "non raggiunto"}</p>
-    </article>`;
-}
-
 // ===================================================== FINESTRE DI DIALOGO
 
 const finestra = document.getElementById("finestra");
@@ -797,7 +604,11 @@ function apriDettaglio(id) {
   const precedente = puoTornareIndietro(o) ? CONFIG.fasi[faseRaggiunta(o) - 1] : null;
   apriFinestra(`
     <div class="finestra-testa"><h2>${esc(nomeCliente(o))}</h2>${badgePunteggio(p)}</div>
-    <p class="nota-piccola">${esc(o.servizio)} · ${Number(o.ore)} h/mese · tariffa ${formattaEuro(tariffaOraria(o))}/ora · sede di lavoro: ${esc(o.comune)} · rif. ${esc(o.codice)}</p>
+    <p class="nota-piccola">${esc(o.servizio)} · ${Number(o.ore)} h/mese · ${o.valore != null ? "valore " + formattaEuro(valoreAnnuo(o)) + "/anno" : "tariffa " + formattaEuro(tariffaOraria(o)) + "/ora"} · sede di lavoro: ${esc(o.comune)} · rif. ${esc(o.codice)}</p>
+    <p class="riga-chip">${o.canale ? `<span class="chip">Canale: ${esc(o.canale)}</span>` : ""}
+      ${o.contenuto ? `<span class="chip chip-info">Contenuto: ${esc(o.contenuto)}${o.campagna ? " · campagna " + esc(o.campagna) : ""}</span>` : ""}
+      ${o.firmaDaLink ? '<span class="chip chip-ok">Firmata da link</span>' : ""}
+      ${o.preventivo ? `<span class="chip">Preventivo: ${Number(o.preventivo.mq)} mq · ${esc(o.preventivo.ambiente)} · ${esc(o.preventivo.frequenza)}</span>` : ""}</p>
     <div class="dettaglio-referente">
       ${ref ? `<p><strong>Referente:</strong> ${esc(ref.nome)}${ref.ruolo ? " (" + esc(ref.ruolo) + ")" : ""}${ref.telefono ? " · " + esc(telefonoLeggibile(ref.telefono)) : ""}</p>
         <div class="contatti">${pulsantiContatto(ref)}</div>` : "<p><strong>Referente:</strong> non indicato</p>"}
@@ -916,6 +727,10 @@ function salvaModificaOpportunita(modulo) {
   if ((n.note || "") !== (o.note || "")) cambi.push("note aggiornate");
   if (!cambi.length) return chiudiFinestra(); // nulla da salvare
   applica(() => {
+    // Servizio, sede, ore o tariffa cambiati: valore, margine e capacità si stimano con le regole dell'app
+    if (n.servizio !== o.servizio || n.comune !== o.comune || n.ore !== o.ore || tariffaOraria(n) !== tariffaOraria(o)) {
+      Object.assign(o, { valore: null, margine: null, capacitaSimulata: null });
+    }
     Object.assign(o, { servizio: n.servizio, comune: n.comune, ore: n.ore, tariffa: n.tariffa ?? null, referenteId: n.referenteId || null, note: n.note || "" });
     registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: "Correzione: " + cambi.join("; ") });
   }, { messaggio: "Opportunità aggiornata", evidenzia: o.id });
@@ -987,9 +802,12 @@ function apriNuovoContatto(aziendaId = "") {
           </div>
         </fieldset>
 
-        <label id="gruppo-referente" ${scelta ? "" : "hidden"}>Referente per questa opportunità
-          <select name="referente">${scelta ? opzioniReferenti(scelta.id) : ""}</select>
-        </label>
+        <div class="riga-doppia" id="gruppo-referente" ${scelta ? "" : "hidden"}>
+          <label>Referente per questa opportunità
+            <select name="referente">${scelta ? opzioniReferenti(scelta.id) : ""}</select>
+          </label>
+          <label>Canale di questa richiesta <select name="canale">${opzioni(fonti(), scelta && fonti().includes(scelta.fonte) ? scelta.fonte : fonti()[0])}</select></label>
+        </div>
 
         <fieldset class="gruppo">
           <legend>Servizio richiesto</legend>
@@ -998,10 +816,18 @@ function apriNuovoContatto(aziendaId = "") {
             <label data-servizio>Servizio <select name="servizio">${opzioni(servizi, servizi[0])}</select></label>
             <label>Sede di lavoro (comune) <select name="comune">${opzioniComuni(scelta ? scelta.comune : "Bari")}</select></label>
           </div>
+          <p class="nota-piccola" data-servizio>Preventivo indicativo: tipo di ambienti, metri quadri e frequenza calcolano ore, prezzo e margine (valori di prova).</p>
           <div class="riga-doppia" data-servizio>
+            <label>Tipo di ambienti <select name="ambiente"><option value="">— Senza preventivo —</option>${opzioni(CONFIG.preventivo.ambienti.map((a) => a.nome), "")}</select></label>
+            <label>Metri quadri indicativi <input name="mq" type="number" inputmode="numeric" min="1" step="10" placeholder="Es. 300"></label>
+          </div>
+          <div class="riga-doppia" data-servizio>
+            <label>Frequenza <select name="frequenza">${opzioni(CONFIG.preventivo.frequenze.map((f) => f.nome), CONFIG.preventivo.frequenze[2].nome)}</select></label>
             <label>Ore al mese (stima) *
               <input name="ore" type="number" inputmode="numeric" min="1" step="1" required placeholder="Es. 60" ${scelta ? "autofocus" : ""}>
             </label>
+          </div>
+          <div class="riga-doppia" data-servizio>
             <label>Tariffa oraria (€)
               <input name="tariffa" type="number" inputmode="decimal" min="1" step="0.5" value="${CONFIG.servizi[servizi[0]].tariffa}">
             </label>
@@ -1027,6 +853,7 @@ function scegliAzienda(modulo, id) {
   if (azienda) modulo.daCapire.checked = false;
   modulo.referente.innerHTML = azienda ? opzioniReferenti(azienda.id) : "";
   if (azienda) modulo.comune.value = azienda.comune;
+  if (azienda && fonti().includes(azienda.fonte)) modulo.canale.value = azienda.fonte;
   aggiornaServizioDaCapire(modulo);
   aggiornaAvvisoDoppione(modulo);
   aggiornaAnteprima(modulo);
@@ -1087,7 +914,7 @@ function leggiModulo(modulo) {
     note: "",
     creata: oggi(),
   };
-  const base = d.get("refBase") || "Da verificare";
+  const base = d.get("refBase") || CONFIG.basiGiuridiche[0];
   const nuovoReferente = aziendaId || !testo("refNome") ? null : {
     nome: testo("refNome"),
     ruolo: testo("refRuolo"),
@@ -1095,17 +922,23 @@ function leggiModulo(modulo) {
     email: testo("refEmail"),
     canale: testo("refTelefono") ? "Telefono" : "Email",
     decisore: d.get("refDecisore") === "on",
-    privacy: privacyVuota(base, base === "Da verificare" ? null : oggi()),
+    privacy: privacyVuota(base, base === CONFIG.basiGiuridiche[0] ? null : oggi()),
   };
+  const mq = Math.round(Number(d.get("mq"))) || 0;
   const opp = daCapire ? null : {
     aziendaId,
     referenteId: aziendaId ? d.get("referente") || null : null,
+    canale: aziendaId ? d.get("canale") : d.get("fonte"),
     comune: d.get("comune"),
     servizio,
     ore: Math.round(Number(d.get("ore"))) || 0,
     // La tariffa si salva solo se diversa da quella standard del servizio
     tariffa: tariffa > 0 && tariffa !== datiServizio(servizio).tariffa ? tariffa : null,
+    ...(d.get("ambiente") && mq > 0 ? { preventivo: { ambiente: d.get("ambiente"), mq, frequenza: d.get("frequenza") } } : {}),
     storico: { contatto: oggi() },
+    dataRegistrazione: oggi(),   // annotata nel CRM il giorno stesso (K14)
+    consensoPrivacy: base === "consenso",
+    campagna: "", contenuto: "", paginaArrivo: "",
     perso: null,
     allocazione: null,
     proposte: [],
@@ -1139,12 +972,35 @@ function aggiornaAnteprima(modulo = document.querySelector("#modulo-contatto, #m
     return;
   }
   const p = calcolaPunteggio(opp, stato.opportunita);
-  box.innerHTML = `
+  box.innerHTML = riquadroPreventivo(opp) + `
     <p class="anteprima-titolo">Punteggio di coerenza</p>
     <p class="anteprima-testa"><span class="badge badge-${p.classe} badge-grande">${p.classe} · ${p.totale}</span>
       <span><strong>${formattaEuro(valoreAnnuo(opp))}</strong> all'anno</span></p>
     ${tabellaCriteri(p)}`;
   aggiornaPunteggioBreve(modulo, p);
+}
+
+// Riquadro del preventivo indicativo nell'anteprima: ore, prezzo annuo, margine e avviso sotto il margine minimo
+function riquadroPreventivo(opp) {
+  if (!opp.preventivo) return "";
+  const margine = marginePercentuale(opp, stato.opportunita);
+  const minimo = CONFIG.punteggio.margine.minimo;
+  return `
+    <div class="preventivo">
+      <p class="anteprima-titolo">Preventivo indicativo</p>
+      <p><strong>${Number(opp.ore)} h/mese</strong> · ${formattaEuro(tariffaOraria(opp))}/ora · <strong>${formattaEuro(valoreAnnuo(opp))}/anno</strong></p>
+      <p>Margine stimato <strong>${formattaPercentualeDecimale(margine)}</strong></p>
+      ${margine < minimo ? `<p class="avviso-margine">${icona("attenzione")} Margine sotto il minimo del ${formattaPercentuale(minimo)}: rivedi tariffa o frequenza</p>` : ""}
+      <p class="nota-piccola">Valori di prova, da sostituire dopo l'intervista.</p>
+    </div>`;
+}
+
+// Applica il preventivo al modulo «Nuovo contatto»: ore e tariffa calcolate da servizio, mq, ambiente e frequenza
+function applicaPreventivo(modulo) {
+  const prev = calcolaPreventivo({ servizio: modulo.servizio.value, mq: Number(modulo.mq.value), ambiente: modulo.ambiente.value, frequenza: modulo.frequenza.value });
+  if (!prev) return;
+  modulo.ore.value = prev.ore;
+  modulo.tariffa.value = prev.tariffa;
 }
 
 // «Punteggio B · 65» nella barra dei pulsanti; il lettore di schermo sente «Punteggio B, 65 su 100» solo quando cambia
@@ -1413,7 +1269,7 @@ function salvaFase(modulo) {
     if (fase.id === "sopralluogo") {
       if (ore !== o.ore) {
         registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", data, testo: "Ore al mese: " + o.ore + " → " + ore + " (dal sopralluogo)" });
-        o.ore = ore;
+        Object.assign(o, { ore, valore: null, capacitaSimulata: null });
       }
       // Il sopralluogo fissato in agenda si chiude con la data in cui è stato fatto
       const fissato = stato.attivita.find((x) => x.id === modulo.dataset.attivita && x.daFare) || sopralluogoFissato(o);
@@ -1425,6 +1281,7 @@ function salvaFase(modulo) {
         registraAttivita({ aziendaId: o.aziendaId, referenteId: o.referenteId || null, opportunitaId: o.id, tipo: "Visita", data, testo: "Sopralluogo: " + note });
       }
     } else if (fase.id === "offerta") {
+      if (tariffa !== tariffaOraria(o)) o.valore = null;   // nuova tariffa: il valore si ricalcola da ore e tariffa
       o.tariffa = tariffa !== datiServizio(o.servizio).tariffa ? tariffa : null;
       o.scadenzaOfferta = scadenzaOfferta;
       if (motivazione) o.motivazioneC = motivazione;
@@ -1435,6 +1292,39 @@ function salvaFase(modulo) {
     }
     promemoria = registraFase(o, fase, data, dettaglio);
   }, { messaggio: () => messaggioFase(o, fase, promemoria), evidenzia: o.id, fase: fase.id, vai: fase.id === "contratto" ? "allocazione" : null });
+}
+
+// Firma da link (simulata): il cliente apre il link, legge l'offerta e firma senza app, account né password
+function apriFirmaLink(id) {
+  const o = trova(id);
+  if (!o || faseAttuale(o) !== "offerta") return;
+  apriFinestra(`
+    <h2>Firma da link · ${esc(nomeCliente(o))}</h2>
+    <p>Il cliente riceve l'offerta per email o WhatsApp con un link: la legge e la firma dal telefono, senza registrarsi.
+      La tecnologia nuova sta tutta dal lato di Gate.</p>
+    <div class="riquadro firma-anteprima">
+      <p class="commessa-codice">OFFERTA ${esc(o.codice)} · LINK DI FIRMA (SIMULATO)</p>
+      <p><strong>${esc(o.servizio)} · ${esc(o.comune)}</strong></p>
+      <p class="nota-piccola">${Number(o.ore)} ore al mese · ${formattaEuro(valoreAnnuo(o))} all'anno${o.scadenzaOfferta ? " · valida fino al " + formattaData(o.scadenzaOfferta) : ""}</p>
+    </div>
+    <p class="nota-piccola">Prototipo: nessun messaggio viene inviato. La firma si registra con la data di oggi e conta nel KPI K16.</p>
+    <div class="azioni-finestra">
+      <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
+      <button class="pulsante primario" type="button" data-azione="conferma-firma" data-id="${esc(o.id)}">${icona("spunta")} Il cliente ha firmato (simulazione)</button>
+    </div>`);
+}
+
+// Registra il contratto firmato da link: data di oggi, avvio proposto, firma da link (K16)
+function confermaFirma(id) {
+  const o = trova(id);
+  const contratto = CONFIG.fasi.find((f) => f.id === "contratto");
+  if (!o || faseAttuale(o) !== "offerta") return chiudiFinestra();
+  let promemoria = null;
+  applica(() => {
+    o.firmaDaLink = true;
+    o.avvio = aggiungiGiorni(oggi(), CONFIG.giorniAvvioServizio);
+    promemoria = registraFase(o, contratto, oggi(), "firmata da link, avvio il " + formattaData(o.avvio));
+  }, { messaggio: () => "Offerta firmata da link: " + messaggioFase(o, contratto, promemoria), evidenzia: o.id, fase: "contratto", vai: "allocazione" });
 }
 
 // Motivo della perdita: va scelto, non parte già impostato
@@ -1547,6 +1437,7 @@ function avanza(id) {
 // Restituisce il promemoria creato in automatico, oppure null.
 function registraFase(o, fase, data = oggi(), dettaglio = "") {
   o.storico[fase.id] = data;
+  if (!o.dataPrimaRisposta) o.dataPrimaRisposta = data;   // qualificare la richiesta vuol dire averle già risposto (K12)
   registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", data, testo: o.servizio + ": fase «" + fase.nome + "»" + (dettaglio ? " (" + dettaglio + ")" : "") });
   return cadenza(o, fase, data);
 }
@@ -1722,6 +1613,8 @@ const AZIONI = {
     modulo.querySelectorAll("[data-azione=imposta-data]").forEach((b) => b.setAttribute("aria-pressed", b === el));
   },
   "modifica-opportunita": (el) => apriModificaOpportunita(el.dataset.id),
+  "firma-link": (el) => apriFirmaLink(el.dataset.id),
+  "conferma-firma": (el) => confermaFirma(el.dataset.id),
   "torna-indietro": (el) => tornaIndietro(el.dataset.id),
   riapri: (el) => riapri(el.dataset.id),
   ...AZIONI_CLIENTI,
@@ -1746,7 +1639,7 @@ const AZIONI = {
 
 // Azioni che modificano i dati: un secondo clic ravvicinato viene ignorato
 const MODIFICANO_DATI = new Set(['importa-contatti', "avanza", "fatto", "fatto-fase", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
-  "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "annulla"]);
+  "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "conferma-firma", "annulla"]);
 let ultimoClicModifica = 0;
 let ultimoInvio = 0; // quando è stato inviato l'ultimo modulo (ms)
 
@@ -1814,6 +1707,7 @@ document.addEventListener("submit", (evento) => {
 let timerRicerca;
 document.addEventListener("input", (evento) => {
   const modulo = evento.target.closest("#modulo-contatto, #modulo-opportunita");
+  if (modulo && modulo.id === "modulo-contatto" && evento.target.name === "mq") applicaPreventivo(modulo);
   if (modulo) aggiornaAnteprima(modulo);
   if (["ragioneSociale", "piva", "refTelefono", "refEmail"].includes(evento.target.name) && evento.target.closest("#modulo-contatto")) {
     aggiornaAvvisoDoppione(evento.target.form);
@@ -1842,12 +1736,13 @@ document.addEventListener("change", (evento) => {
   if (campo.form && campo.form.id === "modulo-fase") return aggiornaModuloFase(campo.form, campo);
   // Privacy del referente: scegliendo una base giuridica la data diventa oggi, se non era già scritta
   if (campo.form && campo.form.id === "modulo-referente" && campo.name === "base") {
-    if (campo.value !== "Da verificare" && !campo.form.dataPrivacy.value) campo.form.dataPrivacy.value = oggi();
+    if (campo.value !== CONFIG.basiGiuridiche[0] && !campo.form.dataPrivacy.value) campo.form.dataPrivacy.value = oggi();
     return;
   }
   if (!campo.form || !["modulo-contatto", "modulo-opportunita"].includes(campo.form.id)) return;
   // Cambiando servizio, la tariffa torna quella standard del nuovo servizio
   if (campo.name === "servizio") campo.form.tariffa.value = datiServizio(campo.value).tariffa;
+  if (["servizio", "ambiente", "frequenza"].includes(campo.name) && campo.form.id === "modulo-contatto") applicaPreventivo(campo.form);
   // Scegliendo un'azienda esistente si nascondono i campi della nuova azienda
   if (campo.name === "azienda") return scegliAzienda(campo.form, campo.value);
   if (campo.name === "daCapire") aggiornaServizioDaCapire(campo.form);
@@ -2016,6 +1911,11 @@ window.addEventListener("storage", (evento) => {
 
 // Chiede al browser di non cancellare i dati del sito (es. Safari dopo 7 giorni senza visite)
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+if (datiDiVersionePrecedente) {
+  avvisoFisso("Sono disponibili i nuovi dati di prova, uguali a quelli del database SQL. I tuoi dati salvati restano finché non scegli di sostituirli.",
+    '<button class="pulsante primario piccolo" type="button" data-azione="ripristina">Usa i nuovi dati</button>');
+}
 
 if (datiScartati) {
   avvisoFisso("I dati salvati in questo browser non si leggono: li abbiamo messi da parte.",

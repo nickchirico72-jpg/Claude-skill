@@ -24,7 +24,8 @@
     <p class="marchio-pubblico">Gate <span>S.R.L.</span></p>
     <p class="nota-dati">Prototipo dimostrativo: il modulo non è ancora pubblicato da Gate.</p>
     <h1>Richiedi un preventivo</h1>
-    <p class="istruzione">Pulizia professionale, pest control, manutenzioni, giardinaggio e logistica. Ti ricontattiamo entro un giorno lavorativo.</p>
+    <p class="istruzione">Cleaning e hospitality, logistica e retail, servizi alle strutture. Ti ricontattiamo entro un giorno lavorativo.
+      Vuoi prima un sopralluogo? <a class="link" href="sopralluogo.html">Richiedi un sopralluogo</a>.</p>
 
     <!-- Il modulo non invia nulla a un server: prepara un messaggio che si invia su WhatsApp o per email -->
     <form class="modulo riquadro" id="modulo-richiesta" novalidate style="margin-top:16px">
@@ -58,18 +59,22 @@
     </section>
   </main>
 
+  <script src="js/dizionari.js"></script>
   <script src="js/config.js"></script>
   <script>
-    // Canale da cui arriva il visitatore: ?utm_source=instagram (link tracciato), altrimenti "sito"
-    const canale = new URLSearchParams(location.search).get("utm_source") || "sito";
+    // Da dove arriva il visitatore: canale, campagna e contenuto dal link tracciato (senza parametri = modulo del sito)
+    const link = new URLSearchParams(location.search);
+    const canale = link.get("utm_source") || "modulo-sito";
+    const campagna = link.get("utm_campaign") || "";
+    const contenuto = link.get("utm_content") || "";
 
     // Elenchi del modulo presi da config.js, così restano uguali a quelli del CRM
     document.getElementById("campo-comune").innerHTML =
-      CONFIG.comuni.map((c) => `<option>${c.nome}</option>`).join("") + "<option>Altro comune</option>";
+      CONFIG.comuni.filter((c) => c.provincia === "BA" || c.provincia === "BT").map((c) => `<option>${c.nome}</option>`).join("") + "<option>Altro comune</option>";
     document.getElementById("campo-servizio").innerHTML =
       Object.keys(CONFIG.servizi).map((s) => `<option>${s}</option>`).join("") + "<option>Da definire</option>";
 
-    // Testo della richiesta: righe "Chiave: valore" che il CRM sa rileggere (Clienti → Canali e modulo → Importa)
+    // Testo della richiesta: righe "Chiave: valore" che il CRM sa rileggere (Clienti → Sito e social → Importa)
     function testoRichiesta(d) {
       const oggi = new Date().toLocaleDateString("it-IT");
       return [
@@ -84,6 +89,8 @@
         "Ore al mese: " + (d.get("ore") || ""),
         "Messaggio: " + String(d.get("messaggio") || "").replace(/\s+/g, " ").trim(),
         "Canale: " + canale,
+        "Campagna: " + campagna,
+        "Contenuto: " + contenuto,
         "Consenso privacy: sì (" + oggi + ")",
       ].join("\n");
     }

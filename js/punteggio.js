@@ -15,20 +15,41 @@ function tariffaOraria(opp) {
   return opp.tariffa || datiServizio(opp.servizio).tariffa;
 }
 
-// Ricavi previsti in un anno = ore al mese x 12 x tariffa oraria
+// Ricavi previsti in un anno = ore al mese x 12 x tariffa oraria (per le opportunità del database: il valore registrato)
 function valoreAnnuo(opp) {
-  return opp.ore * 12 * tariffaOraria(opp);
+  return opp.valore ?? opp.ore * 12 * tariffaOraria(opp);
 }
 
-// Margine % = 1 - costo del lavoro / tariffa - spese dirette.
-// Il costo del lavoro dipende da chi esegue: squadra interna o partner.
+// Tipo di ambiente e frequenza del preventivo (null se non c'è o non è più in config.js)
+function ambientePreventivo(opp) {
+  return opp.preventivo ? CONFIG.preventivo.ambienti.find((a) => a.nome === opp.preventivo.ambiente) || null : null;
+}
+
+// Margine % = 1 - costo del lavoro / tariffa - spese dirette (quelle del tipo di ambiente, se c'è un preventivo).
+// Il costo del lavoro dipende da chi esegue: squadra interna o partner. Per le opportunità del database: il margine registrato.
 // Senza tariffa o con un servizio non più in elenco (costi sconosciuti) il margine vale 0.
 function marginePercentuale(opp, opportunita) {
+  if (opp.margine != null) return opp.margine;
   const costi = datiServizio(opp.servizio);
   const tariffa = tariffaOraria(opp);
   if (costi.fuoriElenco || !tariffa) return 0;
   const costo = esecutorePrevisto(opp, opportunita) === "squadra" ? costi.costoInterno : costi.costoPartner;
-  return 1 - rapporto(costo, tariffa) - CONFIG.speseDirettePercentuale;
+  const ambiente = ambientePreventivo(opp);
+  return 1 - rapporto(costo, tariffa) - (ambiente ? ambiente.speseDirette : CONFIG.speseDirettePercentuale);
+}
+
+// Preventivo indicativo da servizio, mq, tipo di ambiente e frequenza: ore al mese, tariffa (con lo sconto per frequenza),
+// prezzo annuo e margine con il costo della squadra interna. Valori di prova in config.js (preventivo)
+function calcolaPreventivo({ servizio, mq, ambiente, frequenza }) {
+  const c = CONFIG.preventivo;
+  const amb = c.ambienti.find((a) => a.nome === ambiente);
+  const freq = c.frequenze.find((f) => f.nome === frequenza);
+  const costi = datiServizio(servizio);
+  if (!amb || !freq || !(mq > 0) || costi.fuoriElenco) return null;
+  const ore = Math.max(1, Math.round(mq / amb.resaMqOra * freq.passaggiSettimana * c.settimaneAlMese));
+  const tariffa = Math.round(costi.tariffa * (1 - freq.sconto) * 2) / 2;   // arrotondata al mezzo euro
+  const margine = 1 - costi.costoInterno / tariffa - amb.speseDirette;
+  return { ore, tariffa, prezzoAnnuo: ore * 12 * tariffa, margine, sottoMinimo: margine < CONFIG.punteggio.margine.minimo };
 }
 
 // Calcola il punteggio: ogni criterio vale da 0 a 1 e viene moltiplicato per il suo peso
@@ -47,12 +68,18 @@ function calcolaPunteggio(opp, opportunita) {
   criteri.push({ nome: "Distanza da Bari", valore: km <= p.distanzaKm.piena ? 1 : km <= p.distanzaKm.massima ? 0.5 : 0,
     peso: p.pesi.distanza, nota: km === 0 ? "Bari città" : km + " km da Bari" });
 
-  // 3. Capacità disponibile
+  // 3. Capacità disponibile (per le opportunità del database: la capacità simulata dal generatore, finché non si assegna)
   let capacita, notaCapacita;
-  if (opp.allocazione) {
+  if (opp.allocazione && opp.allocazione.tipo === "storico") {
+    capacita = opp.capacitaSimulata ?? 1;
+    notaCapacita = "Commessa già avviata prima del prototipo";
+  } else if (opp.allocazione) {
     const interna = opp.allocazione.tipo === "squadra";
     capacita = interna ? 1 : 0.5;
     notaCapacita = "Assegnata a " + (interna ? nomeSquadra(opp.allocazione.id) : nomePartner(opp.allocazione.id));
+  } else if (opp.capacitaSimulata != null) {
+    capacita = opp.capacitaSimulata;
+    notaCapacita = "Dato di prova del database: capacità " + (capacita === 1 ? "piena" : capacita === 0.5 ? "con un partner" : "non disponibile");
   } else {
     const squadra = squadraDisponibile(opp, opportunita);
     if (squadra) {
@@ -70,10 +97,10 @@ function calcolaPunteggio(opp, opportunita) {
 
   // 4. Margine stimato
   const margine = marginePercentuale(opp, opportunita);
-  const esecutore = esecutorePrevisto(opp, opportunita);
-  const chi = esecutore === "squadra" ? "squadra interna" : esecutore === "partner" ? "partner" : "costo partner (ipotesi: oggi nessun esecutore)";
+  const esecutore = opp.margine != null ? null : esecutorePrevisto(opp, opportunita);
+  const chi = opp.margine != null ? "dal database" : esecutore === "squadra" ? "squadra interna" : esecutore === "partner" ? "partner" : "costo partner (ipotesi: oggi nessun esecutore)";
   criteri.push({ nome: "Margine stimato", valore: margine >= p.margine.obiettivo ? 1 : margine >= p.margine.minimo ? 0.5 : 0,
-    peso: p.pesi.margine, nota: formattaPercentuale(margine) + " con " + chi });
+    peso: p.pesi.margine, nota: formattaPercentualeDecimale(margine) + (opp.margine != null ? " (" + chi + ")" : " con " + chi) });
 
   // 5. Dimensione della commessa (valore annuo)
   const valore = valoreAnnuo(opp);

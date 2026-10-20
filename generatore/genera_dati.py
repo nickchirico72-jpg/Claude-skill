@@ -381,7 +381,7 @@ def salva(tabelle):
     esporta.tutto(con, capacita)
     con.close()
     kpi_catalogo.scrivi_markdown(CARTELLA.parent / "docs" / "kpi.md")
-    print(f"Creato {db}, {len(tabelle)} CSV in {CARTELLA / 'csv'}, data/gate_mysql.sql, js/dati-db.js e docs/kpi.md")
+    print(f"Creato {db}, {len(tabelle)} CSV in {CARTELLA / 'csv'}, data/gate_mysql.sql, js/dizionari.js, js/dati-db.js e docs/kpi.md")
 
 
 if __name__ == "__main__":

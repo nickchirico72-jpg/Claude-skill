@@ -10,6 +10,11 @@ function formattaPercentuale(x) {
   return Math.round(x * 100) + "%";
 }
 
+// Percentuale con un decimale, per i margini vicini alle soglie: 0.115 -> "11,5%"
+function formattaPercentualeDecimale(x) {
+  return (Math.round(x * 1000) / 10).toLocaleString("it-IT") + "%";
+}
+
 // "2026-10-17" -> "17/10/2026"; un valore in un altro formato diventa "" (così non può portare HTML)
 function formattaData(iso) {
   if (typeof iso !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";

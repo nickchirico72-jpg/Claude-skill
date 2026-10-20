@@ -6,6 +6,8 @@
  *     nessun lavoratore autonomo) con un messaggio WhatsApp precompilato;
  *  3. se il partner risponde NO, si propone il partner successivo.
  * Il cliente resta di Gate: Gate firma il contratto e controlla la qualità.
+ * I partner si possono spegnere con CONFIG.funzioni.partner (PASSAGGIO 3: in roadmap; tenuti accesi per scelta del team).
+ * Le commesse "storiche" del database di prova sono già avviate: non occupano ore oltre a quelle già impegnate.
  */
 
 // Data di oggi nel formato AAAA-MM-GG
@@ -73,8 +75,9 @@ function requisitiPartner(partner, data = oggi()) {
   return { idoneo: true, testo: "DURC regolare fino al " + formattaData(partner.durcScadenza) };
 }
 
-// Partner che coprono zona e servizio, nell'ordine di priorità della configurazione
+// Partner che coprono zona e servizio, nell'ordine di priorità della configurazione (nessuno se la funzione partner è spenta)
 function partnerInZona(opp) {
+  if (!CONFIG.funzioni.partner) return [];
   const zona = infoComune(opp.comune).zona;
   return CONFIG.partner.filter((p) => p.zone.includes(zona) && p.servizi.includes(opp.servizio));
 }

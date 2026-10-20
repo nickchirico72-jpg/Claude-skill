@@ -1,0 +1,251 @@
+// Prove end-to-end del prototipo Gate (Playwright, Chromium).
+// Uso, dalla cartella del progetto:
+//   python3 -m http.server 8765 --bind 127.0.0.1 &
+//   NODE_PATH=$(npm root -g) node prove/e2e.js            (tutte le prove)
+//   NODE_PATH=$(npm root -g) node prove/e2e.js demo       (solo le prove il cui nome contiene "demo")
+// Ogni prova parte da un contesto nuovo (localStorage vuoto) e raccoglie errori di pagina, errori in console
+// e finestre native (alert, confirm e prompt sono vietati).
+const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
+
+const BASE = 'http://127.0.0.1:8765/';
+const REPO = path.join(__dirname, '..');
+const SHOT = process.env.SHOT || path.join(REPO, 'docs', 'screenshot');
+const DISPOSITIVI = {
+  desktop: { viewport: { width: 1440, height: 900 } },
+  telefono: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+};
+const PAUSA = 700; // più dei 600 ms della protezione dal doppio clic
+const filtro = process.argv[2] || '';
+let browser;
+const esiti = [];
+
+function verifica(nome, condizione, dettaglio = '') {
+  esiti.push({ nome, ok: !!condizione });
+  console.log((condizione ? '  OK   ' : '  FAIL ') + nome + (dettaglio !== '' ? ' — ' + String(dettaglio).replace(/\s+/g, ' ') : ''));
+}
+
+// Nuovo contesto con raccolta degli errori; WhatsApp risponde con una pagina finta
+async function apri(dispositivo = 'desktop', { initScript, config } = {}) {
+  const ctx = await browser.newContext({ locale: 'it-IT', timezoneId: 'Europe/Rome', ...DISPOSITIVI[dispositivo] });
+  await ctx.route('https://wa.me/**', (r) => r.fulfill({ contentType: 'text/html', body: '<p>WhatsApp (finto)</p>' }));
+  if (initScript) await ctx.addInitScript(`try { ${initScript} } catch (e) {}`);
+  if (config) await ctx.route('**/js/config.js', (r) => r.fulfill({ contentType: 'application/javascript; charset=utf-8',
+    body: config(fs.readFileSync(path.join(REPO, 'js/config.js'), 'utf8')) }));
+  const page = await ctx.newPage();
+  const errori = [];
+  const osserva = (p) => {
+    p.on('pageerror', (e) => errori.push('pageerror: ' + e.message));
+    p.on('console', (m) => { if (m.type() === 'error') errori.push('console: ' + m.text()); });
+    p.on('dialog', (d) => { errori.push('finestra nativa vietata: ' + d.type()); d.dismiss(); });
+  };
+  osserva(page);
+  ctx.on('page', osserva);
+  return { ctx, page, errori };
+}
+
+const scorreOrizzontale = (page) => page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+const clic = async (page, selettore) => { await page.click(selettore); await page.waitForTimeout(PAUSA); };
+
+const PROVE = {
+  // Tutte le schermate a 1440x900 e 390x844: nessun errore, nessuno scorrimento orizzontale; screenshot per il README
+  async schermate() {
+    for (const dispositivo of ['desktop', 'telefono']) {
+      const { ctx, page, errori } = await apri(dispositivo);
+      const sigla = dispositivo === 'desktop' ? 'desktop' : 'mobile';
+      for (const [nome, indirizzo] of [['pipeline', 'index.html#pipeline'], ['clienti', 'index.html#clienti'], ['scheda-cliente', 'index.html#cliente-c1'],
+        ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
+        await page.goto(BASE + indirizzo);
+        await page.waitForTimeout(400);
+        verifica(`${dispositivo} ${nome}: nessuno scorrimento orizzontale`, !(await scorreOrizzontale(page)));
+        if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, `${nome}-${sigla}.png`) });
+      }
+      await page.goto(BASE + 'index.html#indicatori');
+      for (const livello of ['tattico', 'strategico']) {
+        await clic(page, `[data-azione=livello][data-id=${livello}]`);
+        verifica(`${dispositivo} indicatori ${livello}: nessuno scorrimento orizzontale`, !(await scorreOrizzontale(page)));
+        if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, `indicatori-${livello}-${sigla}.png`), fullPage: dispositivo === 'desktop' });
+      }
+      verifica(`${dispositivo}: zero errori`, errori.length === 0, errori.join(' | '));
+      await ctx.close();
+    }
+  },
+
+  // App e database: stessi numeri delle query SQL (valori di generatore/controlla_dati.py)
+  async database() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#indicatori');
+    const r = await page.evaluate(() => {
+      const k = calcolaKpi(stato.opportunita);
+      const c = coerenzaPortafoglio(stato.opportunita);
+      const diversi = stato.opportunita.filter((o) => {
+        const db = righeDb('opportunita').find((x) => 'op' + x.id_opp === o.id);
+        return calcolaPunteggio(o, stato.opportunita).totale !== db.punteggio_coerenza;
+      }).length;
+      return { opp: stato.opportunita.length, aperte: k.aperte, ferme: k.ferme, contratti: k.contratti, k12: k.primaRisposta, k15: k.quotaDigitali, A: c.A.n, diversi };
+    });
+    const db = await page.evaluate(() => {
+      const o = righeDb('opportunita');
+      return { opp: o.length, aperte: o.filter((x) => !['contratto', 'perso'].includes(x.fase)).length, contratti: o.filter((x) => x.fase === 'contratto').length,
+        A: o.filter((x) => x.classe_coerenza === 'A').length };
+    });
+    verifica('stesse opportunità, aperte e contratti del database', r.opp === db.opp && r.aperte === db.aperte && r.contratti === db.contratti, JSON.stringify(r));
+    verifica('punteggio A/B/C dell\'app uguale a quello del database per ogni opportunità', r.diversi === 0 && r.A === db.A, r.diversi + ' diversi');
+    verifica('aperte tra 70 e 90 e ferme tra 10% e 15%', r.aperte >= 70 && r.aperte <= 90 && r.ferme / r.aperte >= 0.1 && r.ferme / r.aperte <= 0.15, r.ferme + '/' + r.aperte);
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // F3: richiesta dal modulo → preventivo e classe → pipeline → offerta firmata da link → indicatori aggiornati (meno di 90 secondi)
+  async demo() {
+    const inizio = Date.now();
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'sopralluogo.html?utm_source=linkedin&utm_campaign=uffici-e-commercio&utm_content=prova-03');
+    await page.fill('[name=azienda]', 'Studio Demo Andromeda');
+    await page.selectOption('[name=comune]', 'Modugno');
+    await page.fill('[name=mq]', '400');
+    await page.fill('[name=nome]', 'Dott.ssa Demo Verdi');
+    await page.fill('[name=telefono]', '333 000 0000');
+    await page.check('[name=privacy]');
+    await page.click('[data-invio=whatsapp]');
+    await page.waitForTimeout(400);
+    const messaggio = await page.textContent('#testo-richiesta');
+    verifica('modulo: il messaggio porta canale, campagna e contenuto', /Canale: linkedin/.test(messaggio) && /Campagna: uffici-e-commercio/.test(messaggio) && /Contenuto: prova-03/.test(messaggio));
+
+    await page.goto(BASE + 'index.html#clienti');
+    await clic(page, '.pagina-clienti [data-azione=canali]');
+    await page.fill('#modulo-importa-canali textarea[name=testo]', messaggio);
+    await clic(page, '#modulo-importa-canali [type=submit]');
+    await clic(page, '#pulsante-importa');
+    const id = await page.evaluate(() => stato.opportunita[stato.opportunita.length - 1].id);
+    const nuova = await page.evaluate((i) => { const o = trova(i); return { canale: o.canale, contenuto: o.contenuto, reg: o.dataRegistrazione, prev: !!o.preventivo, fase: faseAttuale(o), classe: calcolaPunteggio(o, stato.opportunita).classe }; }, id);
+    verifica('import: opportunità in Contatto con canale, contenuto, registrazione di oggi e preventivo', nuova.fase === 'contatto' && nuova.canale === 'LinkedIn' && nuova.contenuto === 'prova-03' && nuova.reg && nuova.prev, JSON.stringify(nuova));
+    verifica('import: la scheda è in Pipeline con la classe', await page.isVisible(`#scheda-${id} .badge`));
+
+    await clic(page, `#scheda-${id} [data-azione=avanza]`);                       // È qualificato
+    await clic(page, `#scheda-${id} [data-azione=fissa-sopralluogo]`);
+    await clic(page, '[data-azione=registra-sopralluogo]');
+    await clic(page, '#modulo-fase [type=submit]');                                // Sopralluogo fatto
+    await clic(page, `#scheda-${id} [data-azione=avanza]`);                        // Offerta inviata
+    if (await page.isVisible('#modulo-fase [name=motivazione]')) await page.fill('#modulo-fase [name=motivazione]', 'Prova della demo');
+    await clic(page, '#modulo-fase [type=submit]');
+    await clic(page, `#scheda-${id} [data-azione=firma-link]`);
+    if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, 'firma-da-link-desktop.png') });
+    await clic(page, '[data-azione=conferma-firma]');
+    const firmata = await page.evaluate((i) => ({ fase: faseAttuale(trova(i)), link: trova(i).firmaDaLink, hash: location.hash }), id);
+    verifica('firma da link: contratto registrato e si va all\'Allocazione', firmata.fase === 'contratto' && firmata.link && firmata.hash === '#allocazione', JSON.stringify(firmata));
+
+    // Allocazione: in Area Nord la squadra è satura, si propone ai partner: NO e poi SÌ
+    await clic(page, `#commessa-${id} [data-azione=proponi]`);
+    await clic(page, `#commessa-${id} [data-azione=risposta-no]`);
+    await clic(page, `#commessa-${id} [data-azione=proponi]`);
+    await clic(page, `#commessa-${id} [data-azione=risposta-si]`);
+    const allocazione = await page.evaluate((i) => trova(i).allocazione, id);
+    verifica('allocazione: primo partner NO, secondo SÌ', allocazione && allocazione.tipo === 'partner' && allocazione.id === 'pa2', JSON.stringify(allocazione));
+
+    await page.goto(BASE + 'index.html#indicatori');
+    await clic(page, '[data-azione=livello][data-id=tattico]');
+    const k16 = await page.textContent('#kpi-K16');
+    verifica('indicatori: K16 conta la firma da link', /1 contratti firmati da link/.test(k16), k16.slice(0, 120));
+    const secondi = (Date.now() - inizio) / 1000;
+    verifica('flusso della demo in meno di 90 secondi (con le pause del test)', secondi < 90, secondi.toFixed(1) + ' s');
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // E2: preventivo indicativo e avviso sotto il margine minimo
+  async preventivo() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#pipeline');
+    await clic(page, '[data-azione=nuovo]');
+    await page.fill('[name=ragioneSociale]', 'Ambulatorio Prova Preventivo');
+    await page.selectOption('[name=ambiente]', 'Ambulatori e studi medici');
+    await page.fill('[name=mq]', '300');
+    await page.selectOption('[name=frequenza]', '5 volte a settimana');
+    await page.waitForTimeout(200);
+    const ore = await page.inputValue('[name=ore]');
+    const anteprima = await page.textContent('#anteprima-punteggio');
+    if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, 'preventivo-desktop.png') });
+    verifica('preventivo: ore calcolate da mq, ambiente e frequenza', ore === String(Math.round(300 / 90 * 5 * 4.33)), ore);
+    verifica('preventivo: avviso sotto il margine minimo e contributi dei criteri', /sotto il minimo/.test(anteprima) && /Margine stimato/.test(anteprima) && /\/20/.test(anteprima));
+    await page.selectOption('[name=frequenza]', '2 volte a settimana');
+    await page.selectOption('[name=ambiente]', 'Uffici e studi');
+    await page.waitForTimeout(200);
+    verifica('preventivo: nessun avviso con un margine sufficiente', !/sotto il minimo/.test(await page.textContent('#anteprima-punteggio')));
+    await clic(page, '#modulo-contatto [type=submit]');
+    const o = await page.evaluate(() => { const x = stato.opportunita[stato.opportunita.length - 1]; return { prev: x.preventivo, reg: x.dataRegistrazione === oggi(), canale: x.canale }; });
+    verifica('preventivo: salvato con l\'opportunità, registrazione di oggi', o.prev && o.prev.mq === 300 && o.reg && o.canale, JSON.stringify(o));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // F2: selettore della fonte e dati reali mai mescolati
+  async fonti() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#indicatori');
+    verifica('etichetta «Dati fittizi» visibile', /Dati fittizi/.test(await page.textContent('.etichetta-fonte')));
+    await page.selectOption('#scelta-fonte', 'test');
+    await page.waitForTimeout(300);
+    verifica('fonte test: etichetta dati reali con avviso di righe di esempio', /Dati reali/.test(await page.textContent('.etichetta-fonte')) && /esempio/.test(await page.textContent('.etichetta-fonte')));
+    await clic(page, '[data-azione=livello][data-id=strategico]');
+    verifica('fonte test: K17 facilità percepita 4,3 su 5', /4,3 su 5/.test(await page.textContent('#kpi-K17')));
+    verifica('fonte test: elenco dei KPI non calcolabili', /Non calcolabili/.test(await page.textContent('#schermata')));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // Opzione partner spenta: l'Allocazione verifica solo le squadre interne
+  async partnerSpenti() {
+    const { ctx, page, errori } = await apri('desktop', { config: (t) => t.replace('partner: true,', 'partner: false,') });
+    await page.goto(BASE + 'index.html#allocazione');
+    const testo = await page.textContent('#schermata');
+    verifica('partner spenti: niente imprese partner né WhatsApp', !/Imprese partner/.test(testo) && !(await page.$('[data-azione=proponi]')));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // Dati della versione 3 salvati nel browser: migrati senza errori, con l'avviso per passare ai dati del database
+  async migrazione() {
+    const vecchi = fs.readFileSync(path.join(__dirname, 'backup-v3.json'), 'utf8');
+    const { ctx, page, errori } = await apri('desktop', { initScript: `if (!sessionStorage.getItem('fatto')) { localStorage.setItem('gate-sviluppo-commerciale-v2', ${JSON.stringify(vecchi)}); sessionStorage.setItem('fatto', '1'); }` });
+    await page.goto(BASE + 'index.html#pipeline');
+    const prima = await page.evaluate(() => ({ n: stato.opportunita.length, servizio: stato.opportunita[0].servizio, canale: stato.opportunita[0].canale, versione: stato.versione }));
+    verifica('migrazione v3 → v4: dizionari tradotti e canale per opportunità', prima.versione === 4 && prima.servizio === 'cleaning e hospitality' && prima.canale, JSON.stringify(prima));
+    verifica('migrazione: avviso «Usa i nuovi dati»', await page.isVisible('#avviso-fisso [data-azione=ripristina]'));
+    await clic(page, '#avviso-fisso [data-azione=ripristina]');
+    await clic(page, '[data-azione=conferma-ripristino]');
+    verifica('ripristino: dati del database (300 opportunità)', (await page.evaluate(() => stato.opportunita.length)) === 300);
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // E4: piano dei contenuti con link tracciati e aggiunta di un contenuto
+  async contenuti() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#clienti');
+    await clic(page, '.pagina-clienti [data-azione=canali]');
+    if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, 'sito-e-social-desktop.png') });
+    const link = await page.inputValue('#link-contenuto-prova-01');
+    verifica('piano dei contenuti: link con utm_source, utm_campaign e utm_content', /utm_source=linkedin/.test(link) && /utm_campaign=uffici-e-commercio/.test(link) && /utm_content=prova-01/.test(link), link);
+    verifica('canali spenti non proposti nei link', !(await page.$('#link-facebook')) && !(await page.$('#link-google-ads')));
+    await page.fill('#modulo-contenuto [name=tema]', 'Prova: pulizia degli studi legali');
+    await clic(page, '#modulo-contenuto [type=submit]');
+    verifica('contenuto aggiunto al piano con il suo link', (await page.$$('[id^=link-contenuto-app-]')).length === 1);
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+};
+
+(async () => {
+  browser = await chromium.launch({ args: ['--proxy-server=' + (process.env.HTTPS_PROXY || 'direct://'), '--proxy-bypass-list=127.0.0.1;localhost'] });
+  for (const [nome, prova] of Object.entries(PROVE)) {
+    if (filtro && !nome.toLowerCase().includes(filtro.toLowerCase())) continue;
+    console.log('\n' + nome);
+    try { await prova(); } catch (e) { verifica(nome + ' (eccezione)', false, e.message.split('\n')[0]); }
+  }
+  await browser.close();
+  const falliti = esiti.filter((e) => !e.ok).length;
+  console.log(`\n${esiti.length - falliti}/${esiti.length} verifiche superate`);
+  process.exit(falliti ? 1 : 0);
+})();

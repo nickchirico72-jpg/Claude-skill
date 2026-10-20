@@ -1,152 +1,191 @@
 # Gate · Sviluppo commerciale (prototipo)
 
-Prototipo web per **Gate S.R.L.**: porta in digitale il percorso commerciale "dai contatti ai contratti", dalla prima richiesta alla commessa affidata a chi la esegue.
+Prototipo web per **Gate S.R.L.**: porta in digitale il percorso commerciale "dai contatti ai contratti", dalla richiesta del cliente alla commessa affidata a chi la esegue. Ha un **database SQL** interrogabile con SQLite o MySQL. L'app e le query lavorano sugli **stessi dati**.
 
-> **Dati fittizi.** Clienti, partner, squadre, valori, margini, ore e numeri di telefono sono inventati a scopo dimostrativo e non sono dati reali di Gate. Il logo è provvisorio: verrà sostituito da quello ufficiale solo previo permesso di Gate.
+> **Dati fittizi.** Clienti, referenti, squadre, partner, valori, margini, ore e numeri di telefono sono inventati a scopo dimostrativo e non sono dati reali di Gate. Gli andamenti del database sono inseriti apposta per verificare il metodo (vedi `docs/dati-generati.md`). Il logo è provvisorio: verrà sostituito da quello ufficiale solo previo permesso di Gate.
 
 ![Pipeline commerciale](docs/screenshot/pipeline-desktop.png)
 
 ## Il problema
 
-Oggi Gate acquisisce commesse da portali di gara, con attività "porta a porta" e tramite intermediari. La sfida proposta da Gate: **come acquisire nuovi clienti e posizionarsi come partner nella gestione delle strutture**, partendo da un settore e un territorio pilota (ipotesi: uffici e studi professionali a Bari).
+Oggi Gate acquisisce commesse da portali di gara, con attività "porta a porta" e tramite intermediari. La sfida proposta da Gate: **come acquisire nuovi clienti e posizionarsi come partner nella gestione delle strutture**, partendo da un settore e un territorio pilota (ipotesi: uffici e studi professionali a Bari, nel database "uffici e commercio").
 
 Gate ha chiesto tre risultati:
 - un piano commerciale pilota;
 - un percorso di vendita nel CRM;
-- una dashboard delle opportunità, misurata "dai contatti ai contratti".
+- una dashboard delle opportunità "dai contatti ai contratti".
 
-C'è anche un vincolo: acquisire solo clienti coerenti con la capacità operativa e la marginalità attesa.
+Il vincolo: acquisire solo clienti coerenti con la capacità operativa e la marginalità attesa.
 
-## La soluzione
+**Regola di adozione:** al cliente non si chiedono app, account o password.
+- La richiesta arriva dal modulo "Richiedi un sopralluogo" o da WhatsApp Business ed entra nel CRM con il canale di origine.
+- L'offerta si firma da un link.
+- La tecnologia nuova sta tutta dal lato di Gate.
 
-Quattro schermate:
+## I componenti
 
-| Schermata | Cosa fa |
-|---|---|
-| **Pipeline** | Le opportunità passano per le fasi Contatto → Qualificato → Sopralluogo → Offerta → Contratto (più Perso). Ogni opportunità ha un **punteggio di coerenza A/B/C** su 6 criteri: settore pilota, distanza da Bari, capacità disponibile, margine stimato, dimensione della commessa, decisore identificato. In alto ci sono la **previsione ponderata** (valore annuo × probabilità della fase), "Da fare oggi" e "Da seguire". |
-| **Clienti** | L'anagrafica: aziende con i loro **referenti** (ruolo, decisore, telefono, email, canale preferito, privacy), pulsanti **Chiama / WhatsApp / Email** con un clic, **cronologia delle attività** e **prossime azioni** con data. La ricerca trova anche telefono, ruolo e codice dell'opportunità; i riquadri del riepilogo (Cliente, In trattativa, Da qualificare, Perso) fanno da filtro. |
-| **Allocazione** | Ogni contratto firmato va prima a una **squadra interna** con ore libere nella zona. Se non c'è capacità, il coordinatore lo propone a un'**impresa partner** con un messaggio **WhatsApp precompilato** (link wa.me). Il partner risponde SÌ o NO senza usare nessuna app; se risponde NO, il sistema propone il partner successivo. Sono ammesse solo imprese con DURC regolare, nessun lavoratore autonomo. Il cliente resta di Gate, che firma il contratto e controlla la qualità. |
-| **Indicatori** | In testa **"Il pilota in sintesi"**: quanti dei 5 obiettivi sono raggiunti, un suggerimento per ogni obiettivo mancato e la previsione ponderata. Poi i 5 KPI richiesti da Gate, divisi in **efficacia** (contatti qualificati, sopralluoghi, conversione delle offerte) ed **efficienza** (costo di acquisizione, margine atteso), ciascuno con la formula e i numeri. Infine il funnel, la tabella **"Perché perdiamo"** e i risultati per settore e per **canale di acquisizione**. |
+| Componente | Cosa fa | Slide del deck (ipotesi da confermare) |
+|---|---|---|
+| **Database** (`data/gate.db`, `data/gate_mysql.sql`) | 13 tabelle: clienti, referenti, commerciali, opportunità con storico delle fasi, offerte, attività, costi dei canali. Poi i dizionari dei **canali** e dei **contenuti**, il **catalogo dei KPI** e le **richieste reali** importate. Si apre con DB Browser for SQLite o si carica in MySQL. | 26 (KPI di partenza), 27, 30 |
+| **Catalogo dei KPI** (`kpi_catalogo`, `docs/kpi.md`) | 17 KPI con domanda di business, formula, livello della piramide di Anthony, tipo (efficacia, efficienza, adozione), processo APQC e soglia. È la fonte unica per SQL, app e Power BI. | 34-35 (TO-BE e KPI) |
+| **Modulo "Richiedi un sopralluogo"** (`sopralluogo.html`) | Modulo breve, senza registrazione: azienda, settore, comune, tipo di ambienti, metri quadri, frequenza, referente, contatto e consenso privacy con informativa breve. Legge dal link `utm_source`, `utm_campaign` e `utm_content` e prepara il messaggio per WhatsApp o per email. | 40 |
+| **Modulo "Richiedi un preventivo"** (`modulo.html`) | Secondo modulo, distinto (decisione del team), per chi conosce già servizio e ore. | 40 |
+| **Pipeline** | Fasi Contatto → Qualificato → Sopralluogo → Offerta → Contratto (più Perso). Ogni opportunità ha il **punteggio di coerenza A/B/C**, con il contributo di ogni criterio. Alla creazione si calcola il **preventivo indicativo**: ore, prezzo annuo e margine, con un avviso se il margine è sotto il minimo. In fase Offerta c'è la **firma da link** (simulata). | 42 (preventivo e classe), 43 (pipeline e firma) |
+| **Clienti** | Aziende e referenti, contatto con un clic (Chiama, WhatsApp, Email), cronologia, prossime azioni, privacy. La finestra **Sito e social** contiene: i link tracciati per canale, il **piano dei contenuti** con il link pronto per ogni contenuto e l'importazione delle richieste. | 40 |
+| **Allocazione** | Ogni contratto va prima a una **squadra interna** con ore libere nella zona. Altrimenti si propone a un'**impresa partner** su WhatsApp, che risponde SÌ o NO (solo DURC regolare, niente lavoratori autonomi; il cliente resta di Gate). I partner sono "in roadmap" nel PASSAGGIO 3: il team ha scelto di tenerli. Si spengono con `funzioni.partner` in `js/config.js`. | 43 |
+| **Indicatori** | Tre viste, una per livello decisionale. Ognuna dice da quale fonte legge: **Dati fittizi** oppure **Dati reali** (fotografia di partenza o test), e un selettore passa dall'una all'altra. | 44 (dashboard) |
 
-Il portale per i partner compare solo come anteprima, etichettata "evoluzione futura".
+Le tre viste degli Indicatori:
+- **Operativo** (ufficio): richieste da gestire, trattative ferme K9, tempo di prima risposta K12, richieste registrate entro 24 ore K14.
+- **Tattico** (responsabile commerciale):
+  - funnel e KPI K1–K3 e K7;
+  - conversione e costo per canale K4;
+  - pipeline ponderata K6, durata del ciclo K8, tempo fino all'offerta K13, firme da link K16;
+  - richieste qualificate per contenuto.
+- **Strategico** (direzione): margine atteso K5, motivi di perdita K10, coerenza del portafoglio K11, quota digitale K15, facilità percepita K17. Poi la **matrice canale × classe A/B/C con il margine**, cioè quali canali portano clienti coerenti, non solo contatti.
 
-![Clienti](docs/screenshot/clienti-desktop.png)
-![Scheda cliente](docs/screenshot/scheda-cliente-desktop.png)
-![Allocazione della capacità](docs/screenshot/allocazione-desktop.png)
-![Indicatori di performance](docs/screenshot/indicatori-desktop.png)
+![Indicatori, vista strategica](docs/screenshot/indicatori-strategico-desktop.png)
 
 <p>
+  <img src="docs/screenshot/sopralluogo-mobile.png" alt="Modulo Richiedi un sopralluogo da telefono" width="200">
   <img src="docs/screenshot/pipeline-mobile.png" alt="Pipeline da telefono" width="200">
-  <img src="docs/screenshot/scheda-cliente-mobile.png" alt="Scheda cliente da telefono" width="200">
+  <img src="docs/screenshot/indicatori-mobile.png" alt="Indicatori operativi da telefono" width="200">
   <img src="docs/screenshot/allocazione-mobile.png" alt="Allocazione da telefono" width="200">
-  <img src="docs/screenshot/indicatori-mobile.png" alt="Il pilota in sintesi da telefono" width="200">
 </p>
 
-## Come si lavora
+## Il flusso della demo (meno di 90 secondi)
 
-- **Le fasi si registrano a cose fatte.** I pulsanti dicono cosa è già successo: "È qualificato", "Sopralluogo fatto", "Offerta inviata", "Contratto firmato". Ogni passo chiede la data e i dati utili (ore confermate al sopralluogo, importo e validità dell'offerta, data di avvio del servizio). Un'opportunità di classe C passa a Offerta solo con una motivazione scritta. Il sopralluogo si può fissare in agenda prima di farlo.
-- **Ogni trattativa ha una prossima azione.** Quando si chiude l'ultima attività di un cliente in trattativa, il prototipo chiede "Qual è la prossima azione?". Dopo ogni fase crea da solo il promemoria giusto (per esempio "Sollecitare la risposta all'offerta"). Il riquadro **Da seguire** elenca le trattative senza prossima azione o ferme da troppo tempo.
-- **Annulla.** Dopo ogni modifica compare per 8 secondi un avviso con "Annulla", che riporta tutto com'era, schermata compresa. Un doppio clic non registra due volte la stessa azione.
-- **Correzioni.** Dal dettaglio di un'opportunità si può tornare alla fase precedente, riaprire una trattativa persa o modificare servizio, ore e tariffa. Ogni correzione lascia una riga nella cronologia.
-- **Niente doppioni.** Mentre si scrive un nuovo contatto compare "Forse esiste già" con le aziende simili (stesso nome, P.IVA, telefono o email). Stesso nome o stessa P.IVA bloccano il salvataggio. Un contatto si può salvare anche con "Servizio ancora da capire": diventa un'azienda "Da qualificare" con la chiamata di qualifica in agenda.
-- **Registrare un'attività.** Nella scheda cliente si sceglie "È già successo" oppure "Da fare" (che fissa la prossima azione, da domani). Il testo scritto non si perde finché non si registra, e tornando all'elenco ricerca e filtri restano quelli di prima.
-- **Privacy.** Per ogni referente si registrano base giuridica, data, modo di raccolta ed eventuale opposizione alle proposte. Senza privacy verificata i pulsanti di contatto hanno un bordo ambra. "Cancella i dati personali" e "Elimina azienda" applicano il diritto alla cancellazione, con una conferma dentro la pagina.
-- **Indicatori con tutti i contatti.** I contatti sono le opportunità più le aziende ancora da qualificare (per esempio 16 + 2 = 18): così funnel, KPI e risultati per canale contano anche chi non ha ancora un'opportunità.
-- **Da telefono.** Navigazione in basso, campi a 16 px (l'iPhone non ingrandisce la pagina), tabelle che diventano schede, pulsanti alti almeno 44 px. Focus visibile, contatori e punteggi leggibili dai lettori di schermo; una prova con un lettore di schermo reale e su iPhone resta da fare.
+1. **Il cliente chiede un sopralluogo.** Apre `sopralluogo.html` dal link di un post LinkedIn (`?utm_source=linkedin&utm_campaign=uffici-e-commercio&utm_content=prova-03`) e invia la richiesta su WhatsApp.
+2. **La richiesta entra nel CRM.** In Clienti → Sito e social si incolla il messaggio e si preme Importa. Nasce un'opportunità in **Contatto** con canale, campagna, contenuto, data di registrazione di oggi e consenso. Ha già il **preventivo** e la **classe A/B/C**.
+3. **La trattativa avanza nella Pipeline:** È qualificato → Sopralluogo fatto → Offerta inviata → **Firma da link** (simulata) → Contratto.
+4. **Allocazione e Indicatori.** In Allocazione la commessa va a una squadra o a un partner. Negli **Indicatori** (vista Tattico) K16 conta la firma da link e il contenuto compare tra le richieste qualificate.
 
 ## Le quattro domande dell'analisi
 
-Ogni sezione del CRM dice a quale domanda risponde, con un'etichetta colorata:
+Ogni sezione dice a quale domanda risponde:
+1. **Cosa è successo?** KPI e funnel.
+2. **Perché è successo?** Motivi di perdita, canali, contenuti, settori e criteri del punteggio.
+3. **Cosa succederà?** Pipeline ponderata, margine atteso, ore che serviranno alle squadre.
+4. **Cosa conviene fare?** Consigli con il loro "perché": regole leggibili in `js/analisi.js`, con le soglie in `js/config.js`.
 
-1. **Cosa è successo?** (descrittiva): KPI, funnel, pilota in sintesi.
-2. **Perché è successo?** (diagnostica): perché perdiamo, risultati per settore e per canale, criteri del punteggio A/B/C.
-3. **Cosa succederà?** (predittiva): previsione ponderata dei ricavi, ore che serviranno alle squadre se si firmano le offerte aperte.
-4. **Cosa conviene fare?** (prescrittiva): consigli proattivi nella Pipeline e negli Indicatori, per esempio "Sollecita Poliambulatorio Zeta · Perché: offerta scaduta". Ogni consiglio nasce da una regola leggibile (`js/analisi.js`, soglie in `config.js`), non da una scatola nera.
+## Collegamento con la deliverable del corso
 
-## Collegamento con sito e social
+| Task della deliverable | Dove si trova nel progetto |
+|---|---|
+| Processi AS-IS e TO-BE (BPM, APQC) | **AS-IS:** i tempi di risposta e di registrazione oggi, misurati sulla **fotografia di partenza** (`richieste_reali`, fonte partenza). **TO-BE:** modulo, registrazione immediata, preventivo, firma da link e report; il test di tre settimane li misura (fonte test). |
+| KPI (APQC e KPI compendium) | `kpi_catalogo` e `docs/kpi.md`: ogni KPI ha il processo APQC, categoria 3.0 Market and Sell (dove il PASSAGGIO lo indica, "da verificare sul PCF"). |
+| Piramide di Anthony | Le tre viste degli Indicatori (operativo, tattico, strategico) e la colonna `livello_anthony` del catalogo. |
+| Piattaforma e platform thinking | Cliente senza app (modulo e WhatsApp), partner via WhatsApp, CRM come punto unico dei dati, canali tracciati con utm senza pixel. |
+| Roadmap della trasformazione | Le **evoluzioni previste:** portale partner (anteprima in Allocazione), lead scoring con modello statistico, archivio condiviso online. |
+| Digital gap | La quota di richieste digitali (K15) e la registrazione delle richieste (K14), prima e dopo il test. |
 
-Senza un server i contatti non possono entrare nel CRM da soli. Il prototipo usa un collegamento semplice, adatto al pilota:
+## Interrogare il database con SQL
 
-1. **Modulo "Richiedi un preventivo"** (`modulo.html`): una pagina pubblica da collegare al sito, alla bio di Instagram, ai post e alle campagne. Chi la compila invia la richiesta a Gate su **WhatsApp o per email**, con il messaggio già scritto e il consenso privacy.
-2. **Link tracciati per canale**: in Clienti → **Sito e social** c'è un link per ogni canale (sito, Facebook, Instagram, LinkedIn, Google Ads), per esempio `modulo.html?utm_source=instagram`. Il canale viaggia nel messaggio.
-3. **Importazione**: nella stessa finestra si incollano le richieste ricevute oppure si carica il **CSV esportato dalle campagne** (Meta Lead Ads per Facebook e Instagram, LinkedIn Lead Gen Forms). Il CRM crea le aziende "Da qualificare" con la fonte giusta, il referente, la nota della richiesta e una chiamata di qualifica per domani; i doppioni vengono esclusi.
+Il database è uno solo e si può usare in tre modi, dal più semplice:
 
-Così gli indicatori per canale mostrano quali social portano contratti e a che costo. Numero WhatsApp ed email di Gate, canali e costi sono in `config.js` (oggi fittizi).
+1. **DB Browser for SQLite** (gratuito, nessuna installazione di server). Apri `data/gate.db` e scrivi le query nella scheda "Esegui SQL".
+2. **MySQL o MariaDB.** Carica `data/gate_mysql.sql`, provato su MariaDB:
+   - con **MySQL Workbench**: *File → Open SQL Script → esegui*;
+   - da terminale: `mysql -u root -p < data/gate_mysql.sql`.
 
-**Passo successivo** (con un archivio online): il modulo e le campagne scrivono direttamente nel CRM tramite un collegamento automatico (webhook), senza copia e incolla.
+   Crea il database `gate` con tipi veri (DATE, DECIMAL), chiavi primarie ed esterne.
+3. **Power BI o Excel.** Importa i CSV di `data/csv/`, uno per tabella.
+
+**Differenze tra i dialetti:**
+- I giorni tra due date si calcolano con `julianday(fine) - julianday(inizio)` in SQLite e con `DATEDIFF(fine, inizio)` in MySQL.
+- I campi vuoti sono `NULL` in entrambi: si cercano con `IS NULL`, non con `= ''`.
+
+## Rigenerare i dati e importare i dati veri
+
+```
+python3 generatore/genera_dati.py        # database, CSV, copia MySQL, js/dizionari.js, js/dati-db.js, docs/kpi.md
+python3 generatore/controlla_dati.py     # controlli: deve finire con "tutti i controlli superati"
+python3 generatore/importa_richieste.py data/esempi/richieste-partenza-esempio.csv
+python3 generatore/importa_richieste.py data/esempi/richieste-test-esempio.csv --voti data/esempi/voti-test-esempio.csv
+```
+
+- **Parametri e dizionari.** Stanno in `generatore/parametri.py`: canali, settori, servizi, comuni, fasi, pesi del punteggio e ipotesi H1–H5. Con lo stesso seme i dati sono identici. L'app legge gli stessi dizionari da `js/dizionari.js`: si cambia un solo file e si rilancia il generatore.
+- **Dati veri (fotografia di partenza e test).** Si scrivono in un CSV con le colonne del foglio condiviso: `data_richiesta, data_registrazione, canale, settore, data_risposta, data_offerta, esito, fonte`, più `note` se serve. Le date possono essere scritte `AAAA-MM-GG` o `GG/MM/AAAA`.
+- **Controlli dell'import.** Controlla date, canali, settori ed esiti, stampa le righe scartate con il motivo e sostituisce le righe già importate con la stessa fonte. I voti di facilità arrivano da un secondo CSV facoltativo (`fonte, riga, voto_facilita`).
+- **I CSV di esempio.** Quelli in `data/esempi/` sono **inventati**: servono a provare l'import prima dei dati veri, e l'app li segnala come esempio. Nel CSV del test c'è apposta una riga sbagliata.
+- **Il database si rigenera senza perdere i dati veri.** `genera_dati.py` conserva la tabella `richieste_reali`. I dati reali non si mescolano mai con quelli fittizi.
+- **Attenzione alla privacy.** Il prototipo pubblicato su GitHub Pages contiene `js/dati-db.js`. Con dati personali veri il prototipo **non va pubblicato**: si usa in locale, previa verifica GDPR con Gate.
+
+## Ipotesi nei dati fittizi
+
+| Ipotesi | Parametro | Sui dati generati |
+|---|---|---|
+| H1 il passaparola converte in contratto più di ogni altro canale | `PASSAGGIO_PER_CANALE` | passaparola 24,2%, il primo canale |
+| H2 negli uffici LinkedIn converte meglio del porta a porta | `BOOST_LINKEDIN_UFFICI` | 25,0% contro 3,7% |
+| H3 la classe A chiude più spesso della classe C | `EFFETTO_PUNTEGGIO` | A 16,8%, B 11,1%, C 0% |
+| H4 l'intermediario ha il margine più basso | `MARGINE_PER_CANALE` | 15,5%, contro 18–22% degli altri canali |
+| H5 i nuovi contatti crescono di mese in mese | `CRESCITA_CONTATTI` | da 2 a marzo a 72 a settembre (ottobre parziale) |
+| H6 nella GDO il portale gare converte meno ma con margine più alto | **non inserita: test cieco** | il portale gare usa la media degli altri canali in tutti i settori |
+
+Pipeline aperta: 83 opportunità aperte su 300 (96% contattate da agosto), chiusura 13,4% sulle chiuse, 12% delle aperte ferme.
 
 ## Come avviarlo
 
-- **In locale:** scarica la cartella e apri `index.html` con un doppio clic. Non serve installare nulla.
-- **Online, con GitHub Pages:** nel repository vai in *Settings → Pages*, scegli *Deploy from a branch*, seleziona il branch e la cartella `/ (root)` e salva. Dopo un minuto il sito è disponibile all'indirizzo che GitHub mostra in quella pagina.
+- **In locale:** apri `index.html` con un doppio clic, non serve installare nulla. Per condividerlo in un solo file: `python3 strumenti/versione_unica.py` crea `dist/gate-crm-prototipo.html`.
+- **Online, con GitHub Pages:** *Settings → Pages → Deploy from a branch*, cartella `/ (root)`.
+- **Dove stanno i dati.** I dati del CRM restano nel browser (localStorage). Il piè di pagina ha tre pulsanti:
+  - **Salva backup**;
+  - **Carica backup**;
+  - **Ripristina dati di esempio**: riparte dal database di prova, con le date spostate in modo che il 19/10/2026 coincida con oggi.
+- **Browser che avevano la versione precedente.** Un avviso propone di passare ai nuovi dati, senza cancellare quelli salvati.
+- **Prove automatiche.** Si avviano con `NODE_PATH=$(npm root -g) node prove/e2e.js`, con il server locale `python3 -m http.server 8765 --bind 127.0.0.1` acceso. Coprono:
+  - il flusso della demo;
+  - l'app uguale al database;
+  - le fonti reali;
+  - i partner spenti;
+  - la migrazione;
+  - i contenuti.
 
-I dati restano nel browser di chi usa il prototipo (localStorage): non c'è nessun server. In fondo alla pagina ci sono tre pulsanti:
-- **Salva backup**: scarica tutti i dati in un file `.json`;
-- **Carica backup**: ripristina i dati da quel file, anche su un altro computer (si può annullare);
-- **Ripristina dati di esempio**: riparte dai dati fittizi (si può annullare).
-
-Accanto ai pulsanti il **promemoria del backup** dice quando è stato fatto l'ultimo ("oggi", "ieri", "N giorni fa", "mai") e invita a farne uno dopo 7 giorni. Se il browser non riesce a salvare, o se i dati salvati non si leggono, un avviso in cima alla pagina lo dice subito e permette di scaricare una copia: i dati non vengono mai scartati in silenzio.
-
-Nella schermata Clienti, **Esporta per Excel** scarica aziende e referenti in un file CSV; le celle che iniziano con `=`, `+`, `-` o `@` non diventano formule in Excel. La partita IVA esce con il prefisso `IT` (es. `IT01234567890`) e i telefoni con gli spazi (es. `0039 000 000 1011`), così Excel non toglie gli zeri iniziali; se si importa il file in altro modo, impostare queste colonne come «Testo».
+  Tutto a 1440×900 e 390×844, con zero errori in console. `FOTO=1` rifà gli screenshot.
 
 ## Gate può usarlo davvero?
 
-Sì, per il pilota e da una persona alla volta. Il coordinatore commerciale può registrare clienti, referenti, attività e trattative reali, salvare il backup ogni sera e passarlo a un collega, ed esportare l'elenco per Excel.
+Per il pilota sì, da una persona alla volta: registra clienti, trattative e attività, con backup ogni sera.
 
-### Limiti
+**Limiti:**
+- un browser, una copia dei dati;
+- nessun login;
+- promemoria solo dentro l'app;
+- un servizio per opportunità;
+- costi, soglie, rese del preventivo e tariffe sono **valori di prova, da sostituire dopo l'intervista**.
 
-- **Un browser, una copia dei dati.** Il prototipo non condivide i dati tra più persone né tra computer e telefono: si passano con il backup. Se due persone lavorano su copie diverse, una sovrascrive l'altra.
-- **Nessun login e nessun registro delle modifiche.** Chiunque usi quel browser vede e modifica tutto; "Annulla" torna indietro di un solo passo.
-- **Promemoria solo dentro l'app.** Le prossime azioni non arrivano sul telefono come notifiche.
-- **Un servizio per opportunità.** Offerte con più servizi, rinnovi e scadenze dei contratti non sono gestiti.
-- **Ipotesi da confermare.** Costi, obiettivi, soglie del punteggio, giorni oltre i quali una trattativa è "ferma" e suggerimenti degli indicatori sono ipotesi in `js/config.js`, da concordare con Gate.
-- **Privacy.** Prima di inserire dati personali reali va verificato con Gate e con il suo consulente il rispetto del GDPR: informativa, base giuridica e luogo dove sono conservati i dati (oggi nel browser e nei file di backup).
-
-### Passi successivi
-
-1. **Un archivio condiviso online con login**: un piccolo server con database al posto del salvataggio nel browser, con utenti, ruoli e registro delle modifiche. Potrebbe essere realizzato in Python (per esempio con Django), riusando le stesse regole del prototipo (punteggio, allocazione, KPI).
-2. **Il collegamento al gestionale di Gate**, così che un contratto firmato diventi direttamente una commessa nelle sezioni Contratti e Pianificazione Personale, senza ricopiare i dati.
-3. Poi, nell'ordine: promemoria nel calendario del telefono, importazione dei contatti da Excel, indicatori nel tempo (ciclo di vendita, previsione per mese).
-
-## Stack
-
-HTML, CSS e JavaScript puro, senza framework né compilazione: si apre con un doppio clic e si pubblica gratis su GitHub Pages così com'è. Chiunque nel team può leggere e spiegare ogni file senza conoscere strumenti aggiuntivi.
-
-Colori e font riprendono il sito [gatesrl.it](https://www.gatesrl.it/): blu notte, blu petrolio e acquamarina; Sora per i titoli e Manrope per il testo.
+**Passi successivi:**
+1. un archivio condiviso online con login, per esempio Python e un database MySQL, riusando lo stesso schema;
+2. il collegamento al gestionale di Gate;
+3. i webhook, così che modulo e campagne scrivano direttamente nel CRM.
 
 ## Struttura dei file
 
 ```
-modulo.html         modulo pubblico "Richiedi un preventivo" per sito e social
-index.html          struttura della pagina e menu
-css/stile.css       palette e font del sito Gate (variabili in cima al file)
-js/config.js        IPOTESI E DATI DI ESEMPIO: l'unico file da modificare con i dati reali
-js/formato.js       formattazione di euro, percentuali e date
-js/dati.js          salvataggio nel browser, collegamenti tra aziende/referenti/opportunità, backup ed esportazione
-js/allocazione.js   regole di allocazione: squadre, partner, DURC, messaggio WhatsApp
-js/punteggio.js     stime economiche e punteggio di coerenza A/B/C
-js/kpi.js           5 KPI, obiettivi del pilota, funnel, motivi di perdita, risultati per settore e canale
-js/canali.js        collegamento con sito e social: link tracciati, importazione richieste e CSV delle campagne
-js/analisi.js       le quattro domande: etichette, previsione della capacità, consigli "Cosa conviene fare?"
-js/clienti.js       schermata Clienti: elenco con ricerca e filtri, scheda cliente, referenti, attività, privacy
-js/app.js           schermate Pipeline, Allocazione e Indicatori, finestre e clic
+index.html              il CRM: Pipeline, Clienti, Allocazione, Indicatori
+sopralluogo.html        modulo pubblico "Richiedi un sopralluogo" (utm_source, utm_campaign, utm_content)
+modulo.html             modulo pubblico "Richiedi un preventivo"
+css/stile.css           palette e font del sito Gate (variabili in cima al file)
+js/dizionari.js         GENERATO: canali, settori, servizi, comuni, fasi, pesi del punteggio (uguali al database)
+js/dati-db.js           GENERATO: le tabelle del database per l'app
+js/config.js            ipotesi dell'app: squadre, partner, preventivo, obiettivi, consigli, funzioni.partner
+js/formato.js           euro, percentuali e date
+js/dati.js              stato, dati iniziali dal database, migrazione, backup, CSV, doppioni, privacy
+js/allocazione.js       squadre, partner, DURC, messaggio WhatsApp
+js/punteggio.js         preventivo indicativo, margine e punteggio A/B/C
+js/kpi.js               KPI K1-K17 (fittizi e reali), funnel, canali, contenuti, settori
+js/analisi.js           le quattro domande e i consigli
+js/clienti.js           schermata Clienti
+js/canali.js            sito e social: link tracciati, piano dei contenuti, import delle richieste
+js/indicatori.js        Indicatori su tre livelli con la scelta della fonte
+js/app.js               Pipeline, Allocazione, finestre, firma da link, eventi
+generatore/             parametri.py, genera_dati.py, kpi_catalogo.py, esporta.py, importa_richieste.py, controlla_dati.py
+data/                   gate.db (SQLite), gate_mysql.sql (MySQL), csv/, esempi/
+docs/                   kpi.md, dati-generati.md, backlog.md, esercizi-k12-k17.md, passaggi/, ritorni/, screenshot/
+sql/  export/           le query di Nicolò e i CSV per Power BI
+prove/e2e.js            prove automatiche (Playwright)
+strumenti/              versione in un solo file
 ```
-
-## Come sostituire i dati con quelli reali
-
-Tutto si trova in `js/config.js`, con un commento per ogni voce:
-
-- **tariffe e costi orari** per servizio (squadra interna e partner) e spese dirette;
-- **pesi e soglie del punteggio** A/B/C, compresa la conferma motivata per i clienti C (`confermaPerPunteggioC`);
-- **fasi**: probabilità di chiusura, giorni oltre i quali una trattativa è "ferma" e promemoria automatici;
-- **costi commerciali** per il costo di acquisizione, **obiettivi** dei KPI e **suggerimenti** mostrati quando un obiettivo non è raggiunto;
-- **basi giuridiche** e **modi di raccolta** della privacy;
-- **comuni e zone**, **squadre** (ore di capacità e già impegnate), **partner** (tipo, zone, servizi, scadenza DURC, telefono);
-- **testo del messaggio WhatsApp**;
-- **aziende con i referenti**, **opportunità** e **attività** di esempio;
-- **canali di acquisizione** con la loro spesa e i **tipi di attività**.
-
-Dopo aver cambiato le opportunità di esempio, premi "Ripristina dati di esempio" per caricarle. Prima di una demo dal vivo conviene mettere come telefono di un partner il numero di un membro del team, così il messaggio WhatsApp arriva davvero.
 
 ## Progetto
 
