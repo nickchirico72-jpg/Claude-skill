@@ -72,7 +72,7 @@ function apriCanali() {
         return `<tr>
           <td><strong>${esc(c.id)}</strong>${c.prova ? ' <span class="chip">di prova</span>' : ""}<br><span class="nota-piccola">${formattaData(c.data_pubblicazione)} · ${esc(c.formato)} · ${esc(c.tema)}</span></td>
           <td>${esc(c.canale)}</td>
-          <td class="num">${r ? r.richieste : 0}</td><td class="num">${r && r.punteggioMedio !== null ? r.punteggioMedio : NESSUN_DATO}</td>
+          <td class="num">${r ? r.richieste : 0}</td><td class="num">${r && r.punteggioMedio !== null ? badgePunteggio({ totale: r.punteggioMedio }) : NESSUN_DATO}</td>
           <td><input type="text" readonly value="${esc(linkTracciato(c.canale, c.id))}" id="${id}" aria-label="Link tracciato di ${esc(c.id)}">
             <button class="pulsante secondario piccolo" type="button" data-azione="copia-link" data-id="${id}">Copia</button></td>
         </tr>`;

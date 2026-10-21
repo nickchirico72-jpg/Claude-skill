@@ -53,6 +53,11 @@ function calcolaPreventivo({ servizio, mq, ambiente, frequenza }) {
   return { ore, tariffa, prezzoAnnuo: ore * 12 * tariffa, margine, sottoMinimo: margine < CONFIG.punteggio.margine.minimo };
 }
 
+// Fascia di un punteggio (altissimo, alto, medio, basso, bassissimo): dà il colore del contorno
+function fasciaPunteggio(totale) {
+  return CONFIG.punteggio.fasce.find((f) => totale >= f.da) || CONFIG.punteggio.fasce[CONFIG.punteggio.fasce.length - 1];
+}
+
 // Calcola il punteggio: ogni criterio vale da 0 a 1 e viene moltiplicato per il suo peso
 function calcolaPunteggio(opp, opportunita) {
   const p = CONFIG.punteggio;

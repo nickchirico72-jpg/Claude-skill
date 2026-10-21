@@ -39,7 +39,7 @@ Le sezioni degli Indicatori seguono il percorso del cliente (riorganizzate il 21
 - **Marketing** (da dove arrivano i clienti): quota di richieste digitali K15, costo di acquisizione K4; tabella dei 7 gruppi di canale con chiusura, punteggio medio, margine e costo per contratto; per settore e per contenuto in riquadri richiudibili.
 - **Fino all'offerta**: prima risposta K12, contatti qualificati K1, sopralluoghi K2, tempo fino all'offerta K13, trattative ferme K9, funnel.
 - **Dall'offerta al contratto**: conversione delle offerte K3, win rate K7, durata del ciclo K8, motivi di perdita K10.
-- **Previsione e portafoglio**: pipeline ponderata K6, margine atteso K5, coerenza del portafoglio K11, capacità delle squadre e consigli.
+- **Cosa fare domani**: pipeline ponderata K6, margine atteso K5, coerenza del portafoglio K11, capacità delle squadre e consigli.
 - Le liste di lavoro (ferme, da ricontattare, prossimi passi) stanno solo nella Pipeline, in «Da fare oggi» e «Da seguire».
 
 **Canali.** I 15 canali del database (12 attivi) sono raggruppati nei 7 gruppi usati da filtri, dashboard e CSV: sito, LinkedIn, telefono, email, passaparola, portale/gara, altro. Elenco e gruppi stanno in un solo punto: `CANALI_DIZIONARIO` e `GRUPPI_CANALI` in `generatore/parametri.py`.
@@ -60,13 +60,17 @@ Le sezioni degli Indicatori seguono il percorso del cliente (riorganizzate il 21
 3. **La trattativa avanza nella Pipeline:** È qualificato → Sopralluogo fatto → Offerta inviata → **Firma da link** → Contratto.
 4. **Allocazione e Indicatori.** In Allocazione la commessa va a una squadra o a un partner. Negli **Indicatori** («Dall'offerta al contratto») il nuovo contratto entra nella conversione delle offerte K3; in «Marketing» il contenuto compare tra le richieste qualificate.
 
-## Le quattro domande dell'analisi
+## Cosa fare domani
 
-Ogni sezione dice a quale domanda risponde:
-1. **Cosa è successo?** KPI e funnel.
-2. **Perché è successo?** Motivi di perdita, canali, contenuti, settori e criteri del punteggio.
-3. **Cosa succederà?** Pipeline ponderata, margine atteso, ore che serviranno alle squadre.
-4. **Cosa conviene fare?** Consigli con il loro "perché": regole leggibili in `js/analisi.js`, con le soglie in `js/config.js`.
+L'ultima sezione degli Indicatori ragiona in avanti con i dati di oggi. Quattro previsioni, ognuna con il dato su cui si basa e le azioni che ne seguono:
+1. **Contratti in arrivo**: offerte aperte × conversione delle offerte (K3) → offerte da sollecitare.
+2. **Trattative a rischio**: trattative ferme oltre la soglia della fase (K9) e ricavi attesi in gioco → trattative da riprendere, rimedio al motivo di perdita prevalente.
+3. **Capacità delle squadre**: ore delle offerte aperte, se firmate, contro le ore libere per zona → partner da preparare.
+4. **Nuovi contatti il prossimo mese**: media degli ultimi 3 mesi × trattative chiuse con un contratto (K7) → budget da spostare tra canali.
+
+Sotto restano K6, K5 e K11. Le previsioni proiettano i tassi di oggi; le azioni sono regole leggibili in `js/analisi.js`, con le soglie in `js/config.js`. Nelle altre sezioni non ci sono etichette («Cosa è successo?» ecc.): i dati si spiegano da soli.
+
+Il **punteggio di coerenza** (0–100) è contornato dal colore della sua fascia: bassissimo (0–19, rosso), basso (20–39, arancione), medio (40–59, giallo), alto (60–79, verde chiaro), altissimo (80–100, verde). Le soglie sono in `js/config.js` (`punteggio.fasce`).
 
 ## Collegamento con la deliverable del corso
 
@@ -175,7 +179,7 @@ js/dati.js              stato, dati iniziali dal database, migrazione, backup, C
 js/allocazione.js       squadre, partner, DURC, messaggio WhatsApp
 js/punteggio.js         preventivo indicativo, margine e punteggio di coerenza (0-100)
 js/kpi.js               KPI del catalogo (fittizi e reali), funnel, canali, contenuti, settori
-js/analisi.js           le quattro domande e i consigli
+js/analisi.js           consigli «Cosa fare domani»
 js/clienti.js           schermata Clienti
 js/canali.js            sito e social: link tracciati, piano dei contenuti, import delle richieste
 js/indicatori.js        Indicatori su tre livelli con la scelta della fonte

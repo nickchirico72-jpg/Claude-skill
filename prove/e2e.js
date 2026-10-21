@@ -331,6 +331,10 @@ const PROVE = {
       const spiegati = await page.$$eval('.kpi[id^=kpi-] .kpi-spiegazione', (els) => els.filter((e) => e.textContent.trim().length > 20).length);
       verifica(`${livello}: ${codici.join(', ')} con la spiegazione in parole`, codici.every((c) => presenti.includes(c)) && spiegati === presenti.length, presenti.join(','));
     }
+    // «Cosa fare domani» (l'ultima sezione aperta): quattro previsioni, ognuna con la base del calcolo e le azioni
+    const previsioni = await page.$$eval('.previsione', (els) => els.map((e) => ({ base: !!e.querySelector('.previsione-base'), azioni: e.querySelectorAll('.elenco-consigli li').length })));
+    verifica('cosa fare domani: 4 previsioni con base e azioni', previsioni.length === 4 && previsioni.every((x) => x.base) && previsioni.some((x) => x.azioni > 0), JSON.stringify(previsioni));
+    verifica('niente etichette delle quattro domande', !(await page.$('.domanda')) && !/Cosa è successo\?/.test(await page.textContent('#schermata')));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },

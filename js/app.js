@@ -57,9 +57,19 @@ function intestazione({ occhiello = "", titolo, istruzione, azione = "" }) {
     </header>`;
 }
 
-// Punteggio di coerenza da 0 a 100; il lettore di schermo legge anche «Punteggio di coerenza»
+// Punteggio di coerenza da 0 a 100, contornato con il colore della sua fascia (da bassissimo ad altissimo)
 function badgePunteggio(p, grande = false) {
-  return `<span class="badge badge-punteggio${grande ? " badge-grande" : ""}" title="Punteggio di coerenza: ${p.totale} su 100"><span class="solo-lettori">Punteggio di coerenza </span>${p.totale}</span>`;
+  const f = fasciaPunteggio(p.totale);
+  return `<span class="badge badge-punteggio fascia-${f.nome}${grande ? " badge-grande" : ""}" title="Punteggio di coerenza: ${p.totale} su 100, ${f.nome}"><span class="solo-lettori">Punteggio di coerenza </span>${p.totale}<span class="solo-lettori">, ${f.nome}</span></span>`;
+}
+
+// Legenda delle cinque fasce di colore del punteggio
+function legendaFasce() {
+  const fasce = CONFIG.punteggio.fasce;
+  return `<p class="legenda-fasce">${fasce.slice().reverse().map((f, i, tutte) => {
+    const fino = i < tutte.length - 1 ? tutte[i + 1].da - 1 : 100;
+    return `<span class="badge badge-punteggio fascia-${f.nome}">${f.da}–${fino}</span> ${f.nome}`;
+  }).join(" ")}</p>`;
 }
 
 // Tabella dei 6 criteri del punteggio, con i punti ottenuti
@@ -121,8 +131,8 @@ function disegnaPipeline() {
     <section class="riepilogo riepilogo-pipeline" aria-label="Riepilogo">
       <div><span>In trattativa</span><strong>${aperte.length}</strong><small>su ${tutte.length} opportunità</small></div>
       <div title="Valore annuo di ogni trattativa × probabilità di chiusura della sua fase">
-        <span>Previsione ponderata ${domanda("predittiva")}</span><strong>${formattaEuro(previsione.ponderata)}</strong><small>su ${formattaEuro(previsione.pieno)} di valore annuo pieno</small></div>
-      <div><span>Coerenza</span><strong>${medio === null ? NESSUN_DATO : medio + " su 100"}</strong><small>punteggio medio delle trattative aperte</small></div>
+        <span>Previsione ponderata</span><strong>${formattaEuro(previsione.ponderata)}</strong><small>su ${formattaEuro(previsione.pieno)} di valore annuo pieno</small></div>
+      <div><span>Coerenza</span><strong>${medio === null ? NESSUN_DATO : badgePunteggio({ totale: medio }, true)}</strong><small>punteggio medio delle trattative aperte</small></div>
       <a href="#da-seguire" data-azione="scorri" data-id="da-seguire"><span>Da seguire</span>
         <strong>${daSeguire ? `<span class="chip chip-attenzione">${daSeguire}</span>` : "0"}</strong><small>ferme, senza prossima azione o da ricontattare</small></a>
     </section>
@@ -640,8 +650,9 @@ function apriDettaglio(id) {
         <div class="contatti">${pulsantiContatto(ref)}</div>` : "<p><strong>Referente:</strong> non indicato</p>"}
     </div>
     ${o.note ? `<h3>Note sulla trattativa</h3><p class="nota-trattativa">${esc(o.note)}</p>` : ""}
-    <h3>Punteggio di coerenza: ${p.totale} su 100</h3>
+    <h3>Punteggio di coerenza: ${p.totale} su 100 (${fasciaPunteggio(p.totale).nome})</h3>
     ${tabellaCriteri(p)}
+    ${legendaFasce()}
     <h3>Storico</h3>
     <ol class="storico">${passi}${o.perso ? `<li>Perso: ${formattaData(o.perso.data)} · ${esc(o.perso.motivo)}${o.perso.nota ? " · " + esc(o.perso.nota) : ""}</li>` : ""}</ol>
     ${o.motivazioneC ? `<p class="nota-c">Offerta inviata nonostante il punteggio C. Motivazione: ${esc(o.motivazioneC)}</p>` : ""}
@@ -2107,12 +2118,12 @@ disegna();
 
 // ============================================ DOMANDE PREDITTIVA E PRESCRITTIVA
 
-// Allocazione: ore che serviranno se si firmano le offerte aperte (domanda predittiva)
+// Allocazione: ore che serviranno se si firmano le offerte aperte
 function sezioneCapacitaFutura() {
   const zone = previsioneCapacita(stato.opportunita);
   if (!zone.length) return "";
   const scoperte = zone.filter((z) => zonaConSquadre(z) && z.mancano);
-  return richiudibile("capacita", `${domanda("predittiva")} Capacità se si firmano le offerte aperte`,
+  return richiudibile("capacita", `Capacità se si firmano le offerte aperte`,
     scoperte.length ? `<span class="chip chip-critico">mancano ore in ${quanti(scoperte.length, "zona", "zone")}</span>` : '<span class="chip chip-ok">capacità sufficiente</span>', `
       <ul class="elenco-capacita">
         ${zone.filter(zonaConSquadre).map((z) => `<li class="${z.mancano ? "manca" : ""}">
@@ -2136,20 +2147,3 @@ function rigaZoneSenzaSquadre(zone) {
     (${esc(fuori.map((z) => z.zona).join(", "))}): servono partner.</p>`;
 }
 
-// Indicatori: previsione e tutti i consigli (domande predittiva e prescrittiva)
-function sezioniPrevisioneEConsigli() {
-  const p = previsionePonderata(stato.opportunita);
-  return `
-    <section class="sezione" id="domanda-predittiva">
-      <h2>${domanda("predittiva")} Previsione</h2>
-      <div class="riquadro">
-        <p>Ricavi annui attesi dalle trattative aperte: <strong>${formattaEuro(p.ponderata)}</strong> su ${formattaEuro(p.pieno)} di valore pieno
-          (${quanti(p.aperte, "trattativa", "trattative")}, ognuna pesata con la probabilità di chiusura della sua fase).</p>
-        ${previsioneCapacita(stato.opportunita).filter(zonaConSquadre).map((z) => `<p class="nota-piccola">${esc(z.zona)}: le offerte aperte chiederebbero ${z.ore} ore/mese contro ${z.libere} libere${z.mancano ? " — mancano " + z.mancano + " ore" : ""}.</p>`).join("")}
-        ${rigaZoneSenzaSquadre(previsioneCapacita(stato.opportunita))}
-      </div>
-    </section>
-    <section class="sezione" id="domanda-prescrittiva">
-      ${sezioneConsigli(8)}
-    </section>`;
-}

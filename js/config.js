@@ -129,6 +129,14 @@ const CONFIG = {
   punteggio: {
     ...DIZIONARI.punteggio,
     confermaPerPunteggioC: true,       // true = un'opportunità C passa a Offerta solo con una motivazione; false = nessun controllo
+    // Colore del contorno del punteggio: ogni fascia vale da «da» punti in su (dalla migliore alla peggiore)
+    fasce: [
+      { da: 80, nome: "altissimo" },
+      { da: 60, nome: "alto" },
+      { da: 40, nome: "medio" },
+      { da: 20, nome: "basso" },
+      { da: 0, nome: "bassissimo" },
+    ],
   },
 
   // ------------------------------------------------ Canali di acquisizione
@@ -225,7 +233,7 @@ const CONFIG = {
   rimediPerdita: {
     "prezzo": "Rivedi la tariffa o proponi una frequenza ridotta",
     "tempi di avvio": "Proponi un avvio più rapido con un partner",
-    "fuori zona": "Filtra prima i contatti fuori zona (punteggio C)",
+    "fuori zona": "Filtra prima i contatti fuori zona (punteggio basso)",
     "capacità insufficiente": "Allarga la rete dei partner nelle zone sature",
     "nessuna risposta": "Fissa sempre una data di sollecito dopo l'offerta",
   },
