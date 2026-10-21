@@ -216,7 +216,9 @@ function schedaOpportunita(o, p) {
     stati = rigaRicontatto(o) + infoFase(o, fissato) + rigaStatoTrattativa(o, fissato);
     const pulsante = fase === "qualificato" && !fissato
       ? `<button class="pulsante primario piccolo" type="button" data-azione="fissa-sopralluogo" data-id="${esc(o.id)}">${icona("calendario")} Fissa sopralluogo</button>`
-      : `<button class="pulsante primario piccolo" type="button" data-azione="avanza" data-id="${esc(o.id)}" title="Registra che è già avvenuto">${icona("spunta")} ${CONFIG.fasi[faseRaggiunta(o)].azione}</button>`;
+      : fase === "sopralluogo"
+        ? `<a class="pulsante primario piccolo" href="#preventivo-${esc(o.id)}" title="Prepara il preventivo e registra l'offerta">Prepara l'offerta</a>`
+        : `<button class="pulsante primario piccolo" type="button" data-azione="avanza" data-id="${esc(o.id)}" title="Registra che è già avvenuto">${icona("spunta")} ${CONFIG.fasi[faseRaggiunta(o)].azione}</button>`;
     azioni = pulsante + (fase === "offerta" ? `<button class="pulsante secondario piccolo" type="button" data-azione="firma-link" data-id="${esc(o.id)}" title="Invia l'offerta da firmare con un link">Firma da link</button>` : "")
       + (o.ricontatto ? `<button class="pulsante-testo" type="button" data-azione="ricontattato" data-id="${esc(o.id)}" title="Registra che hai ricontattato il cliente">Ricontattato</button>` : "")
       + `<button class="pulsante-testo" type="button" data-azione="perso" data-id="${esc(o.id)}" title="Segna come perso">Perso</button>`;
@@ -633,6 +635,7 @@ function apriDettaglio(id) {
       ${o.perso ? `<button class="pulsante secondario" type="button" data-azione="riapri" data-id="${esc(o.id)}">Riapri la trattativa</button>` : ""}
       ${trattativaAperta(o) && !o.ricontatto ? `<button class="pulsante secondario" type="button" data-azione="da-ricontattare" data-id="${esc(o.id)}">Da ricontattare</button>` : ""}
       <button class="pulsante secondario" type="button" data-azione="modifica-opportunita" data-id="${esc(o.id)}">${icona("matita")} Modifica</button>
+      ${!o.perso ? `<a class="pulsante secondario" href="#preventivo-${esc(o.id)}" data-azione="chiudi">Preventivo</a>` : ""}
       <a class="pulsante secondario" href="#cliente-${esc(o.aziendaId)}" data-azione="chiudi">Apri la scheda cliente</a>
       <button class="pulsante primario" type="button" data-azione="chiudi">Chiudi</button>
     </div>`);
@@ -1223,7 +1226,14 @@ function apriFase(o, fase, { data = null, attivitaId = null } = {}) {
   const etichetta = { sopralluogo: "Data del sopralluogo", offerta: "Data di invio", contratto: "Data della firma" }[fase.id] || "Data";
   let campi = "";
   if (fase.id === "sopralluogo") {
+    const misure = o.preventivo || {};
     campi = `
+      <p class="nota-piccola">Misure prese al sopralluogo: ricalcolano le ore (poi puoi correggerle).</p>
+      <div class="riga-doppia">
+        <label>Tipo di ambienti <select name="ambiente"><option value="">— Senza misure —</option>${opzioni(CONFIG.preventivo.ambienti.map((a) => a.nome), misure.ambiente || "")}</select></label>
+        <label>Metri quadri misurati <input name="mq" type="number" inputmode="numeric" min="1" step="10" value="${misure.mq || ""}"></label>
+      </div>
+      <label>Frequenza <select name="frequenza">${opzioni(CONFIG.preventivo.frequenze.map((f) => f.nome), misure.frequenza || CONFIG.preventivo.frequenze[2].nome)}</select></label>
       <label>Ore al mese confermate
         <input name="ore" type="number" inputmode="numeric" min="1" step="1" required value="${Number(o.ore)}">
       </label>
@@ -1291,6 +1301,11 @@ function aggiornaModuloFase(modulo, campo = null) {
       collegato.value = aggiungiGiorni(modulo.data.value, modulo.scadenza ? CONFIG.giorniValiditaOfferta : CONFIG.giorniAvvioServizio);
     }
   }
+  // Sopralluogo: misure, tipo di ambienti o frequenza cambiati → ore ricalcolate
+  if (modulo.mq && campo && ["mq", "ambiente", "frequenza"].includes(campo.name)) {
+    const prev = calcolaPreventivo({ servizio: o.servizio, mq: Number(modulo.mq.value), ambiente: modulo.ambiente.value, frequenza: modulo.frequenza.value });
+    if (prev) modulo.ore.value = prev.ore;
+  }
   const confronto = modulo.querySelector("#confronto-punteggio");
   if (confronto) {
     const ore = Math.round(Number(modulo.ore.value)) || 0;
@@ -1319,10 +1334,12 @@ function salvaFase(modulo) {
   if (!formattaData(data)) return segnalaCampo(modulo.data, "Scegli la data");
   if (data > oggi()) return segnalaCampo(modulo.data, "Registra solo passi già avvenuti: la data non può essere nel futuro");
   if (data < minimo) return segnalaCampo(modulo.data, "La data non può essere prima del " + formattaData(minimo) + ", quando è iniziata la fase attuale");
-  let ore, note, tariffa, scadenzaOfferta, motivazione, avvio;
+  let ore, note, tariffa, scadenzaOfferta, motivazione, avvio, misure;
   if (fase.id === "sopralluogo") {
     ore = Math.round(Number(modulo.ore.value)) || 0;
     note = modulo.note.value.trim();
+    misure = modulo.ambiente.value && Number(modulo.mq.value) > 0
+      ? { ambiente: modulo.ambiente.value, mq: Math.round(Number(modulo.mq.value)), frequenza: modulo.frequenza.value } : null;
     if (ore <= 0) return segnalaCampo(modulo.ore, "Inserisci le ore al mese confermate");
   } else if (fase.id === "offerta") {
     tariffa = Number(modulo.tariffa.value);
@@ -1343,6 +1360,7 @@ function salvaFase(modulo) {
         registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", data, testo: "Ore al mese: " + o.ore + " → " + ore + " (dal sopralluogo)" });
         Object.assign(o, { ore, valore: null, capacitaSimulata: null });
       }
+      if (misure) o.preventivo = misure;   // le misure del sopralluogo diventano la base del preventivo
       // Il sopralluogo fissato in agenda si chiude con la data in cui è stato fatto
       const fissato = stato.attivita.find((x) => x.id === modulo.dataset.attivita && x.daFare) || sopralluogoFissato(o);
       if (fissato) {
@@ -1363,7 +1381,9 @@ function salvaFase(modulo) {
       dettaglio = "avvio del servizio il " + formattaData(avvio);
     }
     promemoria = registraFase(o, fase, data, dettaglio);
-  }, { messaggio: () => messaggioFase(o, fase, promemoria), evidenzia: o.id, fase: fase.id, vai: fase.id === "contratto" ? "allocazione" : null });
+  }, { messaggio: () => messaggioFase(o, fase, promemoria), evidenzia: o.id, fase: fase.id,
+    // Dopo la firma si va all'allocazione; dopo l'offerta registrata dal preventivo si torna alla Pipeline
+    vai: fase.id === "contratto" ? "allocazione" : location.hash.startsWith("#preventivo-") ? "pipeline" : null });
 }
 
 // «Da ricontattare»: etichetta sulla fase attuale con la data (obbligatoria) in cui richiamare il cliente
@@ -1769,7 +1789,7 @@ const AZIONI = {
 
 // Azioni che modificano i dati: un secondo clic ravvicinato viene ignorato
 const MODIFICANO_DATI = new Set(['importa-contatti', "avanza", "fatto", "fatto-fase", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
-  "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "conferma-firma", "ricontattato", "annulla"]);
+  "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "conferma-firma", "ricontattato", "registra-offerta", "annulla"]);
 let ultimoClicModifica = 0;
 let ultimoInvio = 0; // quando è stato inviato l'ultimo modulo (ms)
 
@@ -1935,6 +1955,7 @@ const SCHERMATE = {
   pipeline: disegnaPipeline,
   clienti: disegnaClienti,
   cliente: disegnaSchedaCliente, // scheda di un'azienda: #cliente-<id>
+  preventivo: disegnaPreventivo, // preventivo di un'opportunità: #preventivo-<id>
   allocazione: disegnaAllocazione,
   indicatori: disegnaIndicatori,
 };
@@ -1951,6 +1972,7 @@ function comeScorrere() {
 function schermataAttuale() {
   const hash = location.hash.slice(1);
   if (hash.startsWith("cliente-") && trovaAzienda(hash.slice(8))) return { nome: "cliente", parametro: hash.slice(8), menu: "clienti" };
+  if (hash.startsWith("preventivo-") && trova(hash.slice(11))) return { nome: "preventivo", parametro: hash.slice(11), menu: "pipeline" };
   // hasOwn: un indirizzo come #constructor non deve trovare le proprietà nascoste degli oggetti
   return Object.hasOwn(TITOLI, hash) ? { nome: hash, menu: hash } : { nome: "pipeline", menu: "pipeline" };
 }
@@ -1966,7 +1988,7 @@ function aggiornaContatore(id, n, testo) {
 // Restituisce true se ha messo il focus sulla scheda appena modificata
 function disegna() {
   const { nome, parametro, menu } = schermataAttuale();
-  const titolo = nome === "cliente" ? trovaAzienda(parametro).ragioneSociale : TITOLI[nome];
+  const titolo = nome === "cliente" ? trovaAzienda(parametro).ragioneSociale : nome === "preventivo" ? "Preventivo " + nomeCliente(trova(parametro)) : TITOLI[nome];
   document.title = titolo + " · Gate";
   let focusSulla = false;
   let html;

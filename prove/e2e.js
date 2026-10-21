@@ -127,7 +127,8 @@ const PROVE = {
     await clic(page, `#scheda-${id} [data-azione=fissa-sopralluogo]`);
     await clic(page, '[data-azione=registra-sopralluogo]');
     await clic(page, '#modulo-fase [type=submit]');                                // Sopralluogo fatto
-    await clic(page, `#scheda-${id} [data-azione=avanza]`);                        // Offerta inviata
+    await clic(page, `#scheda-${id} a[href="#preventivo-${id}"]`);                // Prepara l'offerta
+    await clic(page, '[data-azione=registra-offerta]');                           // dal preventivo all'offerta
     if (await page.isVisible('#modulo-fase [name=motivazione]')) await page.fill('#modulo-fase [name=motivazione]', 'Prova della demo');
     await clic(page, '#modulo-fase [type=submit]');
     await clic(page, `#scheda-${id} [data-azione=firma-link]`);
@@ -346,6 +347,42 @@ const PROVE = {
     verifica('Annulla torna indietro e resta nel registro', (await page.evaluate((i) => faseRaggiunta(trova(i)), id)) === 0 && /Annullata/.test(await page.evaluate(() => stato.registro[stato.registro.length - 1].cosa)));
     await clic(page, '#riga-utente [data-azione=registro]');
     verifica('finestra del registro con le modifiche', (await page.$$('#finestra tbody tr')).length >= 2);
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // Supporto al preventivo: misure del sopralluogo, conti, prezzi di riferimento, salvataggio, offerta
+  async preventivoSchermata() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#pipeline');
+    const id = await page.evaluate(() => stato.opportunita.find((o) => faseAttuale(o) === 'qualificato' && o.servizio === 'cleaning e hospitality').id);
+    // Sopralluogo fatto: le misure ricalcolano le ore
+    await page.evaluate((i) => apriFase(trova(i), CONFIG.fasi.find((f) => f.id === 'sopralluogo')), id);
+    await page.selectOption('#modulo-fase [name=ambiente]', 'Uffici e studi');
+    await page.fill('#modulo-fase [name=mq]', '200');
+    await page.selectOption('#modulo-fase [name=frequenza]', '3 volte a settimana');
+    await page.waitForTimeout(200);
+    verifica('sopralluogo: 200 mq x 3 volte ricalcolano le ore (17)', await page.inputValue('#modulo-fase [name=ore]') === '17');
+    await clic(page, '#modulo-fase [type=submit]');
+    verifica('sopralluogo: le misure restano nel preventivo', await page.evaluate((i) => trova(i).preventivo && trova(i).preventivo.mq === 200, id));
+    await clic(page, `#scheda-${id} a[href="#preventivo-${id}"]`);
+    verifica('schermata Preventivo con le misure del sopralluogo', /Preventivo/.test(await page.title()) && await page.inputValue('#modulo-preventivo [name=mq]') === '200');
+    await clic(page, '[data-azione=usa-tariffa]');
+    const testo = await page.textContent('#risultato-preventivo');
+    verifica('tariffa minima: margine al 12% e prezzi di riferimento', /12,\d%|12%/.test(testo) && /Mediana dei contratti/.test(testo) && /stima|prova/i.test(await page.textContent('#schermata')), testo.slice(0, 160));
+    await page.fill('#modulo-preventivo [name=tariffa]', '15');
+    await page.waitForTimeout(200);
+    verifica('tariffa troppo bassa: avviso sotto il margine minimo', /Sotto il margine minimo/.test(await page.textContent('#risultato-preventivo')));
+    await page.fill('#modulo-preventivo [name=tariffa]', '26');
+    await clic(page, '[data-azione=registra-offerta]');
+    verifica('dal preventivo all\'offerta: la finestra propone la tariffa scelta', await page.inputValue('#modulo-fase [name=tariffa]') === '26');
+    await clic(page, '#modulo-fase [type=submit]');
+    const o = await page.evaluate((i) => ({ fase: faseAttuale(trova(i)), tariffa: tariffaOraria(trova(i)), valore: valoreAnnuo(trova(i)) }), id);
+    verifica('offerta registrata con il valore del preventivo', o.fase === 'offerta' && o.tariffa === 26 && o.valore === 17 * 26 * 12, JSON.stringify(o));
+    verifica('il riepilogo per il cliente non mostra costi né margini', await page.evaluate(() => {
+      location.hash = 'preventivo-' + stato.opportunita.find((x) => faseAttuale(x) === 'offerta').id; disegna();
+      const t = document.getElementById('stampa-preventivo').textContent; return /IVA esclusa/.test(t) && !/[Mm]argine|Costo/.test(t);
+    }));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },
