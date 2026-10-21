@@ -1,7 +1,8 @@
 /*
- * STIME ECONOMICHE E PUNTEGGIO DI COERENZA A/B/C
+ * STIME ECONOMICHE E PUNTEGGIO DI COERENZA
  * Il punteggio dice quanto un'opportunità è coerente con la capacità
- * operativa e la marginalità attesa di Gate. Pesi e soglie sono in config.js.
+ * operativa e la marginalità attesa di Gate: un valore da 0 a 100. Pesi e soglie arrivano dal database.
+ * La classe A/B/C resta solo nei calcoli (K11, consigli), non si mostra nelle schermate operative.
  */
 
 // Tariffa e costi del servizio; se il servizio non è più in config.js, valori a zero (senza bloccare nulla)
@@ -72,14 +73,14 @@ function calcolaPunteggio(opp, opportunita) {
   let capacita, notaCapacita;
   if (opp.allocazione && opp.allocazione.tipo === "storico") {
     capacita = opp.capacitaSimulata ?? 1;
-    notaCapacita = "Commessa già avviata prima del prototipo";
+    notaCapacita = "Commessa già avviata";
   } else if (opp.allocazione) {
     const interna = opp.allocazione.tipo === "squadra";
     capacita = interna ? 1 : 0.5;
     notaCapacita = "Assegnata a " + (interna ? nomeSquadra(opp.allocazione.id) : nomePartner(opp.allocazione.id));
   } else if (opp.capacitaSimulata != null) {
     capacita = opp.capacitaSimulata;
-    notaCapacita = "Dato di prova del database: capacità " + (capacita === 1 ? "piena" : capacita === 0.5 ? "con un partner" : "non disponibile");
+    notaCapacita = "Capacità " + (capacita === 1 ? "piena" : capacita === 0.5 ? "con un partner" : "non disponibile");
   } else {
     const squadra = squadraDisponibile(opp, opportunita);
     if (squadra) {
@@ -115,7 +116,7 @@ function calcolaPunteggio(opp, opportunita) {
   criteri.push({ nome: "Decisore identificato", valore: decisore ? 1 : 0, peso: p.pesi.decisore,
     nota: decisore ? (decisore.nome ? "Sì: " + decisore.nome : "Sì") : "Non ancora" });
 
-  // Totale e classe
+  // Totale e classe (la classe serve solo ai calcoli)
   criteri.forEach((c) => (c.punti = Math.round(c.valore * c.peso)));
   const totale = criteri.reduce((somma, c) => somma + c.punti, 0);
   const classe = totale >= p.soglie.A ? "A" : totale >= p.soglie.B ? "B" : "C";

@@ -49,7 +49,7 @@ function apriCanali() {
   const contenuti = contenutiPiano();
   apriFinestra(`
     <h2>Collega sito e social</h2>
-    <p class="nota-piccola">Ogni richiesta porta con sé canale, campagna e contenuto: così vedi quali contenuti portano clienti coerenti (classe A, margine sopra soglia), non solo contatti. Niente pixel di tracciamento: solo parametri nei link.</p>
+    <p class="nota-piccola">Ogni richiesta porta con sé canale, campagna e contenuto: così vedi quali contenuti portano clienti coerenti (punteggio alto, margine sopra soglia), non solo contatti. Niente pixel di tracciamento: solo parametri nei link.</p>
 
     <h3>1. Link del modulo «Richiedi un sopralluogo» per canale</h3>
     <ul class="elenco-link">
@@ -65,14 +65,14 @@ function apriCanali() {
 
     <h3>2. Piano dei contenuti</h3>
     <div class="tabella-scorrevole"><table class="tabella">
-      <thead><tr><th>Contenuto</th><th>Canale</th><th class="num">Richieste</th><th class="num">Classe A</th><th>Link tracciato</th></tr></thead>
+      <thead><tr><th>Contenuto</th><th>Canale</th><th class="num">Richieste</th><th class="num">Punteggio medio</th><th>Link tracciato</th></tr></thead>
       <tbody>${contenuti.map((c) => {
         const r = risultati.get(c.id);
         const id = "link-contenuto-" + esc(c.id);
         return `<tr>
           <td><strong>${esc(c.id)}</strong>${c.prova ? ' <span class="chip">di prova</span>' : ""}<br><span class="nota-piccola">${formattaData(c.data_pubblicazione)} · ${esc(c.formato)} · ${esc(c.tema)}</span></td>
           <td>${esc(c.canale)}</td>
-          <td class="num">${r ? r.richieste : 0}</td><td class="num">${r ? r.classeA : 0}</td>
+          <td class="num">${r ? r.richieste : 0}</td><td class="num">${r && r.punteggioMedio !== null ? r.punteggioMedio : NESSUN_DATO}</td>
           <td><input type="text" readonly value="${esc(linkTracciato(c.canale, c.id))}" id="${id}" aria-label="Link tracciato di ${esc(c.id)}">
             <button class="pulsante secondario piccolo" type="button" data-azione="copia-link" data-id="${id}">Copia</button></td>
         </tr>`;
@@ -264,7 +264,7 @@ function importaContatti() {
     });
   }, {
     messaggio: () => nuovi.length + (nuovi.length === 1 ? " richiesta importata" : " richieste importate") +
-      (opportunita ? ": " + opportunita + " in Pipeline (Contatto) con preventivo e classe" : ": le trovi in Clienti come «Da qualificare»"),
+      (opportunita ? ": " + opportunita + " in Pipeline (Contatto) con preventivo e punteggio" : ": le trovi in Clienti come «Da qualificare»"),
     vai: () => (opportunita ? "pipeline" : "clienti"), fase: "contatto",
   });
 }

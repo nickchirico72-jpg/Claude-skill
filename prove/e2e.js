@@ -207,6 +207,24 @@ const PROVE = {
     await ctx.close();
   },
 
+  // Allocazione: commesse chiuse in righe, la tendina filtra per zona, i riquadri restano come li lascia l'utente
+  async allocazioneZone() {
+    const { ctx, page, errori } = await apri('telefono');
+    await page.goto(BASE + 'index.html#allocazione');
+    const tutte = await page.$$eval('details.commessa', (el) => el.length);
+    const zona = await page.$eval('#filtro-zona', (s) => s.options[1].value);
+    await page.selectOption('#filtro-zona', zona);
+    const dopo = await page.$$eval('details.commessa', (el) => el.length);
+    verifica('zona: la tendina riduce le commesse', dopo > 0 && dopo < tutte, tutte + ' → ' + dopo);
+    await page.click('#riquadro-squadre-partner summary');
+    await page.waitForFunction(() => interfaccia.allocazione.aperti['squadre-partner']);   // l'evento toggle arriva subito dopo il clic
+    await page.selectOption('#filtro-zona', '');
+    verifica('riquadro «Squadre e partner» resta aperto dopo il ridisegno', await page.$eval('#riquadro-squadre-partner', (d) => d.open));
+    verifica('nessun riferimento al prototipo', !/prototip/i.test(await page.textContent('body')));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
   // Dati della versione 3 salvati nel browser: migrati senza errori, con l'avviso per passare ai dati del database
   async migrazione() {
     const vecchi = fs.readFileSync(path.join(__dirname, 'backup-v3.json'), 'utf8');

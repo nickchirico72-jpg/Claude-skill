@@ -64,15 +64,15 @@ function consigli(opportunita = stato.opportunita) {
   // 2. Trattative A o B ferme da troppo tempo: riprenderle
   aperte.forEach((o) => {
     const st = statoTrattativa(o);
-    const classe = calcolaPunteggio(o, opportunita).classe;
+    const { classe, totale } = calcolaPunteggio(o, opportunita);
     if (st.ferma && classe !== "C") {
       elenco.push({ priorita: 80 + st.giorniInFase, aziendaId: o.aziendaId,
         testo: "Riprendi la trattativa con " + nomeCliente(o),
-        perche: "classe " + classe + ", ferma da " + giorni(st.giorniInFase) + " in «" + CONFIG.fasi[faseRaggiunta(o)].nome + "»" });
+        perche: "punteggio " + totale + ", ferma da " + giorni(st.giorniInFase) + " in «" + CONFIG.fasi[faseRaggiunta(o)].nome + "»" });
     } else if (!st.prossima && classe === "A") {
       elenco.push({ priorita: 70, aziendaId: o.aziendaId,
         testo: "Fissa la prossima azione con " + nomeCliente(o),
-        perche: "trattativa di classe A senza nulla in agenda" });
+        perche: "punteggio " + totale + ", nulla in agenda" });
     }
   });
 

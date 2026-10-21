@@ -626,7 +626,7 @@ function importaBackup(file) {
       dati = null;
     }
     if (!strutturaValida(dati)) {
-      mostraAvviso("Il file scelto non è un backup valido di questo prototipo");
+      mostraAvviso("Il file scelto non è un backup valido di questo CRM");
       return;
     }
     backupInAttesa = dati;

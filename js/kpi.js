@@ -245,13 +245,13 @@ function risultatiPerSettore(opportunita) {
       conversione: rapporto(firmati.length, contatti),
       valoreContratti: firmati.reduce((s, o) => s + valoreAnnuo(o), 0),
       margineAtteso: gruppo.reduce((s, o) => s + margineAtteso(o, opportunita), 0),
-      quotaA: gruppo.length ? rapporto(gruppo.filter((o) => calcolaPunteggio(o, opportunita).classe === "A").length, gruppo.length) : null,
+      punteggioMedio: punteggioMedio(gruppo, opportunita),
     };
   });
 }
 
 // Risultati per canale di acquisizione (canale dell'opportunità, come nel database): quale canale porta contratti,
-// clienti coerenti (classe A/B/C) e margine, e a che costo (K4 = costi del canale ÷ contratti del canale).
+// clienti coerenti (punteggio medio) e margine, e a che costo (K4 = costi del canale ÷ contratti del canale).
 // I canali spenti compaiono solo se hanno dati; un canale fuori dal dizionario resta, con fuoriElenco = true
 function risultatiPerCanale(opportunita) {
   const costi = costiPerCanale();
@@ -260,8 +260,6 @@ function risultatiPerCanale(opportunita) {
     const gruppo = opportunita.filter((o) => o.canale === fonte);
     const contratti = gruppo.filter((o) => o.storico.contratto && !o.perso).length;
     const chiuse = gruppo.filter((o) => o.perso || o.storico.contratto).length;
-    const classi = { A: 0, B: 0, C: 0 };
-    gruppo.forEach((o) => classi[calcolaPunteggio(o, opportunita).classe]++);
     const costo = Object.hasOwn(costi, fonte) ? costi[fonte] : null;
     return {
       fonte,
@@ -270,8 +268,7 @@ function risultatiPerCanale(opportunita) {
       contatti: gruppo.length,
       contratti,
       conversione: rapporto(contratti, chiuse),
-      classi,
-      quotaA: rapporto(classi.A, gruppo.length),
+      punteggioMedio: punteggioMedio(gruppo, opportunita),
       margineMedio: gruppo.length ? media(gruppo.map((o) => marginePercentuale(o, opportunita))) : null,
       margineAtteso: gruppo.reduce((s, o) => s + margineAtteso(o, opportunita), 0),
       costi: costo,
@@ -280,13 +277,18 @@ function risultatiPerCanale(opportunita) {
   });
 }
 
+// Punteggio di coerenza medio di un gruppo di opportunità, arrotondato (null se il gruppo è vuoto)
+function punteggioMedio(gruppo, opportunita) {
+  return gruppo.length ? Math.round(media(gruppo.map((o) => calcolaPunteggio(o, opportunita).totale))) : null;
+}
+
 // Richieste qualificate per contenuto (utm_content): quali contenuti portano richieste coerenti, non solo contatti
 function risultatiPerContenuto(opportunita) {
   const riga = (nome, gruppo, extra = {}) => ({
     nome, ...extra,
     richieste: gruppo.length,
     qualificate: contaRaggiunte(gruppo, "qualificato"),
-    classeA: gruppo.filter((o) => calcolaPunteggio(o, opportunita).classe === "A").length,
+    punteggioMedio: punteggioMedio(gruppo, opportunita),
     contratti: gruppo.filter((o) => o.storico.contratto && !o.perso).length,
   });
   const contenuti = righeDb("contenuti").map((c) => riga(c.id, opportunita.filter((o) => o.contenuto === c.id), { contenuto: c }));

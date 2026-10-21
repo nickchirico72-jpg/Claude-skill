@@ -74,7 +74,7 @@ function disegnaPreventivo(id) {
       titolo: esc(nomeCliente(o)),
       istruzione: "Parti dalle misure del sopralluogo, scegli la tariffa guardando costi e casi simili, poi registra l'offerta o stampa il riepilogo per il cliente.",
     })}
-    <p class="avviso-stima">${icona("attenzione")} È una stima: rese, costi orari e tariffe sono valori di prova, da sostituire dopo l'intervista con Gate.</p>
+    <p class="avviso-stima">${icona("attenzione")} È una stima: va confermata dopo il sopralluogo.</p>
     <div class="preventivo-griglia">
       <form class="modulo riquadro" id="modulo-preventivo" data-id="${esc(o.id)}" novalidate>
         <h2 class="titolo-riquadro">1. Il servizio</h2>
@@ -122,7 +122,7 @@ function risultatoPreventivo(o, v) {
         <tr><td><strong>Margine</strong></td><td class="punti"><span class="chip chip-${tono}">${formattaPercentualeDecimale(c.margine)} · ${formattaEuro(c.margineAnno)}/anno</span></td></tr>
       </tbody></table>
       ${c.margine < minimo ? `<p class="avviso-margine">${icona("attenzione")} Sotto il margine minimo del ${formattaPercentuale(minimo)}: alza la tariffa almeno a ${euroOra(c.minima)}.</p>` : ""}
-      <details class="kpi-come"><summary>Perché è classe ${c.punteggio.classe}</summary>${tabellaCriteri(c.punteggio)}</details>
+      <details class="kpi-come"><summary>Come si calcola il punteggio</summary>${tabellaCriteri(c.punteggio)}</details>
     </section>
     <section class="riquadro">
       <h2 class="titolo-riquadro">3. Prezzi di riferimento</h2>
@@ -133,7 +133,7 @@ function risultatoPreventivo(o, v) {
         ${tariffaRif(s.tariffaVinte === null ? null : Math.round(s.tariffaVinte * 2) / 2, "Mediana dei contratti")}
       </div>
       <p class="nota-piccola">${s.totale ? `Casi simili: ${s.totale} offerte decise, ${s.vinte} vinte (${quota(s.vinte, s.totale)}); ${s.persePrezzo} perse per il prezzo.
-        Tariffa mediana: vinte ${euroOra(s.tariffaVinte)}, perse ${euroOra(s.tariffaPerse)}. Nei dati di prova il prezzo non è stato legato all'esito: il confronto diventerà utile con le offerte vere.`
+        Tariffa mediana: vinte ${euroOra(s.tariffaVinte)}, perse ${euroOra(s.tariffaPerse)}. Il confronto diventa più affidabile con più offerte decise.`
         : NESSUN_DATO + ": ancora nessuna offerta decisa per questo servizio."}</p>
     </section>
     <section class="stampa-preventivo" id="stampa-preventivo" aria-label="Riepilogo per il cliente">
@@ -148,7 +148,7 @@ function risultatoPreventivo(o, v) {
         <tr><td>Importo</td><td>${formattaEuro(c.mese)} al mese (${formattaEuro(c.anno)} all'anno), IVA esclusa</td></tr>
         <tr><td>Validità</td><td>${CONFIG.giorniValiditaOfferta} giorni dalla data</td></tr>
       </tbody></table>
-      <p class="nota-piccola">Bozza generata dal prototipo con dati di prova: non è un'offerta di Gate.</p>
+      <p class="nota-piccola">Preventivo indicativo, da confermare dopo il sopralluogo.</p>
     </section>`;
 }
 

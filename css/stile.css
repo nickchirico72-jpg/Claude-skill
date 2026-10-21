@@ -146,16 +146,6 @@ textarea {
   color: hsl(210 20% 75%);
 }
 
-.barra-nota {
-  padding: 4px 10px;
-  border: 1px solid hsl(170 55% 55% / 0.5);
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent);
-  white-space: nowrap;
-}
-
 .navigazione {
   position: fixed;
   right: 0;
@@ -304,12 +294,6 @@ textarea {
     margin-left: auto;
   }
 
-  .barra-nota {
-    margin-top: auto;
-    align-self: flex-start;
-    margin-left: 12px;
-  }
-
   .principale {
     padding: 20px 28px 40px;
   }
@@ -351,33 +335,6 @@ textarea {
     top: 4px;
     right: 12px;
   }
-
-  .barra-nota {
-    align-self: center;
-    margin-left: 0;
-    padding: 4px 8px;
-    font-size: 10px;
-  }
-}
-
-/* Fascia che dichiara i dati fittizi */
-/* (colore neutro: l'arancione resta solo per le scadenze) */
-.nota-dati {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  background: var(--muted);
-  color: var(--muted-foreground);
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-.nota-dati .icona {
-  width: 16px;
-  height: 16px;
 }
 
 /* Testo lungo su schermi larghi, testo breve su telefono */
@@ -579,6 +536,13 @@ textarea {
 .badge-C {
   background: var(--critico-sfondo);
   color: var(--critico);
+}
+
+/* Punteggio di coerenza: un solo stile neutro, senza classi né colori di livello */
+.badge-punteggio {
+  background: var(--muted);
+  color: var(--foreground);
+  border: 1px solid var(--border);
 }
 
 .conteggio {
@@ -1198,16 +1162,92 @@ textarea {
 }
 
 .commessa {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
+/* Riga della commessa: codice e cliente, comune e ore, prossimo passo; si apre con un clic */
 .commessa-testa {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.commessa-nome {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.commessa[open] .commessa-testa {
+  margin-bottom: 8px;
+}
+
+.commessa-dettaglio {
+  margin-bottom: 10px;
+}
+
+/* Titolo di sezione con la tendina delle zone accanto */
+.testa-sezione {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: 4px 16px;
+  gap: 8px 16px;
   margin-bottom: 12px;
+}
+
+.testa-sezione h2 {
+  margin: 0;
+}
+
+.filtro-zona {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.filtro-zona select {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  font: inherit;
+}
+
+/* Freccia che dice «si apre»: ruota quando la commessa è aperta */
+.commessa-testa::-webkit-details-marker {
+  display: none;
+}
+
+.commessa-testa::before {
+  content: "▸";
+  color: var(--muted-foreground);
+  transition: transform 0.15s;
+}
+
+.commessa[open] .commessa-testa::before {
+  transform: rotate(90deg);
+}
+
+.titolo-gruppo {
+  margin: 16px 0 8px;
+}
+
+.approfondimento .riassunto {
+  font-family: Manrope, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted-foreground);
 }
 
 .commessa-codice {

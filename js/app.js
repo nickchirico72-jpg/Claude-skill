@@ -15,7 +15,9 @@ let elenchiAperti = { "da-fare": false, "da-seguire": false }; // «Mostra tutte
 // filtri = ricerca e filtri dei Clienti; bozze = testo di «Registra un'attività» per azienda;
 // provenienza = schermata da cui si è arrivati (per il link «← Pipeline» della scheda cliente)
 // indicatori = livello (direzione, commerciale, operativo, altri) e fonte dei dati (fittizi, partenza, test) della schermata Indicatori
-const interfaccia = { filtri: { testo: "", settore: "", stato: "" }, bozze: {}, provenienza: "", indicatori: { livello: ruoloUtente().vista, fonte: "fittizi" } };
+// allocazione = zona scelta nella tendina e riquadri aperti o chiusi a mano
+const interfaccia = { filtri: { testo: "", settore: "", stato: "" }, bozze: {}, provenienza: "", indicatori: { livello: ruoloUtente().vista, fonte: "fittizi" },
+  allocazione: { zona: "", aperti: {} } };
 
 // ================================================================== ICONE
 
@@ -55,9 +57,9 @@ function intestazione({ occhiello = "", titolo, istruzione, azione = "" }) {
     </header>`;
 }
 
-// Badge A/B/C; il lettore di schermo legge anche «Punteggio di coerenza»
-function badgePunteggio(p) {
-  return `<span class="badge badge-${p.classe}" title="Punteggio di coerenza: ${p.totale} su 100"><span class="solo-lettori">Punteggio di coerenza </span>${p.classe} · ${p.totale}</span>`;
+// Punteggio di coerenza da 0 a 100; il lettore di schermo legge anche «Punteggio di coerenza»
+function badgePunteggio(p, grande = false) {
+  return `<span class="badge badge-punteggio${grande ? " badge-grande" : ""}" title="Punteggio di coerenza: ${p.totale} su 100"><span class="solo-lettori">Punteggio di coerenza </span>${p.totale}</span>`;
 }
 
 // Tabella dei 6 criteri del punteggio, con i punti ottenuti
@@ -99,8 +101,7 @@ function disegnaPipeline() {
   const tutte = stato.opportunita;
   const punteggi = new Map(tutte.map((o) => [o.id, calcolaPunteggio(o, tutte)]));
   const aperte = tutte.filter(trattativaAperta);
-  const classi = { A: 0, B: 0, C: 0 };
-  aperte.forEach((o) => classi[punteggi.get(o.id).classe]++);
+  const medio = aperte.length ? Math.round(aperte.reduce((t, o) => t + punteggi.get(o.id).totale, 0) / aperte.length) : null;
   const previsione = previsionePonderata(tutte);
   const daSeguire = trattativeDaSeguire().length;
 
@@ -113,7 +114,7 @@ function disegnaPipeline() {
     <div class="pagina-pipeline">
     ${intestazione({
       titolo: "Opportunità commerciali",
-      istruzione: "Registra ogni passo con un clic e tieni sempre una prossima azione. A/B/C indica la coerenza con capacità e margini.",
+      istruzione: "Registra ogni passo con un clic e tieni sempre una prossima azione. Il punteggio, da 0 a 100, indica la coerenza con capacità e margini.",
       azione: `<button class="pulsante accento" type="button" data-azione="nuovo">${icona("piu")} Nuovo contatto</button>`,
     })}
 
@@ -121,10 +122,7 @@ function disegnaPipeline() {
       <div><span>In trattativa</span><strong>${aperte.length}</strong><small>su ${tutte.length} opportunità</small></div>
       <div title="Valore annuo di ogni trattativa × probabilità di chiusura della sua fase">
         <span>Previsione ponderata ${domanda("predittiva")}</span><strong>${formattaEuro(previsione.ponderata)}</strong><small>su ${formattaEuro(previsione.pieno)} di valore annuo pieno</small></div>
-      <div><span>Coerenza</span><strong>
-        <span class="badge badge-A">A ${classi.A}</span>
-        <span class="badge badge-B">B ${classi.B}</span>
-        <span class="badge badge-C">C ${classi.C}</span></strong><small>trattative aperte per classe</small></div>
+      <div><span>Coerenza</span><strong>${medio === null ? NESSUN_DATO : medio + " su 100"}</strong><small>punteggio medio delle trattative aperte</small></div>
       <a href="#da-seguire" data-azione="scorri" data-id="da-seguire"><span>Da seguire</span>
         <strong>${daSeguire ? `<span class="chip chip-attenzione">${daSeguire}</span>` : "0"}</strong><small>ferme, senza prossima azione o da ricontattare</small></a>
     </section>
@@ -306,6 +304,13 @@ function disegnaAllocazione() {
   const avviate = firmati.filter((o) => o.allocazione && o.allocazione.tipo === "storico").length;
   const assegnate = firmati.filter((o) => o.allocazione && o.allocazione.tipo !== "storico");
   const conPartner = CONFIG.funzioni.partner;
+  const scelta = interfaccia.allocazione;
+
+  // Tendina delle zone: solo quelle con commesse da assegnare (se la zona scelta si svuota, si torna a tutte)
+  const zone = [...new Set(daAssegnare.map((o) => infoComune(o.comune).zona))].sort();
+  if (!zone.includes(scelta.zona)) scelta.zona = "";
+  const visibili = daAssegnare.filter((o) => !scelta.zona || infoComune(o.comune).zona === scelta.zona);
+  const quante = (z) => daAssegnare.filter((o) => infoComune(o.comune).zona === z).length;
 
   // Tutte le proposte inviate ai partner, dalla più recente
   const registro = tutte
@@ -316,31 +321,45 @@ function disegnaAllocazione() {
     si: `<span class="stato ok">${icona("spunta")} SÌ</span>`,
     no: `<span class="stato critico">${icona("x")} NO</span>`,
   };
+  const sature = CONFIG.squadre.filter((sq) => oreLibereSquadra(sq, tutte) <= 0).length;
+  const idonei = CONFIG.partner.filter((pa) => requisitiPartner(pa).idoneo).length;
 
   return `
     ${intestazione({
       titolo: "Chi esegue il servizio",
-      istruzione: conPartner ? "Assegna ogni contratto firmato: prima a una squadra Gate con ore libere nella zona, altrimenti proponilo a un'impresa partner su WhatsApp."
-        : "Assegna ogni contratto firmato a una squadra Gate con ore libere nella zona.",
+      istruzione: conPartner ? "Apri una commessa e assegnala: prima a una squadra Gate con ore libere nella zona, altrimenti a un'impresa partner su WhatsApp."
+        : "Apri una commessa e assegnala a una squadra Gate con ore libere nella zona.",
     })}
 
-    ${sezioneCapacitaFutura()}
-
-    <ul class="regole" aria-label="Regole">
-      <li>${icona("spunta")} Prima le squadre interne con ore libere nella zona</li>
-      ${conPartner ? `<li>${icona("spunta")} Solo imprese partner con DURC regolare, nessun lavoratore autonomo</li>` : ""}
-      <li>${icona("spunta")} Il cliente resta di Gate: Gate firma il contratto e controlla la qualità</li>
-    </ul>
-
     <section class="sezione">
-      <h2>Da assegnare <span class="conteggio">${daAssegnare.length}</span></h2>
-      ${daAssegnare.length ? daAssegnare.map(schedaCommessa).join("")
+      <div class="testa-sezione">
+        <h2>Da assegnare <span class="conteggio">${daAssegnare.length}</span></h2>
+        ${zone.length > 1 ? `<label class="filtro-zona">Zona
+          <select id="filtro-zona">
+            <option value="">Tutte le zone (${daAssegnare.length})</option>
+            ${zone.map((z) => `<option value="${esc(z)}" ${z === scelta.zona ? "selected" : ""}>${esc(z)} (${quante(z)})</option>`).join("")}
+          </select></label>` : ""}
+      </div>
+      ${visibili.length ? visibili.map((o) => schedaCommessa(o, visibili.length === 1)).join("")
         : '<p class="vuoto">Nessuna commessa da assegnare. I contratti firmati nella Pipeline compaiono qui.</p>'}
     </section>
 
-    <section class="sezione">
-      <h2>Commesse assegnate <span class="conteggio">${assegnate.length}</span></h2>
-      ${avviate ? `<p class="nota-piccola">Altre ${avviate} commesse del database di prova erano già avviate prima del prototipo: le loro ore sono già nelle ore impegnate delle squadre.</p>` : ""}
+    ${sezioneCapacitaFutura()}
+
+    ${richiudibile("squadre-partner", `Squadre${conPartner ? " e partner" : ""}`,
+      `${quanti(CONFIG.squadre.length, "squadra", "squadre")}${sature ? `, <span class="chip chip-attenzione">${quanti(sature, "satura", "sature")}</span>` : ""}${conPartner ? " · " + quanti(idonei, "partner idoneo", "partner idonei") : ""}`, `
+      <ul class="regole" aria-label="Regole">
+        <li>${icona("spunta")} Prima le squadre interne con ore libere nella zona</li>
+        ${conPartner ? `<li>${icona("spunta")} Solo imprese partner con DURC regolare, nessun lavoratore autonomo</li>` : ""}
+        <li>${icona("spunta")} Il cliente resta di Gate: Gate firma il contratto e controlla la qualità</li>
+      </ul>
+      <h3 class="titolo-gruppo">Squadre interne <span class="sottotitolo">ore al mese</span></h3>
+      <div class="griglia tre">${CONFIG.squadre.map(schedaSquadra).join("")}</div>
+      ${conPartner ? `<h3 class="titolo-gruppo">Imprese partner <span class="sottotitolo">in ordine di priorità</span></h3>
+      <div class="griglia tre">${CONFIG.partner.map(schedaPartner).join("")}</div>` : ""}`)}
+
+    ${richiudibile("assegnate", "Commesse assegnate", `<span class="conteggio">${assegnate.length}</span>`, `
+      ${avviate ? `<p class="nota-piccola">Altre ${avviate} commesse erano già avviate: le loro ore sono già nelle ore impegnate delle squadre.</p>` : ""}
       ${assegnate.length ? `
         <div class="tabella-scorrevole">
           <table class="tabella impilata">
@@ -361,22 +380,9 @@ function disegnaAllocazione() {
               }).join("")}
             </tbody>
           </table>
-        </div>` : '<p class="vuoto">Ancora nessuna commessa assegnata.</p>'}
-    </section>
+        </div>` : '<p class="vuoto">Ancora nessuna commessa assegnata.</p>'}`)}
 
-    <section class="sezione">
-      <h2>Squadre interne <span class="sottotitolo">ore al mese</span></h2>
-      <div class="griglia tre">${CONFIG.squadre.map(schedaSquadra).join("")}</div>
-    </section>
-
-    ${conPartner ? `<section class="sezione">
-      <h2>Imprese partner <span class="sottotitolo">in ordine di priorità</span></h2>
-      <div class="griglia tre">${CONFIG.partner.map(schedaPartner).join("")}</div>
-    </section>` : ""}
-
-    ${conPartner ? `<section class="sezione">
-      <h2>Registro delle proposte <span class="conteggio">${registro.length}</span></h2>
-      ${registro.length ? `
+    ${conPartner ? richiudibile("proposte", "Registro delle proposte", `<span class="conteggio">${registro.length}</span>`, registro.length ? `
         <div class="tabella-scorrevole">
           <table class="tabella impilata">
             <thead><tr><th>Data</th><th>Commessa</th><th>Partner</th><th>Esito</th></tr></thead>
@@ -389,13 +395,10 @@ function disegnaAllocazione() {
               </tr>`).join("")}
             </tbody>
           </table>
-        </div>` : '<p class="vuoto">Nessuna proposta inviata.</p>'}
-    </section>` : ""}
+        </div>` : '<p class="vuoto">Nessuna proposta inviata.</p>') : ""}
 
-    <section class="sezione futura" aria-label="Evoluzione futura">
-      <p class="etichetta-futura">Evoluzione futura · non incluso nel pilota</p>
-      <h2>Portale partner</h2>
-      <p class="nota-piccola">Nel pilota il partner risponde SÌ o NO su WhatsApp e non usa nessuna app: la tecnologia sta solo dal lato Gate.
+    ${richiudibile("portale", "Portale partner", '<span class="chip">evoluzione futura</span>', `
+      <p class="nota-piccola">Oggi il partner risponde SÌ o NO su WhatsApp e non usa nessuna app: la tecnologia sta solo dal lato Gate.
         In futuro un portale potrebbe permettere al partner di vedere le richieste, rispondere con un clic e caricare il DURC aggiornato.</p>
       <div class="anteprima-portale" aria-hidden="true">
         <p class="commessa-codice">RICHIESTA DA GATE S.R.L.</p>
@@ -405,18 +408,27 @@ function disegnaAllocazione() {
           <button class="pulsante si piccolo" type="button" disabled tabindex="-1">Accetto</button>
           <button class="pulsante no piccolo" type="button" disabled tabindex="-1">Rifiuto</button>
         </div>
-      </div>
-    </section>`;
+      </div>`)}`;
 }
 
-// Scheda di una commessa da assegnare: squadra interna o proposta al partner
-function schedaCommessa(o) {
+// Riquadro richiudibile dell'Allocazione: titolo e riassunto sempre visibili, il resto con un clic (aperto o chiuso resta com'era)
+function richiudibile(id, titolo, riassunto, corpo) {
+  return `
+    <details class="approfondimento" id="riquadro-${id}" data-ricorda="${id}" ${interfaccia.allocazione.aperti[id] ? "open" : ""}>
+      <summary><span class="titolo-richiudibile">${titolo}</span> <span class="riassunto">${riassunto}</span></summary>
+      ${corpo}
+    </details>`;
+}
+
+// Commessa da assegnare: una riga con il prossimo passo, che si apre con un clic (squadra interna o proposta al partner)
+function schedaCommessa(o, unica) {
   const zona = infoComune(o.comune).zona;
   const squadra = squadraDisponibile(o, stato.opportunita);
-  let passo;
+  let passo, prossimo;
 
   if (squadra) {
     // 1. C'è una squadra interna con ore libere
+    prossimo = `<span class="chip chip-ok">${esc(squadra.nome)} disponibile</span>`;
     passo = `
       <div class="passo passo-squadra">
         <p class="passo-titolo">${icona("spunta")} Squadra interna disponibile</p>
@@ -429,6 +441,7 @@ function schedaCommessa(o) {
     const attesa = propostaInAttesa(o);
     let corpo;
     if (attesa) {
+      prossimo = `<span class="chip chip-attenzione">In attesa di ${esc(nomePartner(attesa.partnerId))}</span>`;
       // Se il partner è stato tolto da config.js si può solo registrare il NO e passare al successivo
       const partner = trovaPartner(attesa.partnerId);
       corpo = `
@@ -442,6 +455,7 @@ function schedaCommessa(o) {
     } else {
       const partner = prossimoPartner(o);
       if (partner) {
+        prossimo = `<span class="chip chip-info">Da proporre a ${esc(partner.nome)}</span>`;
         corpo = `
           <p class="passo-titolo">Partner proposto: ${esc(partner.nome)}</p>
           <p class="nota-piccola">${requisitiPartner(partner).testo} · zone: ${esc(partner.zone.join(", "))}</p>
@@ -449,10 +463,12 @@ function schedaCommessa(o) {
           <a class="pulsante whatsapp" href="${esc(linkWhatsApp(o, partner))}" target="_blank" rel="noopener"
              data-azione="proponi" data-id="${esc(o.id)}" data-partner="${esc(partner.id)}">${icona("messaggio")} Proponi su WhatsApp</a>`;
       } else if (rifiuti.length) {
+        prossimo = '<span class="chip chip-critico">Tutti i partner hanno detto NO</span>';
         corpo = `
           <p class="passo-titolo avviso">${icona("attenzione")} Tutti i partner idonei hanno risposto NO</p>
           <p class="nota-piccola">Valuta con il cliente un rinvio dell'avvio o cerca un nuovo partner con DURC regolare in ${esc(zona)}.</p>`;
       } else {
+        prossimo = '<span class="chip chip-critico">Nessun partner idoneo</span>';
         corpo = `
           <p class="passo-titolo avviso">${icona("attenzione")} Nessun partner idoneo in ${esc(zona)}</p>
           <p class="nota-piccola">Valuta con il cliente un rinvio dell'avvio o cerca un partner con DURC regolare in questa zona.</p>`;
@@ -466,17 +482,18 @@ function schedaCommessa(o) {
       </div>`;
   }
 
+  const aperta = interfaccia.allocazione.aperti["commessa-" + o.id] ?? (unica || o.id === ultimaModificata);
   return `
-    <article class="riquadro commessa ${o.id === ultimaModificata ? "evidenziata" : ""}" id="commessa-${esc(o.id)}">
-      <header class="commessa-testa">
-        <div>
-          <p class="commessa-codice">${esc(o.codice)}</p>
-          <h3><a class="link-titolo" href="#cliente-${esc(o.aziendaId)}">${esc(nomeCliente(o))}</a></h3>
-        </div>
-        <p class="commessa-dati">${esc(o.servizio)} · ${esc(o.comune)} (${esc(zona)}) · ${Number(o.ore)} h/mese · firmato il ${formattaData(o.storico.contratto)}</p>
-      </header>
+    <details class="riquadro commessa ${o.id === ultimaModificata ? "evidenziata" : ""}" id="commessa-${esc(o.id)}" data-ricorda="commessa-${esc(o.id)}" ${aperta ? "open" : ""}>
+      <summary class="commessa-testa">
+        <span class="commessa-nome"><span class="commessa-codice">${esc(o.codice)}</span> <strong>${esc(nomeCliente(o))}</strong></span>
+        <span class="commessa-dati">${esc(o.comune)} · ${Number(o.ore)} h/mese</span>
+        ${prossimo}
+      </summary>
+      <p class="commessa-dati commessa-dettaglio">${esc(o.servizio)} · ${esc(o.comune)} (${esc(zona)}) · firmato il ${formattaData(o.storico.contratto)} ·
+        <a class="link" href="#cliente-${esc(o.aziendaId)}">scheda cliente</a></p>
       ${passo}
-    </article>`;
+    </details>`;
 }
 
 function schedaSquadra(s) {
@@ -606,7 +623,6 @@ function apriDettaglio(id) {
   const o = trova(id);
   if (!o) return;
   const p = calcolaPunteggio(o, stato.opportunita);
-  const s = CONFIG.punteggio.soglie;
   const ref = trovaReferente(o.referenteId);
   const passi = CONFIG.fasi.filter((f) => o.storico[f.id]).map((f) => `<li>${f.nome}: ${formattaData(o.storico[f.id])}</li>` +
     (f.id === "offerta" && o.scadenzaOfferta ? `<li>Offerta valida fino al ${formattaData(o.scadenzaOfferta)}</li>` : "") +
@@ -624,9 +640,8 @@ function apriDettaglio(id) {
         <div class="contatti">${pulsantiContatto(ref)}</div>` : "<p><strong>Referente:</strong> non indicato</p>"}
     </div>
     ${o.note ? `<h3>Note sulla trattativa</h3><p class="nota-trattativa">${esc(o.note)}</p>` : ""}
-    <h3>Punteggio di coerenza: ${p.totale} su 100 (classe ${p.classe})</h3>
+    <h3>Punteggio di coerenza: ${p.totale} su 100</h3>
     ${tabellaCriteri(p)}
-    <p class="nota-piccola">Classe A da ${s.A} punti, B da ${s.B}, C sotto ${s.B}.</p>
     <h3>Storico</h3>
     <ol class="storico">${passi}${o.perso ? `<li>Perso: ${formattaData(o.perso.data)} · ${esc(o.perso.motivo)}${o.perso.nota ? " · " + esc(o.perso.nota) : ""}</li>` : ""}</ol>
     ${o.motivazioneC ? `<p class="nota-c">Offerta inviata nonostante il punteggio C. Motivazione: ${esc(o.motivazioneC)}</p>` : ""}
@@ -875,7 +890,7 @@ function apriNuovoContatto(aziendaId = "") {
             <label data-servizio>Servizio <select name="servizio">${opzioni(servizi, servizi[0])}</select></label>
             <label>Sede di lavoro (comune) <select name="comune">${opzioniComuni(scelta ? scelta.comune : "Bari")}</select></label>
           </div>
-          <p class="nota-piccola" data-servizio>Preventivo indicativo: tipo di ambienti, metri quadri e frequenza calcolano ore, prezzo e margine (valori di prova).</p>
+          <p class="nota-piccola" data-servizio>Preventivo indicativo: tipo di ambienti, metri quadri e frequenza calcolano ore, prezzo e margine.</p>
           <div class="riga-doppia" data-servizio>
             <label>Tipo di ambienti <select name="ambiente"><option value="">— Senza preventivo —</option>${opzioni(CONFIG.preventivo.ambienti.map((a) => a.nome), "")}</select></label>
             <label>Metri quadri indicativi <input name="mq" type="number" inputmode="numeric" min="1" step="10" placeholder="Es. 300"></label>
@@ -1035,8 +1050,8 @@ function aggiornaAnteprima(modulo = document.querySelector("#modulo-contatto, #m
   const p = calcolaPunteggio(opp, stato.opportunita);
   box.innerHTML = riquadroPreventivo(opp) + `
     <p class="anteprima-titolo">Punteggio di coerenza</p>
-    <p class="anteprima-testa"><span class="badge badge-${p.classe} badge-grande">${p.classe} · ${p.totale}</span>
-      <span><strong>${formattaEuro(valoreAnnuo(opp))}</strong> all'anno</span></p>
+    <p class="anteprima-testa">${badgePunteggio(p, true)}
+      <span>su 100 · <strong>${formattaEuro(valoreAnnuo(opp))}</strong> all'anno</span></p>
     ${tabellaCriteri(p)}`;
   aggiornaPunteggioBreve(modulo, p);
 }
@@ -1052,7 +1067,7 @@ function riquadroPreventivo(opp) {
       <p><strong>${Number(opp.ore)} h/mese</strong> · ${formattaEuro(tariffaOraria(opp))}/ora · <strong>${formattaEuro(valoreAnnuo(opp))}/anno</strong></p>
       <p>Margine stimato <strong>${formattaPercentualeDecimale(margine)}</strong></p>
       ${margine < minimo ? `<p class="avviso-margine">${icona("attenzione")} Margine sotto il minimo del ${formattaPercentuale(minimo)}: rivedi tariffa o frequenza</p>` : ""}
-      <p class="nota-piccola">È una stima, non un'offerta: tariffe e rese sono valori di prova, da sostituire dopo l'intervista.</p>
+      <p class="nota-piccola">È una stima, non un'offerta: va confermata dopo il sopralluogo.</p>
     </div>`;
 }
 
@@ -1064,15 +1079,15 @@ function applicaPreventivo(modulo) {
   modulo.tariffa.value = prev.tariffa;
 }
 
-// «Punteggio B · 65» nella barra dei pulsanti; il lettore di schermo sente «Punteggio B, 65 su 100» solo quando cambia
+// «Punteggio 65» nella barra dei pulsanti; il lettore di schermo lo sente solo quando cambia
 function aggiornaPunteggioBreve(modulo, p) {
   const breve = modulo.querySelector("#punteggio-breve");
   if (!breve) return;
-  const chiave = p ? p.classe + p.totale : "";
+  const chiave = p ? String(p.totale) : "";
   if (breve.dataset.chiave === chiave) return;
   breve.dataset.chiave = chiave;
-  breve.innerHTML = p ? `<span aria-hidden="true">Punteggio <span class="badge badge-${p.classe}">${p.classe} · ${p.totale}</span></span>
-    <span class="solo-lettori">Punteggio ${p.classe}, ${p.totale} su 100</span>` : "";
+  breve.innerHTML = p ? `<span aria-hidden="true">Punteggio ${badgePunteggio(p)}</span>
+    <span class="solo-lettori">Punteggio ${p.totale} su 100</span>` : "";
 }
 
 function segnalaCampo(campo, messaggio) {
@@ -1256,7 +1271,7 @@ function apriFase(o, fase, { data = null, attivitaId = null } = {}) {
       <p class="importo-offerta" id="importo-offerta"></p>
       ${chiediC ? `
         <div class="conferma-c">
-          <p><strong>Cliente fuori dai criteri del pilota: punteggio ${p.totale} su 100 (classe C).</strong> I punti deboli:</p>
+          <p><strong>Cliente fuori dai criteri del pilota: punteggio ${p.totale} su 100.</strong> I punti deboli:</p>
           <ul class="storico">${p.criteri.filter((c) => c.valore < 1).map((c) => `<li><strong>${c.nome}</strong>: ${esc(c.nota)} (${c.punti}/${c.peso})</li>`).join("")}</ul>
           <label>Motivazione (resterà registrata)
             <textarea name="motivazione" required minlength="5" placeholder="Es. cliente strategico per entrare nel settore"></textarea>
@@ -1439,14 +1454,14 @@ function apriFirmaLink(id) {
     <p>Il cliente riceve l'offerta per email o WhatsApp con un link: la legge e la firma dal telefono, senza registrarsi.
       La tecnologia nuova sta tutta dal lato di Gate.</p>
     <div class="riquadro firma-anteprima">
-      <p class="commessa-codice">OFFERTA ${esc(o.codice)} · LINK DI FIRMA (SIMULATO) ${badgePunteggio(calcolaPunteggio(o, stato.opportunita))}</p>
+      <p class="commessa-codice">OFFERTA ${esc(o.codice)} · LINK DI FIRMA ${badgePunteggio(calcolaPunteggio(o, stato.opportunita))}</p>
       <p><strong>${esc(o.servizio)} · ${esc(o.comune)}</strong></p>
       <p class="nota-piccola">${Number(o.ore)} ore al mese · ${formattaEuro(valoreAnnuo(o))} all'anno${o.scadenzaOfferta ? " · valida fino al " + formattaData(o.scadenzaOfferta) : ""}</p>
     </div>
-    <p class="nota-piccola">Prototipo: nessun messaggio viene inviato. La firma si registra con la data di oggi.</p>
+    <p class="nota-piccola">La firma si registra con la data di oggi.</p>
     <div class="azioni-finestra">
       <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
-      <button class="pulsante primario" type="button" data-azione="conferma-firma" data-id="${esc(o.id)}">${icona("spunta")} Il cliente ha firmato (simulazione)</button>
+      <button class="pulsante primario" type="button" data-azione="conferma-firma" data-id="${esc(o.id)}">${icona("spunta")} Il cliente ha firmato</button>
     </div>`);
 }
 
@@ -1874,6 +1889,12 @@ document.addEventListener("input", (evento) => {
   if (evento.target.closest("#modulo-attivita")) salvaBozzaAttivita(evento.target.form);
 });
 
+// Riquadri dell'Allocazione aperti o chiusi a mano: restano così dopo ogni ridisegno
+document.addEventListener("toggle", (evento) => {
+  const id = evento.target.dataset && evento.target.dataset.ricorda;
+  if (id) interfaccia.allocazione.aperti[id] = evento.target.open;
+}, true);
+
 // Importazione di un backup scelto dall'utente
 document.getElementById("file-backup").addEventListener("change", (evento) => {
   const file = evento.target.files[0];
@@ -1883,6 +1904,11 @@ document.getElementById("file-backup").addEventListener("change", (evento) => {
 
 document.addEventListener("change", (evento) => {
   const campo = evento.target;
+  if (campo.id === "filtro-zona") {
+    interfaccia.allocazione.zona = campo.value;
+    disegna();
+    return document.getElementById("filtro-zona")?.focus();
+  }
   if (campo.closest("#filtri-clienti")) return; // già gestito dall'evento input
   if (campo.form && campo.form.id === "modulo-attivita") return cambiaQuandoAttivita(campo.form, campo);
   if (campo.form && campo.form.id === "modulo-fase") return aggiornaModuloFase(campo.form, campo);
@@ -2085,17 +2111,16 @@ disegna();
 function sezioneCapacitaFutura() {
   const zone = previsioneCapacita(stato.opportunita);
   if (!zone.length) return "";
-  return `
-    <section class="riquadro capacita-futura" aria-label="Capacità futura">
-      <h2 class="titolo-riquadro">${domanda("predittiva")} <span class="sottotitolo">se si firmano le offerte aperte</span></h2>
+  const scoperte = zone.filter((z) => zonaConSquadre(z) && z.mancano);
+  return richiudibile("capacita", `${domanda("predittiva")} Capacità se si firmano le offerte aperte`,
+    scoperte.length ? `<span class="chip chip-critico">mancano ore in ${quanti(scoperte.length, "zona", "zone")}</span>` : '<span class="chip chip-ok">capacità sufficiente</span>', `
       <ul class="elenco-capacita">
         ${zone.filter(zonaConSquadre).map((z) => `<li class="${z.mancano ? "manca" : ""}">
           <strong>${esc(z.zona)}</strong>: servono ${z.ore} ore/mese, le squadre ne hanno ${z.libere} libere
           ${z.mancano ? `<span class="chip chip-critico">mancano ${z.mancano} ore: servirà un partner</span>` : '<span class="chip chip-ok">capacità sufficiente</span>'}
         </li>`).join("")}
       </ul>
-      ${rigaZoneSenzaSquadre(zone)}
-    </section>`;
+      ${rigaZoneSenzaSquadre(zone)}`);
 }
 
 // Zona coperta da almeno una squadra interna

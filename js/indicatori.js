@@ -166,7 +166,7 @@ function disegnaIndicatori() {
     </div>`;
 }
 
-// Risultati per gruppo di canale: contatti, contratti, chiusura, quota di classe A, margine medio e costo per contratto (K4)
+// Risultati per gruppo di canale: contatti, contratti, chiusura, punteggio medio, margine medio e costo per contratto (K4)
 function risultatiPerGruppo(opportunita) {
   const perCanale = risultatiPerCanale(opportunita);
   return gruppiCanali().map((g) => {
@@ -177,7 +177,7 @@ function risultatiPerGruppo(opportunita) {
     const chiuse = gruppo.filter((o) => o.perso || o.storico.contratto).length;
     return { gruppo: g, canali: canali.filter((r) => r.contatti).map((r) => r.fonte), contatti: gruppo.length, contratti,
       chiusura: chiuse ? contratti / chiuse : null,
-      quotaA: gruppo.length ? gruppo.filter((o) => calcolaPunteggio(o, opportunita).classe === "A").length / gruppo.length : null,
+      punteggioMedio: punteggioMedio(gruppo, opportunita),
       margineMedio: gruppo.length ? media(gruppo.map((o) => marginePercentuale(o, opportunita))) : null,
       costi, costoAcquisizione: costi !== null && contratti ? costi / contratti : null };
   });
@@ -218,34 +218,34 @@ function vistaFittizi(livello) {
       <section class="sezione" id="domanda-diagnostica">
         <h2>${domanda("diagnostica")} Quali canali portano clienti coerenti <span class="sottotitolo">i 7 gruppi di canale</span></h2>
         <div class="tabella-scorrevole"><table class="tabella">
-          <thead><tr><th>Canale</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Chiusura</th><th class="num">Classe A</th><th class="num">Margine medio</th><th class="num">Costo per contratto (K4)</th></tr></thead>
+          <thead><tr><th>Canale</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Chiusura</th><th class="num">Punteggio medio</th><th class="num">Margine medio</th><th class="num">Costo per contratto (K4)</th></tr></thead>
           <tbody>${risultatiPerGruppo(tutte).filter((r) => r.contatti).map((r) => `<tr>
             <td><strong>${esc(maiuscola(r.gruppo))}</strong><br><span class="nota-piccola">${esc(r.canali.join(", "))}</span></td>
             <td class="num">${r.contatti}</td><td class="num">${r.contratti}</td>
             <td class="num">${r.chiusura === null ? NESSUN_DATO : formattaPercentuale(r.chiusura)}</td>
-            <td class="num">${r.quotaA === null ? NESSUN_DATO : formattaPercentuale(r.quotaA)}</td>
+            <td class="num">${r.punteggioMedio ?? NESSUN_DATO}</td>
             <td class="num">${r.margineMedio === null ? NESSUN_DATO : formattaPercentuale(r.margineMedio)}</td>
             <td class="num">${r.costoAcquisizione === null ? NESSUN_DATO : formattaEuro(r.costoAcquisizione)}</td></tr>`).join("")}</tbody>
         </table></div>
-        <p class="nota-piccola" style="margin-top:8px">Chiusura = contratti ÷ trattative chiuse. Classe A = clienti coerenti con capacità e margini. «Nessun dato» = canale senza costi registrati o senza contratti.</p>
+        <p class="nota-piccola" style="margin-top:8px">Chiusura = contratti ÷ trattative chiuse. Punteggio medio = coerenza con capacità e margini, da 0 a 100. «Nessun dato» = canale senza costi registrati o senza contratti.</p>
       </section>
       <section class="sezione">
         <details class="approfondimento"><summary>${domanda("diagnostica")} Per settore</summary>
           <div class="tabella-scorrevole"><table class="tabella">
-            <thead><tr><th>Settore</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Conversione</th><th class="num">Classe A</th><th class="num">Margine atteso</th></tr></thead>
+            <thead><tr><th>Settore</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Conversione</th><th class="num">Punteggio medio</th><th class="num">Margine atteso</th></tr></thead>
             <tbody>${settori.map((x) => `<tr>
               <td>${esc(maiuscola(x.settore))}${x.pilota ? '<span class="chip-pilota">pilota</span>' : ""}</td>
               <td class="num">${x.contatti}</td><td class="num">${x.contratti}</td><td class="num">${quota(x.contratti, x.contatti)}</td>
-              <td class="num">${x.quotaA === null ? NESSUN_DATO : formattaPercentuale(x.quotaA)}</td><td class="num">${formattaEuro(x.margineAtteso)}</td></tr>`).join("")}</tbody>
+              <td class="num">${x.punteggioMedio ?? NESSUN_DATO}</td><td class="num">${formattaEuro(x.margineAtteso)}</td></tr>`).join("")}</tbody>
           </table></div>
         </details>
         <details class="approfondimento"><summary>${domanda("diagnostica")} Per contenuto (link tracciati)</summary>
           <div class="tabella-scorrevole"><table class="tabella">
-            <thead><tr><th>Contenuto</th><th class="num">Richieste</th><th class="num">Qualificate</th><th class="num">Classe A</th><th class="num">Contratti</th></tr></thead>
+            <thead><tr><th>Contenuto</th><th class="num">Richieste</th><th class="num">Qualificate</th><th class="num">Punteggio medio</th><th class="num">Contratti</th></tr></thead>
             <tbody>${contenuti.map((c) => `<tr>
               <td>${c.contenuto ? `<strong>${esc(c.nome)}</strong> · ${esc(c.contenuto.canale)}<br><span class="nota-piccola">${esc(c.contenuto.tema)}</span>` : esc(c.nome)}</td>
               <td class="num">${c.richieste}</td><td class="num">${c.qualificate} (${quota(c.qualificate, c.richieste)})</td>
-              <td class="num">${c.classeA}</td><td class="num">${c.contratti}</td></tr>`).join("")}</tbody>
+              <td class="num">${c.punteggioMedio ?? NESSUN_DATO}</td><td class="num">${c.contratti}</td></tr>`).join("")}</tbody>
           </table></div>
           <p class="nota-piccola">Contenuti di prova senza effetti inseriti: le differenze sono casuali.</p>
         </details>
