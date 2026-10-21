@@ -126,6 +126,6 @@ function sezioneConsigli(quanti = 3) {
           <span class="consiglio-perche" title="${esc(x.perche)}">Perché: ${esc(x.perche)}</span>
         </li>`).join("")}
       </ol>` : '<p class="nota-piccola">Nessuna azione urgente: le trattative sono seguite e la capacità basta.</p>'}
-      ${tutti.length > quanti ? `<p class="nota-piccola">Altri ${tutti.length - quanti} consigli in Indicatori → «Altri indicatori».</p>` : ""}
+      ${tutti.length > quanti ? `<p class="nota-piccola">Altri ${tutti.length - quanti} consigli in Indicatori → «Previsione e portafoglio».</p>` : ""}
     </section>`;
 }
