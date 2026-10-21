@@ -1,7 +1,7 @@
 /*
  * INDICATORI DI PERFORMANCE
  * I KPI del catalogo (tabella kpi_catalogo: stesse formule delle query SQL), il funnel,
- * i risultati per settore, per canale, per contenuto e la matrice canale × classe.
+ * i risultati per settore, per canale, per contenuto e il punteggio medio per canale.
  * Un'opportunità "ha raggiunto" una fase se nello storico c'è la data di quella fase.
  * Le aziende ancora senza opportunità (lead "Da qualificare") si contano a parte, come nel database.
  * I dati reali (tabella richieste_reali) si calcolano con kpiReali(): non si mescolano mai con quelli fittizi.
@@ -296,13 +296,15 @@ function risultatiPerContenuto(opportunita) {
   return contenuti.concat(riga("Senza contenuto (sito web e LinkedIn)", senza));
 }
 
-// Coerenza del portafoglio (K11): opportunità e valore annuo per classe A, B, C
+// Coerenza del portafoglio (K11): opportunità e valore annuo buoni (punteggio da CONFIG.punteggio.buona in su) sul totale
 function coerenzaPortafoglio(opportunita) {
-  const classi = { A: { n: 0, valore: 0 }, B: { n: 0, valore: 0 }, C: { n: 0, valore: 0 } };
+  const r = { buone: { n: 0, valore: 0 }, totale: { n: opportunita.length, valore: 0 } };
   opportunita.forEach((o) => {
-    const c = classi[calcolaPunteggio(o, opportunita).classe];
-    c.n++;
-    c.valore += valoreAnnuo(o);
+    r.totale.valore += valoreAnnuo(o);
+    if (trattativaBuona(calcolaPunteggio(o, opportunita))) {
+      r.buone.n++;
+      r.buone.valore += valoreAnnuo(o);
+    }
   });
-  return classi;
+  return r;
 }

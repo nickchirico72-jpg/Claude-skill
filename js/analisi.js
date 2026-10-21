@@ -38,18 +38,19 @@ function consigli(opportunita = stato.opportunita) {
       perche: (scaduta ? "offerta scaduta il " : "offerta in scadenza il ") + formattaData(o.scadenzaOfferta) + " · " + formattaEuro(valoreAnnuo(o)) + "/anno" });
   });
 
-  // 2. Trattative A o B ferme da troppo tempo: riprenderle
+  // 2. Trattative buone (punteggio da 70) ferme da troppo tempo o senza nulla in agenda
   aperte.forEach((o) => {
     const st = statoTrattativa(o);
-    const { classe, totale } = calcolaPunteggio(o, opportunita);
-    if (st.ferma && classe !== "C") {
+    const p = calcolaPunteggio(o, opportunita);
+    if (!trattativaBuona(p)) return;
+    if (st.ferma) {
       elenco.push({ priorita: 80 + st.giorniInFase, aziendaId: o.aziendaId, blocco: "rischio",
         testo: "Riprendi la trattativa con " + nomeCliente(o),
-        perche: "punteggio " + totale + ", ferma da " + giorni(st.giorniInFase) + " in «" + CONFIG.fasi[faseRaggiunta(o)].nome + "»" });
-    } else if (!st.prossima && classe === "A") {
+        perche: "punteggio " + p.totale + ", ferma da " + giorni(st.giorniInFase) + " in «" + CONFIG.fasi[faseRaggiunta(o)].nome + "»" });
+    } else if (!st.prossima) {
       elenco.push({ priorita: 70, aziendaId: o.aziendaId, blocco: "rischio",
         testo: "Fissa la prossima azione con " + nomeCliente(o),
-        perche: "punteggio " + totale + ", nulla in agenda" });
+        perche: "punteggio " + p.totale + ", nulla in agenda" });
     }
   });
 

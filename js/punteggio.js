@@ -2,7 +2,7 @@
  * STIME ECONOMICHE E PUNTEGGIO DI COERENZA
  * Il punteggio dice quanto un'opportunità è coerente con la capacità
  * operativa e la marginalità attesa di Gate: un valore da 0 a 100. Pesi e soglie arrivano dal database.
- * La classe A/B/C resta solo nei calcoli (K11, consigli), non si mostra nelle schermate operative.
+ * Una trattativa è buona da CONFIG.punteggio.buona (70) in su: è la base del K11 e delle azioni di «Cosa fare domani».
  */
 
 // Tariffa e costi del servizio; se il servizio non è più in config.js, valori a zero (senza bloccare nulla)
@@ -51,6 +51,11 @@ function calcolaPreventivo({ servizio, mq, ambiente, frequenza }) {
   const tariffa = Math.round(costi.tariffa * (1 - freq.sconto) * 2) / 2;   // arrotondata al mezzo euro
   const margine = 1 - costi.costoInterno / tariffa - amb.speseDirette;
   return { ore, tariffa, prezzoAnnuo: ore * 12 * tariffa, margine, sottoMinimo: margine < CONFIG.punteggio.margine.minimo };
+}
+
+// Trattativa buona: punteggio da CONFIG.punteggio.buona in su
+function trattativaBuona(p) {
+  return p.totale >= CONFIG.punteggio.buona;
 }
 
 // Fascia di un punteggio (altissimo, alto, medio, basso, bassissimo): dà il colore del contorno

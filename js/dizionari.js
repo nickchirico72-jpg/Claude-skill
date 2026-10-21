@@ -390,6 +390,7 @@ const DIZIONARI_DB = {
    "B": 50
   },
   "settoreFuoriPilota": 0.3,
+  "buona": 70,
   "distanzaKm": {
    "piena": 15,
    "massima": 35

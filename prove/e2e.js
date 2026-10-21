@@ -83,15 +83,15 @@ const PROVE = {
         const db = righeDb('opportunita').find((x) => 'op' + x.id_opp === o.id);
         return calcolaPunteggio(o, stato.opportunita).totale !== db.punteggio_coerenza;
       }).length;
-      return { opp: stato.opportunita.length, aperte: k.aperte, ferme: k.ferme, contratti: k.contratti, k12: k.primaRisposta, k15: k.quotaDigitali, A: c.A.n, diversi };
+      return { opp: stato.opportunita.length, aperte: k.aperte, ferme: k.ferme, contratti: k.contratti, k12: k.primaRisposta, k15: k.quotaDigitali, buone: c.buone.n, diversi };
     });
     const db = await page.evaluate(() => {
       const o = righeDb('opportunita');
       return { opp: o.length, aperte: o.filter((x) => !['contratto', 'perso'].includes(x.fase)).length, contratti: o.filter((x) => x.fase === 'contratto').length,
-        A: o.filter((x) => x.classe_coerenza === 'A').length };
+        buone: o.filter((x) => x.punteggio_coerenza >= 70).length };
     });
     verifica('stesse opportunità, aperte e contratti del database', r.opp === db.opp && r.aperte === db.aperte && r.contratti === db.contratti, JSON.stringify(r));
-    verifica('punteggio A/B/C dell\'app uguale a quello del database per ogni opportunità', r.diversi === 0 && r.A === db.A, r.diversi + ' diversi');
+    verifica('punteggio dell\'app uguale a quello del database per ogni opportunità; stesse trattative buone (K11)', r.diversi === 0 && r.buone === db.buone, r.diversi + ' diversi, buone ' + r.buone + '/' + db.buone);
     verifica('aperte tra 70 e 90 e ferme tra 10% e 15%', r.aperte >= 70 && r.aperte <= 90 && r.ferme / r.aperte >= 0.1 && r.ferme / r.aperte <= 0.15, r.ferme + '/' + r.aperte);
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();

@@ -81,8 +81,7 @@ function nonCalcolabili(codici) {
 function tessereFittizi(k, tutte) {
   const ob = CONFIG.obiettivi;
   const p = previsionePonderata(tutte);
-  const classi = coerenzaPortafoglio(tutte);
-  const totaleValore = Object.values(classi).reduce((s, c) => s + c.valore, 0);
+  const portafoglio = coerenzaPortafoglio(tutte);
   return {
     K1: () => tesseraKpi({ codice: "K1", valore: quota(k.qualificati, k.contatti), dettaglio: k.qualificati + " su " + k.contatti + " contatti",
       calcolo: `${k.qualificati} ÷ ${k.contatti}`, raggiunto: k.contatti ? k.tassoQualificati >= ob.tassoQualificati : null }),
@@ -102,9 +101,10 @@ function tessereFittizi(k, tutte) {
     K8: () => tesseraKpi({ codice: "K8", valore: formattaGiorni(k.durataCiclo), dettaglio: "dal primo contatto alla firma, media su " + k.contratti + " contratti" }),
     K9: () => tesseraKpi({ codice: "K9", valore: k.aperte ? String(k.ferme) : NESSUN_DATO, dettaglio: "trattative ferme su " + k.aperte + " aperte (" + quota(k.ferme, k.aperte) + ")",
       calcolo: "Soglie: " + CONFIG.fasi.slice(0, 4).map((f) => f.nome + " " + f.giorniFerma + " giorni").join(" · ") }),
-    K11: () => tesseraKpi({ codice: "K11", valore: tutte.length ? quota(classi.A.n, tutte.length) + " in A" : NESSUN_DATO,
-      dettaglio: ["A", "B", "C"].map((c) => c + " " + classi[c].n).join(" · ") + " opportunità",
-      calcolo: "Valore: " + ["A", "B", "C"].map((c) => c + " " + quota(classi[c].valore, totaleValore)).join(" · ") }),
+    K11: () => tesseraKpi({ codice: "K11", valore: tutte.length ? quota(portafoglio.buone.n, portafoglio.totale.n) + " buone" : NESSUN_DATO,
+      dettaglio: portafoglio.buone.n + " su " + portafoglio.totale.n + " opportunità con punteggio da " + CONFIG.punteggio.buona + " in su · "
+        + quota(portafoglio.buone.valore, portafoglio.totale.valore) + " del valore annuo",
+      calcolo: `${portafoglio.buone.n} ÷ ${portafoglio.totale.n}` }),
     K12: () => tesseraKpi({ codice: "K12", valore: formattaGiorni(k.primaRisposta), dettaglio: k.entroUnGiorno + " risposte entro un giorno su " + k.conRisposta,
       raggiunto: k.primaRisposta === null ? null : k.primaRisposta <= ob.primaRispostaGiorni }),
     K13: () => tesseraKpi({ codice: "K13", valore: formattaGiorni(k.tempoOfferta), dettaglio: "media su " + k.conOfferta + " opportunità arrivate all'offerta" }),

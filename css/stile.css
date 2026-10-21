@@ -538,28 +538,34 @@ textarea {
   color: var(--critico);
 }
 
-/* Punteggio di coerenza: il contorno dice subito la fascia, da bassissimo (rosso) ad altissimo (verde) */
+.legenda-buona {
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+/* Punteggio di coerenza: colore pieno della fascia, cinque tinte ben distinte
+   (rosso, arancione, giallo, verde chiaro, verde scuro); alto e altissimo = trattativa buona, da 70 */
 .badge-punteggio {
   position: relative;   /* il testo per i lettori di schermo resta dentro la tabella che scorre */
   min-width: 2.6em;
   justify-content: center;
   border: 2px solid var(--fascia);
   background: var(--fascia-sfondo);
-  color: var(--foreground);
+  color: var(--fascia-testo);
 }
 
-.fascia-altissimo { --fascia: hsl(152 60% 32%); --fascia-sfondo: hsl(152 55% 93%); }
-.fascia-alto { --fascia: hsl(95 50% 40%); --fascia-sfondo: hsl(95 55% 93%); }
-.fascia-medio { --fascia: hsl(45 90% 45%); --fascia-sfondo: hsl(48 95% 91%); }
-.fascia-basso { --fascia: hsl(25 90% 48%); --fascia-sfondo: hsl(28 95% 93%); }
-.fascia-bassissimo { --fascia: hsl(0 70% 45%); --fascia-sfondo: hsl(0 85% 95%); }
+.fascia-altissimo { --fascia: #14592b; --fascia-sfondo: #1e7b3c; --fascia-testo: #ffffff; }
+.fascia-alto { --fascia: #5f9a26; --fascia-sfondo: #9ccc65; --fascia-testo: #142a05; }
+.fascia-medio { --fascia: #d9a800; --fascia-sfondo: #ffd54f; --fascia-testo: #3d2e00; }
+.fascia-basso { --fascia: #d67600; --fascia-sfondo: #ffa726; --fascia-testo: #2b1700; }
+.fascia-bassissimo { --fascia: #9f1f1f; --fascia-sfondo: #d32f2f; --fascia-testo: #ffffff; }
 
 .legenda-fasce {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 8px;
-  margin-top: 8px;
+  margin: 8px 0 12px;
   color: var(--muted-foreground);
   font-size: 12px;
 }
@@ -662,7 +668,8 @@ textarea {
 .pagina-pipeline > .intestazione { order: 1; }
 .pagina-pipeline > .pannelli-pipeline { order: 2; }
 .pagina-pipeline > .riepilogo { order: 3; }
-.pagina-pipeline > .selettore-fasi { order: 4; }
+.pagina-pipeline > .legenda-fasce,
+.pagina-pipeline > .selettore-fasi { order: 4; }   /* la legenda dei colori sta sopra le schede */
 .pagina-pipeline > .tabellone { order: 5; }
 
 @media (min-width: 900px) {

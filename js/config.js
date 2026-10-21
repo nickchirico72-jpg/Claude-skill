@@ -129,12 +129,13 @@ const CONFIG = {
   punteggio: {
     ...DIZIONARI.punteggio,
     confermaPerPunteggioC: true,       // true = un'opportunità C passa a Offerta solo con una motivazione; false = nessun controllo
-    // Colore del contorno del punteggio: ogni fascia vale da «da» punti in su (dalla migliore alla peggiore)
+    // Colore del punteggio: ogni fascia vale da «da» punti in su (dalla migliore alla peggiore).
+    // Alto e altissimo = trattativa buona (da punteggio.buona = 70 in su, decisione del 21/10)
     fasce: [
-      { da: 80, nome: "altissimo" },
-      { da: 60, nome: "alto" },
-      { da: 40, nome: "medio" },
-      { da: 20, nome: "basso" },
+      { da: 85, nome: "altissimo" },
+      { da: DIZIONARI.punteggio.buona, nome: "alto" },
+      { da: 50, nome: "medio" },
+      { da: 30, nome: "basso" },
       { da: 0, nome: "bassissimo" },
     ],
   },

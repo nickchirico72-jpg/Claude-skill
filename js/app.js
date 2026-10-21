@@ -63,13 +63,13 @@ function badgePunteggio(p, grande = false) {
   return `<span class="badge badge-punteggio fascia-${f.nome}${grande ? " badge-grande" : ""}" title="Punteggio di coerenza: ${p.totale} su 100, ${f.nome}"><span class="solo-lettori">Punteggio di coerenza </span>${p.totale}<span class="solo-lettori">, ${f.nome}</span></span>`;
 }
 
-// Legenda delle cinque fasce di colore del punteggio
+// Legenda delle cinque fasce di colore del punteggio, con la soglia della trattativa buona
 function legendaFasce() {
   const fasce = CONFIG.punteggio.fasce;
   return `<p class="legenda-fasce">${fasce.slice().reverse().map((f, i, tutte) => {
     const fino = i < tutte.length - 1 ? tutte[i + 1].da - 1 : 100;
     return `<span class="badge badge-punteggio fascia-${f.nome}">${f.da}–${fino}</span> ${f.nome}`;
-  }).join(" ")}</p>`;
+  }).join(" ")} <span class="legenda-buona">· buona trattativa da ${CONFIG.punteggio.buona}</span></p>`;
 }
 
 // Tabella dei 6 criteri del punteggio, con i punti ottenuti
@@ -136,6 +136,7 @@ function disegnaPipeline() {
       <a href="#da-seguire" data-azione="scorri" data-id="da-seguire"><span>Da seguire</span>
         <strong>${daSeguire ? `<span class="chip chip-attenzione">${daSeguire}</span>` : "0"}</strong><small>ferme, senza prossima azione o da ricontattare</small></a>
     </section>
+    ${legendaFasce()}
 
     <div class="pannelli-pipeline">
       ${sezioneDaFare()}

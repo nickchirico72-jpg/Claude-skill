@@ -149,6 +149,7 @@ COSTI_MENSILI = {"portale gare": (150, 0.2), "porta a porta": (400, 0.25), "inte
 
 # Punteggio di coerenza: pesi del prototipo (somma 100)
 PESI = {"settore": 20, "distanza": 15, "capacita": 20, "margine": 20, "dimensione": 10, "decisore": 15}
+SOGLIA_BUONA = 70                  # una trattativa è "buona" da 70 punti in su (decisione del 21/10, K11)
 SETTORE_FUORI_PILOTA = 0.3          # come nel prototipo: fuori dal pilota vale 0,3 del peso
 DISTANZA_PIENA, DISTANZA_META = 15, 35
 MARGINE_PIENO, MARGINE_META = 0.20, 0.12

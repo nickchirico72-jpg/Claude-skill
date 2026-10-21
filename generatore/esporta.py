@@ -108,7 +108,7 @@ def esporta_app(con, capacita):
         "modiRaccolta": P.MODI_RACCOLTA,
         "campagnaPilota": P.CAMPAGNA_PILOTA,
         "punteggio": {
-            "pesi": P.PESI, "soglie": {"A": 75, "B": 50}, "settoreFuoriPilota": P.SETTORE_FUORI_PILOTA,
+            "pesi": P.PESI, "soglie": {"A": 75, "B": 50}, "settoreFuoriPilota": P.SETTORE_FUORI_PILOTA, "buona": P.SOGLIA_BUONA,
             "distanzaKm": {"piena": P.DISTANZA_PIENA, "massima": P.DISTANZA_META},
             "margine": {"obiettivo": P.MARGINE_PIENO, "minimo": P.MARGINE_META},
             "valoreAnnuo": {"idealeDa": P.DIMENSIONE_PIENA[0], "idealeA": P.DIMENSIONE_PIENA[1],
