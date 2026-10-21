@@ -24,6 +24,17 @@ function faseDb(id) {
 }
 
 const CONFIG = {
+  // Dove stanno i dati (js/archivio.js): oggi "locale" = solo questo browser. L'archivio condiviso è da scegliere
+  // (docs/archivio-condiviso.md). righeRegistro = quante modifiche ricorda il registro (chi, quando, cosa)
+  archivio: { tipo: "locale", righeRegistro: 300 },
+
+  // Ruoli di chi usa il CRM; vista = livello degli Indicatori che si apre per primo
+  ruoli: [
+    { id: "direzione", nome: "Direzione", vista: "direzione" },
+    { id: "commerciale", nome: "Commerciale", vista: "commerciale" },
+    { id: "ufficio", nome: "Ufficio", vista: "operativo" },
+  ],
+
   // Chiave con cui i dati vengono salvati nel browser (localStorage)
   chiaveSalvataggio: "gate-sviluppo-commerciale-v2",
   // Versione della struttura dei dati salvati: NON modificarla, la aggiorna chi cambia il codice (vedi migra() in dati.js)

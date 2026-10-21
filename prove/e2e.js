@@ -319,6 +319,37 @@ const PROVE = {
     await ctx.close();
   },
 
+  // Archivio: record cambiati a ogni salvataggio, utente e ruolo, registro delle modifiche, Annulla
+  async archivio() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#pipeline');
+    // Si intercetta la scrittura dell'archivio per vedere quali record arrivano
+    await page.evaluate(() => { const s = ARCHIVI.locale.scrivi; window.ultime = null; ARCHIVI.locale.scrivi = (d, m) => { window.ultime = m; s(d, m); }; });
+    await clic(page, '#riga-utente [data-azione=utente]');
+    await page.fill('#modulo-utente [name=nome]', 'Alfredo Prova');
+    await page.selectOption('#modulo-utente [name=ruolo]', 'commerciale');
+    await clic(page, '#modulo-utente [type=submit]');
+    verifica('utente e ruolo nel piè di pagina', /Alfredo Prova/.test(await page.textContent('#riga-utente')) && /commerciale/.test(await page.textContent('#riga-utente')));
+    await page.goto(BASE + 'index.html#indicatori');
+    verifica('il ruolo commerciale apre la vista Commerciale', /Commerciale/.test(await page.textContent('h1')));
+    await page.evaluate(() => { const s = ARCHIVI.locale.scrivi; ARCHIVI.locale.scrivi = (d, m) => { window.ultime = m; s(d, m); }; });
+    const id = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && faseRaggiunta(o) === 0).id);
+    await page.goto(BASE + 'index.html#pipeline');
+    await page.evaluate(() => { const s = ARCHIVI.locale.scrivi; ARCHIVI.locale.scrivi = (d, m) => { window.ultime = m; s(d, m); }; });
+    await clic(page, `#scheda-${id} [data-azione=avanza]`);
+    const m = await page.evaluate(() => window.ultime);
+    verifica('un passo di fase manda all\'archivio solo i record toccati', m && m.cambiati.some((x) => x.raccolta === 'opportunita') && m.cambiati.length + m.aggiunti.length <= 6 && m.eliminati.length <= 1, JSON.stringify(m));
+    const riga = await page.evaluate(() => stato.registro[stato.registro.length - 1]);
+    verifica('registro: chi, quando e cosa', riga && riga.chi === 'Alfredo Prova' && /passa a «Qualificato»/.test(riga.cosa) && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(riga.quando), JSON.stringify(riga));
+    await page.click('#avviso [data-azione=annulla]');
+    await page.waitForTimeout(400);
+    verifica('Annulla torna indietro e resta nel registro', (await page.evaluate((i) => faseRaggiunta(trova(i)), id)) === 0 && /Annullata/.test(await page.evaluate(() => stato.registro[stato.registro.length - 1].cosa)));
+    await clic(page, '#riga-utente [data-azione=registro]');
+    verifica('finestra del registro con le modifiche', (await page.$$('#finestra tbody tr')).length >= 2);
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
   // E4: piano dei contenuti con link tracciati e aggiunta di un contenuto
   async contenuti() {
     const { ctx, page, errori } = await apri();

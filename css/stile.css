@@ -3473,3 +3473,9 @@ h1[tabindex="-1"]:focus {
 .griglia > .consigli {
   margin: 0;
 }
+
+/* Piè di pagina: chi sta lavorando, dove sono i dati, registro */
+.riga-utente {
+  margin-bottom: 8px;
+  font-size: 13px;
+}

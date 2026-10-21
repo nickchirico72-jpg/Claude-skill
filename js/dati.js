@@ -41,7 +41,7 @@ function canaleDaTesto(testo) {
 function opzioniCanali(scelto = "") {
   return '<option value="">— Scegli il canale —</option>' + gruppiCanali().map((g) => {
     const canali = fonti().filter((c) => gruppoCanale(c) === g);
-    return canali.length ? `<optgroup label="${esc(g)}">${canali.map((c) => `<option value="${esc(c)}" ${c === scelto ? "selected" : ""}>${esc(c)}</option>`).join("")}</optgroup>` : "";
+    return canali.length ? `<optgroup label="${esc(maiuscola(g))}">${canali.map((c) => `<option value="${esc(c)}" ${c === scelto ? "selected" : ""}>${esc(maiuscola(c))}</option>`).join("")}</optgroup>` : "";
   }).join("");
 }
 
@@ -142,7 +142,7 @@ function datiIniziali() {
       automatica: true, tipo: fase.followUp.tipo, data: quando, testo: fase.followUp.testo });
   });
 
-  return { versione: CONFIG.versioneDati, aziende, referenti, opportunita, attivita, contenuti: [], richiesteReali: [], contatore: opp.length, contatoreId: 10000, ultimoBackup: null };
+  return { versione: CONFIG.versioneDati, aziende, referenti, opportunita, attivita, contenuti: [], richiesteReali: [], registro: [], contatore: opp.length, contatoreId: 10000, ultimoBackup: null };
 }
 
 // Dati salvati prima della versione 4 (esempi di config.js): c'è un avviso per passare ai dati del database
@@ -209,6 +209,9 @@ function strutturaValida(d) {
   if (d.richiesteReali !== undefined && !(Array.isArray(d.richiesteReali) && d.richiesteReali.every((r) => r && typeof r === "object" &&
     ["partenza", "test"].includes(r.fonte) && /^\d{4}-\d{2}-\d{2}$/.test(r.data_richiesta) && ["canale", "settore", "esito"].every((k) => typeof r[k] === "string") &&
     ["data_registrazione", "data_risposta", "data_offerta"].every((k) => r[k] === null || /^\d{4}-\d{2}-\d{2}$/.test(r[k]))))) return false;
+  // Registro delle modifiche (facoltativo): quando, chi e cosa
+  if (d.registro !== undefined && !(Array.isArray(d.registro) && d.registro.every((r) => r && typeof r === "object" &&
+    ["quando", "chi", "cosa"].every((k) => typeof r[k] === "string")))) return false;
   // Contenuti aggiunti nell'app al piano editoriale (facoltativi)
   if (d.contenuti !== undefined && !(Array.isArray(d.contenuti) && d.contenuti.every((c) => c && typeof c === "object" &&
     /^[\w-]+$/.test(c.id) && /^\d{4}-\d{2}-\d{2}$/.test(c.data_pubblicazione) && ["canale", "tema", "settore", "formato"].every((k) => typeof c[k] === "string")))) return false;
@@ -257,7 +260,7 @@ let testoScartato = "";
 function carica() {
   let testo = null;
   try {
-    testo = localStorage.getItem(CONFIG.chiaveSalvataggio);
+    testo = archivio().leggi();
   } catch (e) {
     // Salvataggio non disponibile (es. navigazione privata): si usano gli esempi
   }
@@ -281,9 +284,10 @@ function carica() {
 
 // Salva lo stato nel browser; restituisce false (e avvisa una volta) se il browser non salva
 let avvisoSalvataggioMostrato = false;
-function salva() {
+// modifiche = record cambiati (confrontaStati): l'archivio condiviso salverà solo quelli
+function salva(modifiche = null) {
   try {
-    localStorage.setItem(CONFIG.chiaveSalvataggio, JSON.stringify(stato));
+    archivio().scrivi(stato, modifiche);
     return true;
   } catch (e) {
     if (!avvisoSalvataggioMostrato) {

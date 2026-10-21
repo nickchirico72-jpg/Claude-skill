@@ -15,7 +15,7 @@ let elenchiAperti = { "da-fare": false, "da-seguire": false }; // «Mostra tutte
 // filtri = ricerca e filtri dei Clienti; bozze = testo di «Registra un'attività» per azienda;
 // provenienza = schermata da cui si è arrivati (per il link «← Pipeline» della scheda cliente)
 // indicatori = livello (direzione, commerciale, operativo, altri) e fonte dei dati (fittizi, partenza, test) della schermata Indicatori
-const interfaccia = { filtri: { testo: "", settore: "", stato: "" }, bozze: {}, provenienza: "", indicatori: { livello: "direzione", fonte: "fittizi" } };
+const interfaccia = { filtri: { testo: "", settore: "", stato: "" }, bozze: {}, provenienza: "", indicatori: { livello: ruoloUtente().vista, fonte: "fittizi" } };
 
 // ================================================================== ICONE
 
@@ -785,7 +785,8 @@ function salvaModificaOpportunita(modulo) {
 function opzioni(valori, scelto) {
   const mancante = scelto && !valori.includes(scelto)
     ? `<option value="${esc(scelto)}" selected>${esc(scelto)} (non più in elenco)</option>` : "";
-  return valori.map((v) => `<option value="${esc(v)}" ${v === scelto ? "selected" : ""}>${esc(v)}</option>`).join("") + mancante;
+  // L'etichetta ha la maiuscola ("Uffici e commercio"), il valore resta quello del database
+  return valori.map((v) => `<option value="${esc(v)}" ${v === scelto ? "selected" : ""}>${esc(maiuscola(v))}</option>`).join("") + mancante;
 }
 
 // Opzioni dei comuni con la distanza da Bari, con la stessa regola per i comuni tolti da config.js
@@ -1506,14 +1507,18 @@ function applica(cambia, { messaggio = "", evidenzia = null, fase = null, vai = 
     mostraAvviso("Modifica non salvata: i dati sono cambiati in un'altra scheda. Controlla e riprova");
     return false;
   }
-  salva();
+  // Record cambiati e riga del registro (chi, quando, cosa); l'archivio riceve l'elenco dei cambiamenti
+  const modifiche = confrontaStati(copia.dati, stato);
+  const testo = typeof messaggio === "function" ? messaggio() : messaggio;
+  registraModifica(testo, modifiche);
+  salva(modifiche);
   if (finestra.open) chiudiFinestra();
   if (fase) faseSelezionata = fase;
   if (evidenzia) ultimaModificata = evidenzia;
   if (typeof vai === "function") vai = vai(); // la schermata può dipendere dalla modifica (es. la scheda di un'azienda nuova)
   if (vai && vai !== (location.hash.slice(1) || "pipeline")) location.hash = vai;
   else disegna();
-  mostraAvviso(typeof messaggio === "function" ? messaggio() : messaggio, annullabile ? copia : null);
+  mostraAvviso(testo, annullabile ? copia : null);
   return true;
 }
 
@@ -1731,6 +1736,8 @@ const AZIONI = {
   },
   "modifica-opportunita": (el) => apriModificaOpportunita(el.dataset.id),
   "firma-link": (el) => apriFirmaLink(el.dataset.id),
+  utente: () => apriUtente(),
+  registro: () => apriRegistro(),
   "da-ricontattare": (el) => apriRicontatto(el.dataset.id),
   ricontattato: (el) => ricontattato(el.dataset.id),
   "conferma-firma": (el) => confermaFirma(el.dataset.id),
@@ -1744,10 +1751,14 @@ const AZIONI = {
   annulla: () => {
     if (!copiaPerAnnulla) return;
     const copia = copiaPerAnnulla;
+    const prima = stato;
     stato = copia.dati;
     faseSelezionata = copia.fase;
     ultimaModificata = copia.evidenzia;
-    salva();
+    const modifiche = confrontaStati(prima, stato);
+    stato.registro = prima.registro;   // il registro non torna indietro: resta traccia anche della modifica annullata
+    registraModifica("Annullata l'ultima modifica", modifiche);
+    salva(modifiche);
     if (finestra.open) chiudiFinestra();
     // Si torna alla schermata in cui era partita l'azione (es. dall'Allocazione alla Pipeline)
     if (copia.schermata !== location.hash) location.hash = copia.schermata;
@@ -1817,6 +1828,7 @@ document.addEventListener("submit", (evento) => {
     "modulo-opportunita": salvaModificaOpportunita,
     "modulo-perso": salvaPerso,
     "modulo-ricontatto": salvaRicontatto,
+    "modulo-utente": salvaUtente,
     ...GESTORI_MODULI, // moduli della schermata Clienti (clienti.js)
   };
   if (gestori[modulo.id]) gestori[modulo.id](modulo);
@@ -1982,6 +1994,7 @@ function disegna() {
   aggiornaContatore("conteggio-allocazione", daAssegnare, daAssegnare === 1 ? "commessa da assegnare" : "commesse da assegnare");
 
   aggiornaStatoBackup();
+  aggiornaRigaUtente();
 
   // Porta in vista la scheda appena modificata
   if (ultimaModificata) {

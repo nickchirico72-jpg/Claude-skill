@@ -167,6 +167,7 @@ modulo.html             modulo pubblico "Richiedi un preventivo"
 css/stile.css           palette e font del sito Gate (variabili in cima al file)
 js/dizionari.js         GENERATO: canali, settori, servizi, comuni, fasi, pesi del punteggio (uguali al database)
 js/dati-db.js           GENERATO: le tabelle del database per l'app
+js/archivio.js          dove stanno i dati (oggi questo browser), chi lavora, registro delle modifiche
 js/config.js            ipotesi dell'app: squadre, partner, preventivo, obiettivi, consigli, funzioni.partner
 js/formato.js           euro, percentuali e date
 js/dati.js              stato, dati iniziali dal database, migrazione, backup, CSV, doppioni, privacy
