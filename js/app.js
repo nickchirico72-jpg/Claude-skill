@@ -51,7 +51,7 @@ function intestazione({ occhiello = "", titolo, istruzione, azione = "" }) {
       <div>
         ${occhiello ? `<p class="occhiello">${occhiello}</p>` : ""}
         <h1 tabindex="-1">${titolo}</h1>
-        <p class="istruzione">${istruzione}</p>
+        ${istruzione ? `<p class="istruzione">${istruzione}</p>` : ""}
       </div>
       ${azione}
     </header>`;
@@ -70,15 +70,6 @@ function rigaAvvisi() {
   return `<section class="riga-avvisi" aria-label="Avvisi">${icona("attenzione")}
     ${avvisi.map((x) => `<button class="chip chip-${x.tono} avviso-chip" type="button" data-azione="${x.azione}">${x.n !== null ? `<strong>${x.n}</strong> ` : ""}${esc(x.testo)}</button>`).join("")}
   </section>`;
-}
-
-// Legenda delle cinque fasce di colore del punteggio, con la soglia della trattativa buona
-function legendaFasce() {
-  const fasce = CONFIG.punteggio.fasce;
-  return `<p class="legenda-fasce">${fasce.slice().reverse().map((f, i, tutte) => {
-    const fino = i < tutte.length - 1 ? tutte[i + 1].da - 1 : 100;
-    return `<span class="badge badge-punteggio fascia-${f.nome}">${f.da}–${fino}</span> ${f.nome}`;
-  }).join(" ")} <span class="legenda-buona">· buona trattativa da ${CONFIG.punteggio.buona}</span></p>`;
 }
 
 // Tabella dei 6 criteri del punteggio, con i punti ottenuti
@@ -133,7 +124,7 @@ function disegnaPipeline() {
     <div class="pagina-pipeline">
     ${intestazione({
       titolo: "Opportunità commerciali",
-      istruzione: "Registra ogni passo con un clic e tieni sempre una prossima azione. Il punteggio, da 0 a 100, indica la coerenza con capacità e margini.",
+      istruzione: "",
       azione: `<button class="pulsante accento" type="button" data-azione="nuovo">${icona("piu")} Nuovo contatto</button>`,
     })}
 
@@ -146,7 +137,6 @@ function disegnaPipeline() {
         <strong>${daSeguire ? `<span class="chip chip-attenzione">${daSeguire}</span>` : "0"}</strong><small>ferme, senza prossima azione o da ricontattare</small></a>
     </section>
     ${rigaAvvisi()}
-    ${legendaFasce()}
 
     <div class="pannelli-pipeline">
       ${sezioneDaFare()}
@@ -663,7 +653,6 @@ function apriDettaglio(id) {
     ${o.note ? `<h3>Note sulla trattativa</h3><p class="nota-trattativa">${esc(o.note)}</p>` : ""}
     <h3>Punteggio di coerenza: ${p.totale} su 100 (${fasciaPunteggio(p.totale).nome})</h3>
     ${tabellaCriteri(p)}
-    ${legendaFasce()}
     <h3>Storico</h3>
     <ol class="storico">${passi}${o.perso ? `<li>Perso: ${formattaData(o.perso.data)} · ${esc(o.perso.motivo)}${o.perso.nota ? " · " + esc(o.perso.nota) : ""}</li>` : ""}</ol>
     ${o.motivazioneC ? `<p class="nota-c">Offerta inviata nonostante il punteggio C. Motivazione: ${esc(o.motivazioneC)}</p>` : ""}

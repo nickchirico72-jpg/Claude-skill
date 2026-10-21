@@ -137,8 +137,7 @@ function barraIndicatori(scelta, reali) {
           <strong>${l.nome}</strong><span>${l.chi}</span></button>`).join("")}
     </nav>
     <div class="barra-fonte">
-      <p class="etichetta-fonte ${scelta.fonte === "fittizi" ? "" : "reali"}" role="status">${icona("attenzione")} ${esc(nomeFonte(scelta.fonte))}
-        ${r && r.esempio ? '<span class="chip chip-critico">Righe di esempio inventate, non dati di Gate</span>' : ""}</p>
+      ${r && r.esempio ? '<p class="chip chip-critico" role="status">Righe di esempio inventate, non dati di Gate</p>' : ""}
       <div class="azioni-fonte">
         ${fonti.length > 1 ? `<label class="scegli-fonte">Fonte dei dati
           <select id="scelta-fonte">${fonti.map((f) => `<option value="${esc(f)}" ${f === scelta.fonte ? "selected" : ""}>${esc(nomeFonte(f))}</option>`).join("")}</select>

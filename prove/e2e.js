@@ -185,10 +185,10 @@ const PROVE = {
   async fonti() {
     const { ctx, page, errori } = await apri();
     await page.goto(BASE + 'index.html#indicatori');
-    verifica('etichetta «Dati fittizi» visibile', /Dati fittizi/.test(await page.textContent('.etichetta-fonte')));
+    verifica('fonte iniziale: dati fittizi', (await page.$eval('#scelta-fonte', (s) => s.value)) === 'fittizi');
     await page.selectOption('#scelta-fonte', 'test');
     await page.waitForTimeout(300);
-    verifica('fonte test: etichetta dati reali con avviso di righe di esempio', /Dati reali/.test(await page.textContent('.etichetta-fonte')) && /esempio/.test(await page.textContent('.etichetta-fonte')));
+    verifica('fonte test: dati reali scelti, con l\'avviso di righe di esempio', (await page.$eval('#scelta-fonte', (s) => s.value)) === 'test' && /Righe di esempio/.test(await page.textContent('.barra-fonte')));
     await clic(page, '[data-azione=livello][data-id=offerta]');
     verifica('fonte test: K12 prima risposta ricalcolata sui dati reali (0,5 giorni)', /0,5 giorni/.test(await page.textContent('#kpi-K12')));
     verifica('K14, K16 e K17 non compaiono più', !(await page.$('#kpi-K14, #kpi-K16, #kpi-K17')));

@@ -567,11 +567,6 @@ textarea {
   }
 }
 
-.legenda-buona {
-  font-weight: 700;
-  color: var(--foreground);
-}
-
 /* Punteggio di coerenza: colore pieno della fascia, cinque tinte ben distinte
    (rosso, arancione, giallo, verde chiaro, verde scuro); alto e altissimo = trattativa buona, da 70 */
 .badge-punteggio {
@@ -588,16 +583,6 @@ textarea {
 .fascia-medio { --fascia: #d9a800; --fascia-sfondo: #ffd54f; --fascia-testo: #3d2e00; }
 .fascia-basso { --fascia: #d67600; --fascia-sfondo: #ffa726; --fascia-testo: #2b1700; }
 .fascia-bassissimo { --fascia: #9f1f1f; --fascia-sfondo: #d32f2f; --fascia-testo: #ffffff; }
-
-.legenda-fasce {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 8px;
-  margin: 8px 0 12px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-}
 
 .conteggio {
   display: inline-block;
@@ -698,8 +683,7 @@ textarea {
 .pagina-pipeline > .riga-avvisi { order: 1; }   /* gli avvisi subito sotto il titolo */
 .pagina-pipeline > .pannelli-pipeline { order: 2; }
 .pagina-pipeline > .riepilogo { order: 3; }
-.pagina-pipeline > .legenda-fasce,
-.pagina-pipeline > .selettore-fasi { order: 4; }   /* la legenda dei colori sta sopra le schede */
+.pagina-pipeline > .selettore-fasi { order: 4; }
 .pagina-pipeline > .tabellone { order: 5; }
 
 @media (min-width: 900px) {
@@ -3468,24 +3452,6 @@ h1[tabindex="-1"]:focus {
   justify-content: space-between;
   gap: 8px 16px;
   margin-bottom: 12px;
-}
-
-.etichetta-fonte {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--attenzione-sfondo);
-  color: var(--attenzione);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.etichetta-fonte.reali {
-  background: var(--ok-sfondo);
-  color: var(--ok);
 }
 
 .scegli-fonte {

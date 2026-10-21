@@ -70,7 +70,7 @@ L'ultima sezione degli Indicatori ragiona in avanti con i dati di oggi. Quattro 
 
 Sotto restano K6, K5 e K11. Le previsioni proiettano i tassi di oggi; le azioni sono regole leggibili in `js/analisi.js`, con le soglie in `js/config.js`. Nelle altre sezioni non ci sono etichette («Cosa è successo?» ecc.): i dati si spiegano da soli.
 
-Il **punteggio di coerenza** (0–100) ha il colore pieno della sua fascia: bassissimo (0–29, rosso), basso (30–49, arancione), medio (50–69, giallo), alto (70–84, verde chiaro), altissimo (85–100, verde scuro). Una **trattativa buona** ha punteggio da **70** in su (decisione del 21/10): è la base del K11 (quota di trattative buone) e delle trattative da riprendere in «Cosa fare domani». La soglia 70 è in `generatore/parametri.py` (`SOGLIA_BUONA`), uguale per app e SQL; le fasce in `js/config.js` (`punteggio.fasce`). La legenda dei colori sta sopra le schede della Pipeline.
+Il **punteggio di coerenza** (0–100) ha il colore pieno della sua fascia: bassissimo (0–29, rosso), basso (30–49, arancione), medio (50–69, giallo), alto (70–84, verde chiaro), altissimo (85–100, verde scuro). Una **trattativa buona** ha punteggio da **70** in su (decisione del 21/10): è la base del K11 (quota di trattative buone) e delle trattative da riprendere in «Cosa fare domani». La soglia 70 è in `generatore/parametri.py` (`SOGLIA_BUONA`), uguale per app e SQL; le fasce in `js/config.js` (`punteggio.fasce`).
 
 ## Collegamento con la deliverable del corso
 
