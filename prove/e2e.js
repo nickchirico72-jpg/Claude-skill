@@ -92,6 +92,9 @@ const PROVE = {
     });
     verifica('stesse opportunità, aperte e contratti del database', r.opp === db.opp && r.aperte === db.aperte && r.contratti === db.contratti, JSON.stringify(r));
     verifica('punteggio dell\'app uguale a quello del database per ogni opportunità; stesse trattative buone (K11)', r.diversi === 0 && r.buone === db.buone, r.diversi + ' diversi, buone ' + r.buone + '/' + db.buone);
+    // Stato iniziale (dati del database) per la prova dell'archivio: le viste v0 devono ridare gate.db
+    fs.mkdirSync(path.join(__dirname, 'archivio'), { recursive: true });
+    fs.writeFileSync(path.join(__dirname, 'archivio', 'stato-iniziale.json'), JSON.stringify(await page.evaluate(() => datiIniziali())));
     verifica('aperte tra 70 e 90 e ferme tra 10% e 15%', r.aperte >= 70 && r.aperte <= 90 && r.ferme / r.aperte >= 0.1 && r.ferme / r.aperte <= 0.15, r.ferme + '/' + r.aperte);
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
@@ -150,6 +153,37 @@ const PROVE = {
     verifica('indicatori: K3 conta il nuovo contratto (30 contratti)', /30 contratti/.test(await page.textContent('#kpi-K3')));
     const secondi = (Date.now() - inizio) / 1000;
     verifica('flusso della demo in meno di 90 secondi (con le pause del test)', secondi < 90, secondi.toFixed(1) + ' s');
+
+    // Altri tipi di dato per la prova dell'archivio (prove/archivio.py): utente, contenuto, righe CSV reali, ricontatto
+    await clic(page, '[data-azione=utente]');
+    await page.fill('#modulo-utente [name=nome]', 'Alfredo R.');
+    await page.selectOption('#modulo-utente [name=ruolo]', 'commerciale');
+    await clic(page, '#modulo-utente [type=submit]');
+    await page.goto(BASE + 'index.html#clienti');
+    await clic(page, '.pagina-clienti [data-azione=canali]');
+    await page.fill('#modulo-contenuto [name=tema]', 'Prova: pulizia degli studi legali');
+    await clic(page, '#modulo-contenuto [type=submit]');
+    await clic(page, '[data-azione=chiudi]');
+    await page.goto(BASE + 'index.html#indicatori');
+    await clic(page, '[data-azione=importa-csv-reali]');
+    await page.setInputFiles('#modulo-csv-reali [name=file]', { name: 'prova.csv', mimeType: 'text/csv', buffer: Buffer.from(
+      'data_richiesta;data_annotazione;canale;settore;data_risposta;data_offerta;esito\n2026-09-01;2026-09-02;sito;uffici e commercio;2026-09-03;2026-09-10;contratto\n2026-09-05;;telefono;sanità;;;aperta\n') });
+    await page.selectOption('#modulo-csv-reali [name=fonte]', 'test');
+    await clic(page, '#modulo-csv-reali [type=submit]');
+    await clic(page, '#pulsante-csv-reali');
+    await page.goto(BASE + 'index.html#pipeline');
+    const daRicontattare = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && !trattativaFerma(o)).id);
+    await page.evaluate((i) => apriDettaglio(i), daRicontattare);
+    await clic(page, '[data-azione=da-ricontattare]');
+    await clic(page, '#modulo-ricontatto [data-giorni="7"]');
+    await clic(page, '#modulo-ricontatto [type=submit]');
+    const dati = await page.evaluate(() => ({ stato, impostazioni: impostazioniDaSalvare() }));
+    verifica('stato completo per l\'archivio: utente nel registro, contenuto, righe reali, ricontatto, preventivo, partner',
+      dati.stato.registro.some((r) => r.chi === 'Alfredo R.') && dati.stato.contenuti.length === 1 && dati.stato.richiesteReali.length === 2
+      && dati.stato.opportunita.some((o) => o.ricontatto) && dati.stato.opportunita.some((o) => o.preventivo && o.proposte.length === 2));
+    fs.mkdirSync(path.join(__dirname, 'archivio'), { recursive: true });
+    fs.writeFileSync(path.join(__dirname, 'archivio', 'stato-demo.json'), JSON.stringify(dati.stato));
+    fs.writeFileSync(path.join(__dirname, 'archivio', 'impostazioni.json'), JSON.stringify(dati.impostazioni));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },

@@ -1,35 +1,38 @@
-# Schema dell'archivio condiviso (bozza, valida per qualunque soluzione)
+# Archivio condiviso in MySQL: schema verificato e cosa manca
 
-Oggi esistono due forme degli stessi dati:
-- il **database** (`data/gate.db`, 13 tabelle), da cui nascono le query SQL;
-- lo **stato dell'app** (JSON nel browser), che il database riempie all'avvio, ma che non riscrive nel database.
+Decisione del 21/10: il database di riferimento è **MySQL** (o MariaDB, la versione libera compatibile), interrogabile con query semplici.
 
-Con un archivio condiviso deve esserci **una sola forma**: l'app legge e scrive direttamente le tabelle. Questa bozza dice cosa aggiungere al database perché contenga tutto quello che l'app oggi tiene solo nel browser. Le colonne dello schema v0 non cambiano, quindi le query di Nicolò continuano a funzionare.
+## Cosa è pronto e verificato
+- **Schema**: `data/archivio_mysql.sql`, 28 tabelle, generato da `strumenti/archivio.py`. Contiene **ogni dato che l'app oggi tiene nel browser** (aziende, referenti con privacy, trattative con fasi, preventivo, ricontatto, allocazione, proposte ai partner, attività, contenuti, richieste reali, registro delle modifiche) **e le impostazioni oggi scritte nel codice** (squadre, partner, servizi, preventivo, canali, settori, comuni, soglie).
+- **Migrazione**: `python3 strumenti/archivio.py esporta BACKUP.json IMPOSTAZIONI.json > dati.sql` trasforma il backup dell'app («Salva backup») negli INSERT per MySQL. Se l'app ha un campo che il database non conosce, la migrazione si ferma e dice quale: nessun dato si perde in silenzio.
+- **Prove** (`python3 prove/archivio.py`, dopo `prove/e2e.js`), su un **MariaDB vero** avviato per l'occasione:
+  - andata e ritorno: stato iniziale, stato dopo la demo e uno stato con **tutti i campi facoltativi** si caricano, si rileggono e tornano **identici**;
+  - l'app riapre lo stato riletto dal database e calcola **gli stessi KPI**;
+  - **16 dati sbagliati vengono rifiutati** dal database: fase inesistente, trattativa di un'azienda che non esiste, perdita senza motivo, codice doppio, ore negative, sì/no diverso da 0/1, azienda senza nome, orario o data impossibili, proposta a un partner inesistente, allocazione a partner senza partner, ruolo non previsto, impostazione non in JSON, due proposte in attesa per la stessa trattativa, cancellazione di un'azienda che ha trattative;
+  - ogni modifica registra **chi e quando** (`aggiornato_da`, `aggiornato_il`);
+  - le domande di Alfredo hanno risposta con query brevi (trattative aperte per fase, commesse senza esecutore, DURC in scadenza, ultime modifiche).
 
-## Corrispondenze tra app e tabelle
-| Nell'app | Tabella | Già nel database | Da aggiungere |
+## Le tabelle in breve
+| Gruppo | Tabelle |
+|---|---|
+| Dati del CRM | aziende, referenti, opportunita, fasi_opportunita, preventivi, ricontatti, allocazioni, proposte_partner, attivita, contenuti, richieste_reali, registro |
+| Impostazioni (schermata Impostazioni) | squadre (+ zone, servizi), partner (+ zone, servizi), servizi, ambienti_preventivo, frequenze_preventivo, impostazioni (soglie in JSON) |
+| Dizionari | settori, comuni, canali, motivi_perdita |
+| Accesso e sistema | utenti (nome, email, ruolo), archivio_info (versione, contatori) |
+
+Scelte da raccontare: chiavi primarie ed esterne ovunque; tabelle separate per ciò che si ripete (fasi, proposte, zone: **normalizzazione**); `ordine` dove l'ordine dei menu conta; date di tipo DATE; sì/no come 0/1 controllati; le zone e i servizi di squadre e partner come insiemi.
+
+## Cosa manca (non è il database: è il server e le regole di lavoro)
+| # | Lacuna | Perché conta | Come si chiude |
 |---|---|---|---|
-| aziende | clienti | nome, settore, comune, provincia, km, superficie, tipo | partita_iva, note, fonte (canale del primo contatto), creata_il |
-| referenti | referenti | nome, ruolo, decisore, email, telefono, base_giuridica, modo_raccolta | canale_preferito, data_privacy, opposizione, cancellato |
-| opportunita | opportunita + storico_fasi | canale, servizio, fase, valore, margine, date, motivo, punteggio, campi TO-BE | comune_lavoro, ore_mese, tariffa, note, scadenza_offerta, data_avvio, motivazione_classe_c, riaperta_il |
-| opportunita.preventivo | **preventivi** (nuova) | – | id_opp, tipo_ambiente, mq, frequenza, ore, tariffa, margine |
-| opportunita.ricontatto | **ricontatti** (nuova) | – | id_opp, data, nota, fatto_il |
-| opportunita.allocazione, proposte | **allocazioni**, **proposte_partner** (nuove) | – | id_opp, squadra o partner, data; id_opp, partner, data, esito |
-| firma da link | offerte | firma_da_link | – |
-| attivita (fatte e da fare) | attivita | tipo, data, esito | id_cliente, id_referente, testo, da_fare, ora, automatica, fase |
-| contenuti, richieste reali | contenuti, richieste_reali | sì | id per le righe importate dall'app |
-| registro delle modifiche | **registro** (nuova) | – | quando, utente, cosa, tabella, id_record |
-| utente e ruolo | **utenti** (nuova) | commerciali (nome, tipo) | email, ruolo (direzione, commerciale, ufficio), attivo |
+| 1 | **Il server tra pagine e MySQL** (API) | Il browser non deve parlare direttamente con MySQL: password e permessi starebbero nel browser | Un piccolo programma sul server che legge e scrive le tabelle; in `js/archivio.js` si aggiunge l'archivio «condiviso» con le stesse `leggi()` e `scrivi()` |
+| 2 | **Id generati dal browser** («op301», «at10019») | Due persone che creano insieme una trattativa possono ottenere lo stesso id | Id creati dal server, oppure codici casuali lunghi (UUID); il codice di riferimento «GT-2026-…» lo assegna il server |
+| 3 | **Login e permessi per ruolo** | Oggi il nome è solo scritto nel browser | Tabella `utenti` pronta; va deciso **chi può fare cosa** (proposta: direzione tutto e Impostazioni; commerciale clienti e trattative; ufficio allocazione e attività) |
+| 4 | **Due modifiche allo stesso record** | Il secondo salvataggio non deve cancellare il primo | Colonna `aggiornato_il` pronta: il server rifiuta il salvataggio se il record è cambiato dopo la lettura, l'app avvisa «modificato da …» |
+| 5 | **Date vere** | Con i dati di prova l'app sposta le date a oggi | Con l'archivio condiviso lo spostamento si spegne (serve solo alla demo) |
+| 6 | **Backup e ripristino** | Nessun backup manuale | Backup automatico giornaliero del MySQL (servizio dell'hosting) e una prova di ripristino prima della consegna |
+| 7 | **Moduli del sito → CRM** | Oggi la richiesta passa da WhatsApp e da un copia-incolla | Il server riceve il modulo e crea la trattativa in Contatto, con anti-spam e consenso registrato |
+| 8 | **Privacy** | Dati personali dei referenti | Accesso solo con login, dati in UE, accordo con l'hosting; cancellazione e registro esistono già |
 
-## Dati oggi scritti nel codice, che Alfredo deve poter cambiare da solo
-Sono in `js/config.js` o in `generatore/parametri.py`: oggi solo chi programma può modificarli. Nell'archivio condiviso diventano tabelle, con una schermata "Impostazioni" visibile solo alla direzione.
-- **squadre** (nome, caposquadra, zone, servizi, ore di capacità e già impegnate) e **partner** (tipo, zone, servizi, scadenza del DURC, telefono);
-- **servizi** (tariffa, costo orario interno e partner), **preventivo** (rese in mq all'ora, sconti per frequenza);
-- **soglie** (obiettivi dei KPI, pesi del punteggio, giorni oltre cui una trattativa è ferma);
-- **canali** (già tabella) e **costi_canale** (oggi solo dati di prova).
-
-## Regole per lavorare in più persone
-- Si salva il singolo record cambiato, non tutto l'archivio: l'app lo sa già fare (`confrontaStati` in `js/archivio.js`).
-- Ogni record ha `aggiornato_il` e `aggiornato_da`. Se due persone cambiano lo stesso record, il secondo salvataggio avvisa invece di sovrascrivere.
-- Gli id diventano generati dall'archivio (oggi: "op12", "c5", "at10001").
-- Le date restano vere: niente spostamento a "oggi", che oggi serve solo alla demo con i dati di prova.
+## Dove può stare il server MySQL
+Da chiedere ad Alfredo: **dove è ospitato oggi gatesrl.it?** Molti hosting italiani includono già MySQL e PHP: il server (punto 1) potrebbe stare lì, senza costi in più. In alternativa un MySQL gestito in UE con backup automatici. Lo schema non cambia in nessuno dei due casi.

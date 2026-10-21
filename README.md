@@ -60,6 +60,10 @@ Le sezioni degli Indicatori seguono il percorso del cliente (riorganizzate il 21
 3. **La trattativa avanza nella Pipeline:** È qualificato → Sopralluogo fatto → Offerta inviata → **Firma da link** → Contratto.
 4. **Allocazione e Indicatori.** In Allocazione la commessa va a una squadra o a un partner. Negli **Indicatori** («Dall'offerta al contratto») il nuovo contratto entra nella conversione delle offerte K3; in «Marketing» il contenuto compare tra le richieste qualificate.
 
+## Archivio condiviso in MySQL
+
+Per l'uso con il team di Gate i dati passeranno dal browser a un database **MySQL**. Lo schema è pronto: `data/archivio_mysql.sql` (28 tabelle, tutti i dati e le impostazioni dell'app, con chiavi, vincoli e chi-quando di ogni modifica). `python3 strumenti/archivio.py esporta backup.json impostazioni.json > dati.sql` converte un backup dell'app in INSERT. `python3 prove/archivio.py` lo prova su un MariaDB vero: andata e ritorno senza perdite, KPI identici, 16 dati sbagliati rifiutati. Cosa resta (server, login, permessi, id, conflitti, backup) in `docs/schema-archivio.md`.
+
 ## Cosa fare domani
 
 L'ultima sezione degli Indicatori ragiona in avanti con i dati di oggi. Quattro previsioni, ognuna con il dato su cui si basa e le azioni che ne seguono:

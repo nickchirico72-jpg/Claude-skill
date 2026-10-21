@@ -30,6 +30,25 @@ function archivio() {
   return ARCHIVI[CONFIG.archivio.tipo] || ARCHIVI.locale;
 }
 
+// Impostazioni che Alfredo deve poter cambiare senza programmatore (oggi in config.js): nell'archivio condiviso
+// diventano tabelle (squadre, partner, servizi, preventivo) e una tabella chiave-valore per le soglie (docs/schema-archivio.md)
+function impostazioniDaSalvare() {
+  const c = CONFIG;
+  return {
+    squadre: c.squadre, partner: c.partner,
+    servizi: Object.entries(c.servizi).map(([nome, s]) => ({ nome, ...s })),
+    ambienti: c.preventivo.ambienti, frequenze: c.preventivo.frequenze,
+    canali: c.canali, settori: c.settori, comuni: c.comuni, motiviPerdita: c.motiviPerdita,
+    varie: {
+      giorniAvvioServizio: c.giorniAvvioServizio, giorniValiditaOfferta: c.giorniValiditaOfferta,
+      giorniContrattiDaAssegnare: c.giorniContrattiDaAssegnare, speseDirettePercentuale: c.speseDirettePercentuale,
+      settimaneAlMese: c.preventivo.settimaneAlMese, mittente: c.mittente, funzioni: c.funzioni, obiettivi: c.obiettivi,
+      avvisi: c.avvisi, consigli: c.consigli, rimediPerdita: c.rimediPerdita, fascePunteggio: c.punteggio.fasce,
+      confermaPerPunteggioC: c.punteggio.confermaPerPunteggioC,
+    },
+  };
+}
+
 // Record cambiati tra due versioni dello stato: aggiunti, cambiati ed eliminati, per raccolta e id
 function confrontaStati(prima, dopo) {
   const modifiche = { aggiunti: [], cambiati: [], eliminati: [] };

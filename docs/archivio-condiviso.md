@@ -1,6 +1,6 @@
 # Archivio condiviso: requisiti e scelta della soluzione
 
-Decisione del 21/10/2026: il vincolo "nessun backend" è tolto. Obiettivo: Alfredo e il suo team usano lo stesso CRM da PC e telefono, senza esportare fogli né fare backup ogni giorno. **La soluzione specifica non è ancora scelta**: questo documento raccoglie cosa deve garantire e come scegliere.
+Decisione del 21/10/2026: il vincolo "nessun backend" è tolto. Obiettivo: Alfredo e il suo team usano lo stesso CRM da PC e telefono, senza esportare fogli né fare backup ogni giorno. **La soluzione specifica non è ancora scelta**: questo documento raccoglie cosa deve garantire e come scegliere. Punto fermo (21/10): il database è **MySQL**, con lo schema già pronto e verificato (`data/archivio_mysql.sql`, vedi `docs/schema-archivio.md`).
 
 ## Cosa deve garantire (requisiti)
 1. **Dati condivisi in tempo reale**: una richiesta annotata dal telefono si vede subito dal PC di un collega.
