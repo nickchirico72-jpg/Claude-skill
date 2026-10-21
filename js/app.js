@@ -63,6 +63,15 @@ function badgePunteggio(p, grande = false) {
   return `<span class="badge badge-punteggio fascia-${f.nome}${grande ? " badge-grande" : ""}" title="Punteggio di coerenza: ${p.totale} su 100, ${f.nome}"><span class="solo-lettori">Punteggio di coerenza </span>${p.totale}<span class="solo-lettori">, ${f.nome}</span></span>`;
 }
 
+// Riga degli avvisi in cima alla Pipeline (vuota se non c'è nulla): ogni avviso porta dove si risolve
+function rigaAvvisi() {
+  const avvisi = avvisiScadenze();
+  if (!avvisi.length) return "";
+  return `<section class="riga-avvisi" aria-label="Avvisi">${icona("attenzione")}
+    ${avvisi.map((x) => `<button class="chip chip-${x.tono} avviso-chip" type="button" data-azione="${x.azione}">${x.n !== null ? `<strong>${x.n}</strong> ` : ""}${esc(x.testo)}</button>`).join("")}
+  </section>`;
+}
+
 // Legenda delle cinque fasce di colore del punteggio, con la soglia della trattativa buona
 function legendaFasce() {
   const fasce = CONFIG.punteggio.fasce;
@@ -136,6 +145,7 @@ function disegnaPipeline() {
       <a href="#da-seguire" data-azione="scorri" data-id="da-seguire"><span>Da seguire</span>
         <strong>${daSeguire ? `<span class="chip chip-attenzione">${daSeguire}</span>` : "0"}</strong><small>ferme, senza prossima azione o da ricontattare</small></a>
     </section>
+    ${rigaAvvisi()}
     ${legendaFasce()}
 
     <div class="pannelli-pipeline">
@@ -1728,6 +1738,19 @@ const AZIONI = {
     faseSelezionata = el.dataset.id;
     disegna();
   },
+  // Avvisi della Pipeline: portano dove si risolvono
+  "vai-domani": () => {
+    interfaccia.indicatori.livello = "previsione";
+    interfaccia.indicatori.fonte = "fittizi";
+    location.hash = "#indicatori";
+  },
+  "vai-allocazione": () => {
+    location.hash = "#allocazione";
+  },
+  "vai-partner": () => {
+    interfaccia.allocazione.aperti["squadre-partner"] = true;
+    location.hash = "#allocazione";
+  },
   // «Mostra altre N» in fondo a una colonna della Pipeline
   "mostra-tutte": (el) => {
     espanse[el.dataset.id] = true;
@@ -1996,6 +2019,7 @@ const SCHERMATE = {
   preventivo: disegnaPreventivo, // preventivo di un'opportunità: #preventivo-<id>
   allocazione: disegnaAllocazione,
   indicatori: disegnaIndicatori,
+  riepilogo: disegnaRiepilogo,   // riepilogo del mese da stampare: #riepilogo
 };
 
 // Nome della schermata nel titolo della scheda del browser, es. "Clienti · Gate"
@@ -2011,6 +2035,7 @@ function schermataAttuale() {
   const hash = location.hash.slice(1);
   if (hash.startsWith("cliente-") && trovaAzienda(hash.slice(8))) return { nome: "cliente", parametro: hash.slice(8), menu: "clienti" };
   if (hash.startsWith("preventivo-") && trova(hash.slice(11))) return { nome: "preventivo", parametro: hash.slice(11), menu: "pipeline" };
+  if (hash === "riepilogo") return { nome: "riepilogo", menu: "indicatori" };
   // hasOwn: un indirizzo come #constructor non deve trovare le proprietà nascoste degli oggetti
   return Object.hasOwn(TITOLI, hash) ? { nome: hash, menu: hash } : { nome: "pipeline", menu: "pipeline" };
 }
@@ -2026,7 +2051,8 @@ function aggiornaContatore(id, n, testo) {
 // Restituisce true se ha messo il focus sulla scheda appena modificata
 function disegna() {
   const { nome, parametro, menu } = schermataAttuale();
-  const titolo = nome === "cliente" ? trovaAzienda(parametro).ragioneSociale : nome === "preventivo" ? "Preventivo " + nomeCliente(trova(parametro)) : TITOLI[nome];
+  const titolo = nome === "cliente" ? trovaAzienda(parametro).ragioneSociale : nome === "preventivo" ? "Preventivo " + nomeCliente(trova(parametro))
+    : nome === "riepilogo" ? "Riepilogo del mese" : TITOLI[nome];
   document.title = titolo + " · Gate";
   let focusSulla = false;
   let html;

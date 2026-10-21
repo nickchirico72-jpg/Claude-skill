@@ -200,21 +200,21 @@ function disegnaClienti() {
         <input type="search" id="cerca-clienti" placeholder="Azienda, referente, telefono o codice" aria-label="Cerca" value="${esc(f.testo)}">
       </label>
       <select id="filtro-settore" aria-label="Filtra per settore"><option value="">Tutti i settori</option>${opzioni(CONFIG.settori, f.settore)}</select>
-      <select id="filtro-stato" aria-label="Filtra per stato"><option value="">Tutti gli stati</option>${opzioni(STATI_AZIENDA, f.stato)}</select>
     </div>
 
     <p class="risultati-clienti" id="risultati-clienti" aria-live="polite"></p>
-    <div id="elenco-clienti" class="griglia tre">${schedeClienti(aziendeFiltrate())}</div>
+    <div id="elenco-clienti" class="elenco-clienti">${schedeClienti(aziendeFiltrate())}</div>
     </div>`;
 }
 
-// Legge ricerca e filtri dalla pagina e li ricorda nell'interfaccia
+// Legge ricerca e settore dalla pagina e li ricorda nell'interfaccia (lo stato si sceglie con i riquadri in alto)
 function leggiFiltriClienti() {
   interfaccia.filtri = {
     testo: document.getElementById("cerca-clienti").value,
     settore: document.getElementById("filtro-settore").value,
-    stato: document.getElementById("filtro-stato").value,
+    stato: interfaccia.filtri.stato,
   };
+  interfaccia.clientiMostrati = LIMITE_CLIENTI;   // un nuovo filtro riparte dalle prime aziende
 }
 
 // Solo le cifre di un testo: "+39 000 000 1091" -> "390000001091"
@@ -247,7 +247,6 @@ function aggiornaElencoClienti() {
   const filtrate = aziendeFiltrate();
   elenco.innerHTML = schedeClienti(filtrate);
   document.querySelectorAll("[data-azione=filtro-stato]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.id === interfaccia.filtri.stato));
-  document.getElementById("filtro-stato").value = interfaccia.filtri.stato;
   // Il lettore di schermo annuncia quante aziende sono rimaste
   const filtriAttivi = Object.values(interfaccia.filtri).some((v) => v.trim());
   document.getElementById("risultati-clienti").textContent = filtriAttivi ? quanti(filtrate.length, "azienda trovata", "aziende trovate") : "";
@@ -260,7 +259,9 @@ function chipStato(aziendaId) {
   return `<span class="chip ${CLASSI_STATO[s]}">${s}</span>`;
 }
 
-// Schede dell'elenco: prima le aziende con un'attività scaduta o di oggi, poi quelle con una prossima azione
+const LIMITE_CLIENTI = 30; // aziende mostrate prima di «Mostra le altre»
+
+// Righe dell'elenco: prima le aziende con un'attività scaduta o di oggi, poi quelle con una prossima azione
 // (per data), poi le altre in ordine alfabetico. Le prossime azioni si calcolano una volta sola
 function schedeClienti(aziende) {
   if (!aziende.length) {
@@ -274,29 +275,33 @@ function schedeClienti(aziende) {
   const ordinate = [...aziende].sort((x, y) => gruppo(x) - gruppo(y)
     || (gruppo(x) < 2 ? prossime.get(x.id).data.localeCompare(prossime.get(y.id).data) : 0)
     || x.ragioneSociale.localeCompare(y.ragioneSociale));
-  return ordinate.map((a) => {
+  const limite = interfaccia.clientiMostrati || LIMITE_CLIENTI;
+  const altre = ordinate.length - limite;
+  // Riga compatta: azienda e stato, referente principale con i pulsanti di contatto, opportunità e prossima azione
+  return ordinate.slice(0, limite).map((a) => {
     const refs = referentiDi(a.id);
     const principale = refs.find((r) => r.decisore && !r.cancellato) || refs.find((r) => !r.cancellato);
     const prossima = prossime.get(a.id);
     const aperte = opportunitaDi(a.id).filter((o) => !o.perso);
     return `
-      <article class="riquadro cliente">
-        <div class="scheda-alto">
-          <a class="link-titolo" href="#cliente-${esc(a.id)}">${esc(a.ragioneSociale)}</a>
-          ${chipStato(a.id)}
+      <article class="riquadro cliente riga-cliente">
+        <div class="cliente-nome">
+          <p class="scheda-alto"><a class="link-titolo" href="#cliente-${esc(a.id)}">${esc(a.ragioneSociale)}</a> ${chipStato(a.id)}</p>
+          <p class="partner-dati">${esc(a.settore)} · ${esc(a.comune)} · fonte: ${esc(a.fonte)}</p>
         </div>
-        <p class="partner-dati">${esc(a.settore)} · ${esc(a.comune)} · fonte: ${esc(a.fonte)}</p>
         ${principale ? `
           <div class="cliente-referente">
             <p><strong>${esc(principale.nome)}</strong>${principale.ruolo ? " · " + esc(principale.ruolo) : ""}${principale.decisore ? ' <span class="chip chip-ok">decisore</span>' : ""}</p>
             ${principale.telefono ? `<p class="cliente-telefono">${icona("telefono")} ${esc(telefonoLeggibile(principale.telefono))}</p>` : ""}
-            <div class="contatti contatti-tutti">${pulsantiContatto(principale)}</div>
-            <div class="contatti contatti-compatti">${pulsantiContatto(principale, true)}</div>
-          </div>` : '<p class="nota-piccola">Nessun referente registrato.</p>'}
-        <p class="nota-piccola">${aperte.length} opportunità ${aperte.length === 1 ? "attiva" : "attive"}${aperte.length ? " · " + formattaEuro(aperte.reduce((s, o) => s + valoreAnnuo(o), 0)) + "/anno" : ""}</p>
-        ${prossima ? `<p class="cliente-prossima">${scadenza(prossima.data)} ${esc(prossima.testo)}</p>` : ""}
+          </div>
+          <div class="contatti contatti-tutti">${pulsantiContatto(principale)}</div>
+          <div class="contatti contatti-compatti">${pulsantiContatto(principale, true)}</div>` : '<p class="nota-piccola cliente-referente">Nessun referente registrato.</p>'}
+        <div class="cliente-numeri">
+          <p class="nota-piccola">${aperte.length} opportunità ${aperte.length === 1 ? "attiva" : "attive"}${aperte.length ? " · " + formattaEuro(aperte.reduce((s, o) => s + valoreAnnuo(o), 0)) + "/anno" : ""}</p>
+          ${prossima ? `<p class="cliente-prossima">${scadenza(prossima.data)} ${esc(prossima.testo)}</p>` : ""}
+        </div>
       </article>`;
-  }).join("");
+  }).join("") + (altre > 0 ? `<button class="pulsante secondario mostra-altri" type="button" data-azione="mostra-clienti">Mostra le altre ${altre}</button>` : "");
 }
 
 // ============================================================== SCHEDA CLIENTE
@@ -672,10 +677,17 @@ const AZIONI_CLIENTI = {
   // Riquadri del riepilogo Clienti: il primo clic filtra per quello stato, il secondo toglie il filtro
   "filtro-stato": (el) => {
     interfaccia.filtri.stato = interfaccia.filtri.stato === el.dataset.id ? "" : el.dataset.id;
+    interfaccia.clientiMostrati = LIMITE_CLIENTI;
+    aggiornaElencoClienti();
+  },
+  // «Mostra le altre»: tutte le aziende dell'elenco filtrato
+  "mostra-clienti": () => {
+    interfaccia.clientiMostrati = Infinity;
     aggiornaElencoClienti();
   },
   "cancella-filtri": () => {
     interfaccia.filtri = { testo: "", settore: "", stato: "" };
+    interfaccia.clientiMostrati = LIMITE_CLIENTI;
     disegna();
     document.getElementById("cerca-clienti").focus();
   },

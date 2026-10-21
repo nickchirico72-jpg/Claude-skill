@@ -143,6 +143,7 @@ function barraIndicatori(scelta, reali) {
         ${fonti.length > 1 ? `<label class="scegli-fonte">Fonte dei dati
           <select id="scelta-fonte">${fonti.map((f) => `<option value="${esc(f)}" ${f === scelta.fonte ? "selected" : ""}>${esc(nomeFonte(f))}</option>`).join("")}</select>
         </label>` : ""}
+        <a class="pulsante-testo positivo" href="#riepilogo">Riepilogo del mese</a>
         <button class="pulsante-testo positivo" type="button" data-azione="esporta-csv-richieste">Esporta CSV</button>
         <button class="pulsante-testo positivo" type="button" data-azione="importa-csv-reali">Importa CSV dati reali</button>
       </div>
@@ -455,6 +456,85 @@ function confermaCsvReali() {
   csvDaImportare = null;
 }
 
+// ============================================================ RIEPILOGO DEL MESE
+
+// Numeri di un periodo [da, a]: contatti, offerte, contratti e loro valore, perse, prima risposta media
+function numeriPeriodo(opportunita, da, a) {
+  const dentro = (d) => !!d && d >= da && d <= a;
+  const contatti = opportunita.filter((o) => dentro(o.storico.contatto));
+  const firmati = opportunita.filter((o) => dentro(o.storico.contratto) && !o.perso);
+  const risposte = contatti.filter((o) => o.dataPrimaRisposta);
+  return {
+    contatti: contatti.length,
+    offerte: opportunita.filter((o) => dentro(o.storico.offerta)).length,
+    contratti: firmati.length,
+    valore: firmati.reduce((s, o) => s + valoreAnnuo(o), 0),
+    perse: opportunita.filter((o) => o.perso && dentro(o.perso.data)).length,
+    risposta: media(risposte.map((o) => giorniTra(o.storico.contatto, o.dataPrimaRisposta))),
+  };
+}
+
+// Confronto con il mese prima, in parole: «+12% sul mese prima», «come il mese prima»
+function confronto(ora, prima, meglioSeMeno = false) {
+  if (ora === null || prima === null) return "";
+  if (!prima) return ora ? "il mese prima: 0" : "come il mese prima";
+  const delta = (ora - prima) / prima;
+  if (Math.abs(delta) < 0.005) return "come il mese prima";
+  const bene = meglioSeMeno ? delta < 0 : delta > 0;
+  return `<span class="${bene ? "meglio" : "peggio"}">${delta > 0 ? "▲ +" : "▼ "}${formattaPercentuale(delta)}</span> sul mese prima`;
+}
+
+// Pagina A4 per la direzione: ultimi 30 giorni contro i 30 precedenti, situazione di oggi, cosa fare domani
+function disegnaRiepilogo() {
+  const tutte = stato.opportunita;
+  const fine = oggi(), inizio = aggiungiGiorni(fine, -29);
+  const ora = numeriPeriodo(tutte, inizio, fine);
+  const prima = numeriPeriodo(tutte, aggiungiGiorni(fine, -59), aggiungiGiorni(fine, -30));
+  const k = calcolaKpi(tutte);
+  const p = previsionePonderata(tutte);
+  const portafoglio = coerenzaPortafoglio(tutte);
+  const daAssegnare = tutte.filter((o) => o.storico.contratto && !o.perso && !o.allocazione).length;
+  const motivo = motiviPerdita(tutte.filter((o) => o.perso && o.perso.data >= inizio))[0];
+  const numero = (etichetta, valore, nota) => `<div class="riepilogo-numero"><span>${etichetta}</span><strong>${valore}</strong><small>${nota}</small></div>`;
+  return `
+    ${intestazione({ titolo: "Riepilogo del mese", istruzione: "Una pagina per la direzione con i numeri degli ultimi 30 giorni: stampala o salvala in PDF.",
+      azione: `<div class="azioni-intestazione"><a class="pulsante-testo positivo esporta" href="#indicatori">Torna agli Indicatori</a>
+        <button class="pulsante primario" type="button" data-azione="stampa-riepilogo">Stampa o salva in PDF</button></div>` })}
+    <article class="foglio" id="foglio-riepilogo" aria-label="Riepilogo del mese">
+      <header class="foglio-testa">
+        <p class="marchio-stampa">Gate <span>S.R.L.</span></p>
+        <div><h2>Riepilogo commerciale</h2><p>dal ${formattaData(inizio)} al ${formattaData(fine)}</p></div>
+      </header>
+
+      <h3>Il mese</h3>
+      <div class="riepilogo-numeri">
+        ${numero("Nuovi contatti", ora.contatti, confronto(ora.contatti, prima.contatti))}
+        ${numero("Offerte inviate", ora.offerte, confronto(ora.offerte, prima.offerte))}
+        ${numero("Contratti firmati", ora.contratti, confronto(ora.contratti, prima.contratti))}
+        ${numero("Valore dei contratti", formattaEuro(ora.valore), "all'anno · " + confronto(ora.valore, prima.valore))}
+        ${numero("Trattative perse", ora.perse, (motivo ? "soprattutto «" + esc(motivo.motivo) + "» · " : "") + confronto(ora.perse, prima.perse, true))}
+        ${numero("Prima risposta", formattaGiorni(ora.risposta), "media (K12) · " + confronto(ora.risposta, prima.risposta, true))}
+      </div>
+
+      <h3>Oggi</h3>
+      <div class="riepilogo-numeri quattro">
+        ${numero("Trattative aperte", p.aperte, k.ferme + " ferme (K9)")}
+        ${numero("Ricavi attesi", formattaEuro(p.ponderata), "all'anno, pesati per fase (K6)")}
+        ${numero("Trattative buone", quota(portafoglio.buone.n, portafoglio.totale.n), "punteggio da " + CONFIG.punteggio.buona + " in su (K11)")}
+        ${numero("Commesse da assegnare", daAssegnare, "contratti firmati senza squadra o partner")}
+      </div>
+
+      <h3>Cosa fare domani</h3>
+      <table class="tabella riepilogo-azioni"><tbody>
+        ${previsioniDomani(tutte).map((x) => `<tr>
+          <td><strong>${esc(x.titolo)}</strong><br>${esc(x.valore)}${x.dettaglio ? " · " + esc(x.dettaglio) : ""}</td>
+          <td>${x.azioni.length ? esc(x.azioni[0].testo) + (x.azioni.length > 1 ? ` <span class="nota-piccola">e altre ${x.azioni.length - 1}</span>` : "") : "Nessuna azione urgente"}</td>
+        </tr>`).join("")}
+      </tbody></table>
+      <p class="foglio-piede">Mese = ultimi 30 giorni, confrontati con i 30 precedenti · ${esc(nomeFonte("fittizi"))} · stampato il ${formattaData(oggi())}</p>
+    </article>`;
+}
+
 // Azioni della schermata: livello, CSV (stato dell'interfaccia o dati reali importati)
 Object.assign(AZIONI_CLIENTI, {
   livello: (el) => {
@@ -464,6 +544,7 @@ Object.assign(AZIONI_CLIENTI, {
   "esporta-csv-richieste": () => esportaCsvRichieste(),
   "importa-csv-reali": () => apriImportaCsvReali(),
   "conferma-csv-reali": () => confermaCsvReali(),
+  "stampa-riepilogo": () => window.print(),
 });
 
 GESTORI_MODULI["modulo-csv-reali"] = (modulo) => {

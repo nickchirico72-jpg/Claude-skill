@@ -225,6 +225,14 @@ const CONFIG = {
   giorniContrattiDaAssegnare: 14,
 
   // Le quattro domande: soglie dei consigli "Cosa conviene fare?" (ipotesi da tarare con Gate)
+  // Avvisi in cima alla Pipeline: compaiono solo quando c'è qualcosa da fare
+  avvisi: {
+    giorniDurc: 30,              // DURC di un partner scaduto o in scadenza entro 30 giorni
+    giorniOfferta: 3,            // offerte aperte scadute o in scadenza entro 3 giorni
+    giorniCommessa: 5,           // contratti firmati da oltre 5 giorni ancora senza squadra né partner
+    giorniRispostaPartner: 2,    // proposte ai partner senza risposta da oltre 2 giorni
+  },
+
   consigli: {
     giorniAvvisoScadenzaOfferta: 3,   // sollecitare le offerte che scadono entro 3 giorni (o già scadute)
     minimoPerditeStessoMotivo: 1,     // consigliare un rimedio quando almeno N trattative sono perse per lo stesso motivo

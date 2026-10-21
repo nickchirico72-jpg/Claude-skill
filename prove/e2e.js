@@ -55,7 +55,7 @@ const PROVE = {
       const { ctx, page, errori } = await apri(dispositivo);
       const sigla = dispositivo === 'desktop' ? 'desktop' : 'mobile';
       for (const [nome, indirizzo] of [['pipeline', 'index.html#pipeline'], ['clienti', 'index.html#clienti'], ['scheda-cliente', 'index.html#cliente-c1'],
-        ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
+        ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['riepilogo', 'index.html#riepilogo'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
         await page.goto(BASE + indirizzo);
         await page.waitForTimeout(400);
         verifica(`${dispositivo} ${nome}: nessuno scorrimento orizzontale`, !(await scorreOrizzontale(page)));
@@ -221,6 +221,33 @@ const PROVE = {
     await page.selectOption('#filtro-zona', '');
     verifica('riquadro «Squadre e partner» resta aperto dopo il ridisegno', await page.$eval('#riquadro-squadre-partner', (d) => d.open));
     verifica('nessun riferimento al prototipo', !/prototip/i.test(await page.textContent('body')));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // Migliorie del 21/10: Clienti a righe con «Mostra le altre», riepilogo del mese, avvisi in Pipeline
+  async migliorie() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#clienti');
+    const righe = await page.$$eval('.riga-cliente', (el) => el.length);
+    await clic(page, '[data-azione=mostra-clienti]');
+    const tutte = await page.$$eval('.riga-cliente', (el) => el.length);
+    verifica('clienti: prime 30 righe, poi tutte con «Mostra le altre»', righe === 30 && tutte === await page.evaluate(() => stato.aziende.length), righe + ' → ' + tutte);
+    verifica('clienti: ogni riga ha i pulsanti di contatto', (await page.$$('.riga-cliente .contatti-tutti a')).length > 0);
+    await page.goto(BASE + 'index.html#riepilogo');
+    const numeri = await page.$$eval('#foglio-riepilogo .riepilogo-numero', (el) => el.length);
+    const azioni = await page.$$eval('#foglio-riepilogo .riepilogo-azioni tr', (el) => el.length);
+    verifica('riepilogo del mese: 6 numeri del mese, 4 di oggi, 4 previsioni', numeri === 10 && azioni === 4, numeri + ' numeri, ' + azioni + ' righe');
+    await page.emulateMedia({ media: 'print' });
+    verifica('riepilogo: in stampa si vede solo il foglio', await page.$eval('.barra-laterale', (el) => getComputedStyle(el).visibility) === 'hidden'
+      && await page.$eval('#foglio-riepilogo', (el) => getComputedStyle(el).visibility) === 'visible');
+    await page.emulateMedia({ media: 'screen' });
+    await page.goto(BASE + 'index.html#pipeline');
+    const avvisi = await page.$$eval('.riga-avvisi .avviso-chip', (el) => el.map((e) => e.dataset.azione));
+    verifica('avvisi: offerte, commesse da assegnare e DURC', ['vai-domani', 'vai-allocazione', 'vai-partner'].every((x) => avvisi.includes(x)), avvisi.join(','));
+    await clic(page, '.riga-avvisi [data-azione=vai-partner]');
+    await page.waitForSelector('#riquadro-squadre-partner[open]');
+    verifica('avviso DURC: apre Allocazione con squadre e partner in vista', page.url().endsWith('#allocazione'));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },

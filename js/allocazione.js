@@ -75,6 +75,28 @@ function requisitiPartner(partner, data = oggi()) {
   return { idoneo: true, testo: "DURC regolare fino al " + formattaData(partner.durcScadenza) };
 }
 
+// Avvisi su scadenze e partner (soglie in CONFIG.avvisi): ognuno con il numero, il testo e dove si risolve
+function avvisiScadenze(opportunita = stato.opportunita) {
+  const a = CONFIG.avvisi;
+  const elenco = [];
+  const offerte = opportunita.filter((o) => trattativaAperta(o) && o.scadenzaOfferta && giorniTra(oggi(), o.scadenzaOfferta) <= a.giorniOfferta);
+  if (offerte.length) elenco.push({ n: offerte.length, tono: "critico", azione: "vai-domani",
+    testo: offerte.length === 1 ? "offerta scaduta o in scadenza" : "offerte scadute o in scadenza" });
+  const commesse = opportunita.filter((o) => o.storico.contratto && !o.perso && !o.allocazione && !propostaInAttesa(o)
+    && giorniTra(o.storico.contratto, oggi()) > a.giorniCommessa);
+  if (commesse.length) elenco.push({ n: commesse.length, tono: "attenzione", azione: "vai-allocazione",
+    testo: (commesse.length === 1 ? "commessa firmata ancora da assegnare" : "commesse firmate ancora da assegnare") + " da oltre " + giorni(a.giorniCommessa) });
+  if (CONFIG.funzioni.partner) {
+    const attese = opportunita.filter((o) => propostaInAttesa(o) && giorniTra(propostaInAttesa(o).data, oggi()) > a.giorniRispostaPartner);
+    if (attese.length) elenco.push({ n: attese.length, tono: "attenzione", azione: "vai-allocazione",
+      testo: (attese.length === 1 ? "partner non ha" : "partner non hanno") + " risposto da oltre " + giorni(a.giorniRispostaPartner) });
+    const durc = CONFIG.partner.filter((p) => p.tipo === "impresa" && giorniTra(oggi(), p.durcScadenza) <= a.giorniDurc);
+    durc.forEach((p) => elenco.push({ n: null, tono: p.durcScadenza < oggi() ? "critico" : "attenzione", azione: "vai-partner",
+      testo: p.nome + ": DURC " + (p.durcScadenza < oggi() ? "scaduto il " : "in scadenza il ") + formattaData(p.durcScadenza) }));
+  }
+  return elenco;
+}
+
 // Partner che coprono zona e servizio, nell'ordine di priorità della configurazione (nessuno se la funzione partner è spenta)
 function partnerInZona(opp) {
   if (!CONFIG.funzioni.partner) return [];
