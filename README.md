@@ -35,11 +35,12 @@ Il vincolo: acquisire solo clienti coerenti con la capacità operativa e la marg
 | **Allocazione** | Ogni contratto va prima a una **squadra interna** con ore libere nella zona. Altrimenti si propone a un'**impresa partner** su WhatsApp, che risponde SÌ o NO (solo DURC regolare, niente lavoratori autonomi; il cliente resta di Gate). I partner sono "in roadmap" nel PASSAGGIO 3: il team ha scelto di tenerli. Si spengono con `funzioni.partner` in `js/config.js`. | 43 |
 | **Indicatori** | Tre livelli più «Altri indicatori». Ogni vista dice da quale fonte legge: **Dati fittizi** oppure **Dati reali** (fotografia di partenza o test). Il CSV dei dati reali (7 colonne) si **importa ed esporta direttamente qui**; le righe importate restano in un elenco a parte. | 44 (dashboard) |
 
-I livelli degli Indicatori (ogni KPI ha il codice K1–K17, una riga che spiega la formula in parole e la formula tecnica in «Come si calcola»; senza dati compare «nessun dato», mai zero):
-- **Direzione**: contatti qualificati K1, conversione delle offerte K3, pipeline ponderata K6, costo di acquisizione K4 per i 7 gruppi di canale.
-- **Commerciale**: trattative ferme K9, ricontatti con la data scaduta, prossimi passi in agenda e consigli.
-- **Operativo e adozione**: tempo di prima risposta K12, tempo dalla richiesta all'offerta K13, richieste annotate entro 24 ore K14 (soglia 80%), quota di richieste digitali K15, offerte firmate da link K16.
-- **Altri indicatori**: K2, K5, K7, K8, K10, K11, K17, funnel, matrice canale × classe A/B/C con il margine, contenuti, settori, previsione.
+Le sezioni degli Indicatori seguono il percorso del cliente (riorganizzate il 21/10). Ogni KPI ha il suo codice, una riga che spiega la formula in parole, la formula tecnica e il livello della piramide di Anthony in «Come si calcola»; senza dati compare «nessun dato», mai zero. Il catalogo ha 14 KPI: K14, K16 e K17 sono stati tolti il 21/10, gli altri codici non cambiano.
+- **Marketing** (da dove arrivano i clienti): quota di richieste digitali K15, costo di acquisizione K4; tabella dei 7 gruppi di canale con chiusura, classe A, margine e costo per contratto; per settore e per contenuto in riquadri richiudibili.
+- **Fino all'offerta**: prima risposta K12, contatti qualificati K1, sopralluoghi K2, tempo fino all'offerta K13, trattative ferme K9, funnel.
+- **Dall'offerta al contratto**: conversione delle offerte K3, win rate K7, durata del ciclo K8, motivi di perdita K10.
+- **Previsione e portafoglio**: pipeline ponderata K6, margine atteso K5, coerenza del portafoglio K11, capacità delle squadre e consigli.
+- Le liste di lavoro (ferme, da ricontattare, prossimi passi) stanno solo nella Pipeline, in «Da fare oggi» e «Da seguire».
 
 **Canali.** I 15 canali del database (12 attivi) sono raggruppati nei 7 gruppi usati da filtri, dashboard e CSV: sito, LinkedIn, telefono, email, passaparola, portale/gara, altro. Elenco e gruppi stanno in un solo punto: `CANALI_DIZIONARIO` e `GRUPPI_CANALI` in `generatore/parametri.py`.
 
@@ -57,7 +58,7 @@ I livelli degli Indicatori (ogni KPI ha il codice K1–K17, una riga che spiega 
 1. **Il cliente chiede un sopralluogo.** Apre `sopralluogo.html` dal link di un post LinkedIn (`?utm_source=linkedin&utm_campaign=uffici-e-commercio&utm_content=prova-03`) e invia la richiesta su WhatsApp.
 2. **La richiesta entra nel CRM.** In Clienti → Sito e social si incolla il messaggio e si preme Importa. Nasce un'opportunità in **Contatto** con canale, campagna, contenuto, data di registrazione di oggi e consenso. Ha già il **preventivo** e la **classe A/B/C**.
 3. **La trattativa avanza nella Pipeline:** È qualificato → Sopralluogo fatto → Offerta inviata → **Firma da link** (simulata) → Contratto.
-4. **Allocazione e Indicatori.** In Allocazione la commessa va a una squadra o a un partner. Negli **Indicatori** (vista Operativo) K16 conta la firma da link; in «Altri indicatori» il contenuto compare tra le richieste qualificate.
+4. **Allocazione e Indicatori.** In Allocazione la commessa va a una squadra o a un partner. Negli **Indicatori** («Dall'offerta al contratto») il nuovo contratto entra nella conversione delle offerte K3; in «Marketing» il contenuto compare tra le richieste qualificate.
 
 ## Le quattro domande dell'analisi
 
@@ -73,10 +74,10 @@ Ogni sezione dice a quale domanda risponde:
 |---|---|
 | Processi AS-IS e TO-BE (BPM, APQC) | **AS-IS:** i tempi di risposta e di registrazione oggi, misurati sulla **fotografia di partenza** (`richieste_reali`, fonte partenza). **TO-BE:** modulo, registrazione immediata, preventivo, firma da link e report; il test di tre settimane li misura (fonte test). |
 | KPI (APQC e KPI compendium) | `kpi_catalogo` e `docs/kpi.md`: ogni KPI ha il processo APQC, categoria 3.0 Market and Sell (dove il PASSAGGIO lo indica, "da verificare sul PCF"). |
-| Piramide di Anthony | I livelli degli Indicatori (Direzione, Commerciale, Operativo e adozione) e la colonna `livello_anthony` del catalogo. |
+| Piramide di Anthony | Il livello di ogni KPI (operativo, tattico, strategico) in «Come si calcola» e nella colonna `livello_anthony` del catalogo; le sezioni seguono il percorso del cliente. |
 | Piattaforma e platform thinking | Cliente senza app (modulo e WhatsApp), partner via WhatsApp, CRM come punto unico dei dati, canali tracciati con utm senza pixel. |
 | Roadmap della trasformazione | Le **evoluzioni previste:** portale partner (anteprima in Allocazione), lead scoring con modello statistico, archivio condiviso online. |
-| Digital gap | La quota di richieste digitali (K15) e la registrazione delle richieste (K14), prima e dopo il test. |
+| Digital gap | La quota di richieste digitali (K15) e il tempo di prima risposta (K12), prima e dopo il test. |
 
 ## Interrogare il database con SQL
 
@@ -173,7 +174,7 @@ js/formato.js           euro, percentuali e date
 js/dati.js              stato, dati iniziali dal database, migrazione, backup, CSV, doppioni, privacy
 js/allocazione.js       squadre, partner, DURC, messaggio WhatsApp
 js/punteggio.js         preventivo indicativo, margine e punteggio A/B/C
-js/kpi.js               KPI K1-K17 (fittizi e reali), funnel, canali, contenuti, settori
+js/kpi.js               KPI del catalogo (fittizi e reali), funnel, canali, contenuti, settori
 js/analisi.js           le quattro domande e i consigli
 js/clienti.js           schermata Clienti
 js/canali.js            sito e social: link tracciati, piano dei contenuti, import delle richieste
@@ -182,7 +183,7 @@ js/preventivi.js        schermata Preventivo: conti, prezzi di riferimento, riep
 js/app.js               Pipeline, Allocazione, finestre, firma da link, eventi
 generatore/             parametri.py, genera_dati.py, kpi_catalogo.py, esporta.py, importa_richieste.py, controlla_dati.py
 data/                   gate.db (SQLite), gate_mysql.sql (MySQL), csv/, esempi/
-docs/                   kpi.md, dati-generati.md, backlog.md, esercizi-k12-k17.md, passaggi/, ritorni/, screenshot/
+docs/                   kpi.md, dati-generati.md, backlog.md, esercizi-k12-k13-k15.md, passaggi/, ritorni/, screenshot/
 sql/  export/           le query di Nicolò e i CSV per Power BI
 prove/e2e.js            prove automatiche (Playwright)
 strumenti/              versione in un solo file

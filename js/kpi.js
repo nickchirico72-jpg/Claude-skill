@@ -1,6 +1,6 @@
 /*
  * INDICATORI DI PERFORMANCE
- * I KPI del catalogo (K1-K17, tabella kpi_catalogo: stesse formule delle query SQL), il funnel,
+ * I KPI del catalogo (tabella kpi_catalogo: stesse formule delle query SQL), il funnel,
  * i risultati per settore, per canale, per contenuto e la matrice canale × classe.
  * Un'opportunità "ha raggiunto" una fase se nello storico c'è la data di quella fase.
  * Le aziende ancora senza opportunità (lead "Da qualificare") si contano a parte, come nel database.
@@ -130,7 +130,6 @@ function calcolaKpi(opportunita, aziende = stato.aziende) {
   const ricavi = opportunita.reduce((s, o) => s + ricaviAttesi(o), 0);
   const conRisposta = opportunita.filter((o) => o.dataPrimaRisposta);
   const conOfferta = opportunita.filter((o) => o.storico.offerta);
-  const registrate = opportunita.filter((o) => o.dataRegistrazione);
   const digitali = opportunita.filter((o) => (infoCanale(o.canale) || {}).tipo === "digitale").length;
 
   return {
@@ -152,10 +151,7 @@ function calcolaKpi(opportunita, aziende = stato.aziende) {
     entroUnGiorno: conRisposta.filter((o) => giorniTra(o.storico.contatto, o.dataPrimaRisposta) <= 1).length,
     tempoOfferta: media(conOfferta.map((o) => giorniTra(o.storico.contatto, o.storico.offerta))),      // K13
     conOfferta: conOfferta.length,
-    registrate: registrate.length,
-    registrateEntro24: registrate.filter((o) => giorniTra(o.storico.contatto, o.dataRegistrazione) <= 1).length,   // K14
     digitali, quotaDigitali: rapporto(digitali, n),                            // K15
-    firmateDaLink: contrattiOpp.filter((o) => o.firmaDaLink).length,           // K16
   };
 }
 
@@ -171,11 +167,9 @@ function kpiReali(fonte) {
   const giorniDa = (r, campo) => giorniTra(r.data_richiesta, r[campo]);
   const conRisposta = righe.filter((r) => r.data_risposta);
   const conOfferta = righe.filter((r) => r.data_offerta);
-  const registrate = righe.filter((r) => r.data_registrazione);
   const decise = conOfferta.filter((r) => ["contratto", "persa"].includes(r.esito));
   const contratti = righe.filter((r) => r.esito === "contratto").length;
   const perse = righe.filter((r) => r.esito === "persa").length;
-  const voti = righe.filter((r) => r.voto_facilita != null).map((r) => r.voto_facilita);
   const digitali = righe.filter((r) => (infoCanale(r.canale) || {}).tipo === "digitale").length;
   return {
     righe, totale: righe.length, contratti, perse, esempio: righe.length > 0 && righe.every((r) => /^ESEMPIO/i.test(r.note || "")),
@@ -184,9 +178,7 @@ function kpiReali(fonte) {
     primaRisposta: media(conRisposta.map((r) => giorniDa(r, "data_risposta"))), conRisposta: conRisposta.length,   // K12
     entroUnGiorno: conRisposta.filter((r) => giorniDa(r, "data_risposta") <= 1).length,
     tempoOfferta: media(conOfferta.map((r) => giorniDa(r, "data_offerta"))), conOfferta: conOfferta.length,        // K13
-    registrate: registrate.length, registrateEntro24: registrate.filter((r) => giorniDa(r, "data_registrazione") <= 1).length,   // K14
     digitali, quotaDigitali: rapporto(digitali, righe.length),                                         // K15
-    facilita: media(voti), voti: voti.length,                                                          // K17
   };
 }
 

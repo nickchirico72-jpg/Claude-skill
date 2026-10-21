@@ -5,7 +5,7 @@
 **Uso** (Python 3, solo libreria standard):
 ```
 python3 generatore/genera_dati.py        # data/gate.db, data/csv/, data/gate_mysql.sql, js/dizionari.js, js/dati-db.js, docs/kpi.md
-python3 generatore/controlla_dati.py     # conteggi, coerenza, criteri A1-A4, ipotesi H1-H5, valori attesi K12-K17
+python3 generatore/controlla_dati.py     # conteggi, coerenza, criteri A1-A4, ipotesi H1-H5, valori attesi K12, K13 e K15
 python3 generatore/importa_richieste.py FILE.csv [--voti VOTI.csv]   # dati veri nella tabella richieste_reali
 ```
 Con lo stesso seme i dati sono sempre identici. La tabella `richieste_reali` viene conservata quando si rigenera il database.

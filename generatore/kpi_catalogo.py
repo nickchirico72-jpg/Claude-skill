@@ -1,6 +1,6 @@
 """
 CATALOGO DEI KPI (fonte unica)
-Le 17 righe del PASSAGGIO 3 (20/10/2026). Da qui nascono la tabella kpi_catalogo del database,
+Le righe del PASSAGGIO 3 (20/10/2026) senza K14, K16 e K17, tolti il 21/10: 14 KPI; i codici non cambiano. Da qui nascono la tabella kpi_catalogo del database,
 docs/kpi.md e le schede degli Indicatori nell'app (js/dati-db.js).
 Per cambiare un KPI si cambia solo questo file e si rilancia genera_dati.py.
 Dove il PASSAGGIO scrive "da verificare sul PCF" il testo resta così: va controllato sul PCF APQC cross-industry.
@@ -61,22 +61,10 @@ KPI = [
      "giorni medi tra data_contatto e data_invio della prima versione dell'offerta",
      "operativo", "efficienza", "3.5 (da verificare sul PCF)", "da definire con Gate",
      "opportunita (data_contatto); offerte (data_invio, versione); richieste_reali (data_richiesta, data_offerta)", "entrambi"),
-    ("K14", "Richieste registrate entro 24 ore", "Le richieste vengono annotate subito?",
-     "richieste con data_registrazione entro 1 giorno da data_contatto / richieste con data_registrazione",
-     "operativo", "adozione", "3.5.1 Manage leads/opportunities", "almeno 80%",
-     "opportunita (data_contatto, data_registrazione); richieste_reali (data_richiesta, data_registrazione)", "entrambi"),
     ("K15", "Quota di richieste digitali", "Quante richieste arrivano dai canali digitali?",
      "richieste da canali con tipo \"digitale\" nella tabella canali / richieste totali",
      "strategico", "efficacia", "3.0 (da verificare sul PCF)", "da definire con Gate",
      "opportunita (canale); canali (tipo); richieste_reali (canale)", "entrambi"),
-    ("K16", "Offerte firmate da link", "Quante offerte si firmano da link, senza carta?",
-     "contratti con firma_da_link = 1 / contratti",
-     "tattico", "adozione", "3.5 (da verificare sul PCF)", "da definire con Gate",
-     "offerte (firma_da_link, esito); opportunita (fase)", "fittizi"),
-    ("K17", "Facilità percepita", "I clienti trovano facile chiedere un sopralluogo e firmare?",
-     "media di voto_facilita (1-5)",
-     "strategico", "efficacia", "6.0 (da verificare sul PCF)", "almeno 4",
-     "richieste_reali (voto_facilita)", "reali"),
 ]
 
 # La formula spiegata in parole, per chi legge la dashboard senza conoscere SQL (modifica 4 del 20/10)
@@ -94,10 +82,7 @@ SPIEGAZIONI = {
     "K11": "Quanta parte delle trattative e del loro valore è in classe A, B o C.",
     "K12": "Quanti giorni passano in media tra la richiesta del cliente e la prima risposta di Gate.",
     "K13": "Quanti giorni passano in media tra la richiesta del cliente e l'invio dell'offerta.",
-    "K14": "Su 100 richieste annotate, quante sono annotate entro un giorno da quando sono arrivate.",
     "K15": "Su 100 richieste, quante arrivano da sito, LinkedIn, profilo Google o WhatsApp.",
-    "K16": "Su 100 contratti, quanti sono firmati dal cliente con un link, senza carta.",
-    "K17": "Il voto medio (da 1 a 5) che i clienti danno alla facilità di chiedere e firmare.",
 }
 
 COLONNE = ["codice", "nome", "domanda_business", "formula", "spiegazione", "livello_anthony", "tipo", "processo_apqc", "soglia",
@@ -130,7 +115,6 @@ def scrivi_markdown(percorso):
               "- **K3**: il denominatore conta le opportunità, non le offerte: una seconda versione della stessa offerta non conta due volte.",
               "- **K4**: un contratto si attribuisce al canale dell'opportunità; «nuovi contratti del periodo» usa data_chiusura. I canali senza costi registrati (modulo sito, WhatsApp Business, ...) non hanno un costo di acquisizione.",
               "- **K12**: in SQL si calcola la media; la mediana, meno sensibile ai ritardi eccezionali, si calcola in Power BI.",
-              "- **K14**: nei dati storici fittizi `data_registrazione` è vuota (NULL): il KPI si calcola sulle richieste del modulo e sui dati importati.",
-              "- **K16** e **K17**: nei dati storici non ci sono firme da link né voti; K16 cresce con la demo, K17 arriva solo dai dati reali.",
+              "- **K14, K16 e K17** sono stati tolti dal catalogo il 21/10/2026; i codici degli altri KPI non cambiano. I dati restano nel database (data_registrazione, firma_da_link, voto_facilita).",
               ""]
     percorso.write_text("\n".join(testo), encoding="utf-8")

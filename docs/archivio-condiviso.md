@@ -9,7 +9,7 @@ Decisione del 21/10/2026: il vincolo "nessun backend" è tolto. Obiettivo: Alfre
 4. **Nessun backup manuale**: backup automatici del fornitore o del server; l'export resta solo per casi straordinari.
 5. **Privacy (GDPR)**: dati in Unione Europea, accordo sul trattamento con il fornitore, registro di chi modifica cosa, cancellazione su richiesta.
 6. **Facile da usare da telefono** e anche con connessione debole.
-7. **Stesse regole del prototipo**: fasi, punteggio A/B/C, KPI del catalogo (K1-K17), preventivo, allocazione.
+7. **Stesse regole del prototipo**: fasi, punteggio A/B/C, KPI del catalogo, preventivo, allocazione.
 8. **Manutenzione sostenibile per una PMI** senza un reparto informatico.
 9. **Costi chiari** dopo il pilota.
 

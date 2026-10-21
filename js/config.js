@@ -30,9 +30,9 @@ const CONFIG = {
 
   // Ruoli di chi usa il CRM; vista = livello degli Indicatori che si apre per primo
   ruoli: [
-    { id: "direzione", nome: "Direzione", vista: "direzione" },
-    { id: "commerciale", nome: "Commerciale", vista: "commerciale" },
-    { id: "ufficio", nome: "Ufficio", vista: "operativo" },
+    { id: "direzione", nome: "Direzione", vista: "previsione" },
+    { id: "commerciale", nome: "Commerciale", vista: "offerta" },
+    { id: "ufficio", nome: "Ufficio", vista: "offerta" },
   ],
 
   // Chiave con cui i dati vengono salvati nel browser (localStorage)
@@ -156,10 +156,8 @@ const CONFIG = {
     conversioneOfferte: 0.35,      // contratti / offerte
     costoAcquisizioneMax: 1500,    // € per contratto (costi dei canali ÷ contratti)
     marginalitaMedia: 0.18,        // margine atteso / ricavi attesi delle trattative aperte
-    // Soglie del catalogo dei KPI (kpi_catalogo.soglia), dal PASSAGGIO 3
+    // Soglia del catalogo dei KPI (kpi_catalogo.soglia), dal PASSAGGIO 3
     primaRispostaGiorni: 1,        // K12: entro 1 giorno lavorativo
-    registrateEntro24: 0.80,       // K14: almeno l'80% delle richieste registrate entro 24 ore
-    facilita: 4,                   // K17: voto medio di facilità almeno 4 su 5
   },
 
   // Suggerimenti mostrati in «Il pilota in sintesi» quando un obiettivo non è raggiunto

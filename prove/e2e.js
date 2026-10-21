@@ -62,7 +62,7 @@ const PROVE = {
         if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, `${nome}-${sigla}.png`) });
       }
       await page.goto(BASE + 'index.html#indicatori');
-      for (const livello of ['commerciale', 'operativo', 'altri']) {
+      for (const livello of ['marketing', 'offerta', 'contratto', 'previsione']) {
         await clic(page, `[data-azione=livello][data-id=${livello}]`);
         verifica(`${dispositivo} indicatori ${livello}: nessuno scorrimento orizzontale`, !(await scorreOrizzontale(page)));
         if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, `indicatori-${livello}-${sigla}.png`), fullPage: dispositivo === 'desktop' });
@@ -146,9 +146,8 @@ const PROVE = {
     verifica('allocazione: primo partner NO, secondo SÌ', allocazione && allocazione.tipo === 'partner' && allocazione.id === 'pa2', JSON.stringify(allocazione));
 
     await page.goto(BASE + 'index.html#indicatori');
-    await clic(page, '[data-azione=livello][data-id=operativo]');
-    const k16 = await page.textContent('#kpi-K16');
-    verifica('indicatori: K16 conta la firma da link', /1 contratti firmati da link/.test(k16), k16.slice(0, 120));
+    await clic(page, '[data-azione=livello][data-id=contratto]');
+    verifica('indicatori: K3 conta il nuovo contratto (30 contratti)', /30 contratti/.test(await page.textContent('#kpi-K3')));
     const secondi = (Date.now() - inizio) / 1000;
     verifica('flusso della demo in meno di 90 secondi (con le pause del test)', secondi < 90, secondi.toFixed(1) + ' s');
     verifica('zero errori', errori.length === 0, errori.join(' | '));
@@ -190,8 +189,9 @@ const PROVE = {
     await page.selectOption('#scelta-fonte', 'test');
     await page.waitForTimeout(300);
     verifica('fonte test: etichetta dati reali con avviso di righe di esempio', /Dati reali/.test(await page.textContent('.etichetta-fonte')) && /esempio/.test(await page.textContent('.etichetta-fonte')));
-    await clic(page, '[data-azione=livello][data-id=altri]');
-    verifica('fonte test: K17 facilità percepita 4,3 su 5', /4,3 su 5/.test(await page.textContent('#kpi-K17')));
+    await clic(page, '[data-azione=livello][data-id=offerta]');
+    verifica('fonte test: K12 prima risposta ricalcolata sui dati reali (0,5 giorni)', /0,5 giorni/.test(await page.textContent('#kpi-K12')));
+    verifica('K14, K16 e K17 non compaiono più', !(await page.$('#kpi-K14, #kpi-K16, #kpi-K17')));
     verifica('fonte test: elenco dei KPI non calcolabili', /Non calcolabili/.test(await page.textContent('#schermata')));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
@@ -259,10 +259,9 @@ const PROVE = {
     await clic(page, '#modulo-csv-reali [type=submit]');
     verifica('controllo del file: 12 righe valide', /12 righe valide/.test(await page.textContent('#anteprima-csv-reali')));
     await clic(page, '#pulsante-csv-reali');
-    await clic(page, '[data-azione=livello][data-id=operativo]');
+    await clic(page, '[data-azione=livello][data-id=offerta]');
     verifica('le 12 righe sono nell\'elenco delle richieste', (await page.$$('#elenco-reali tbody tr')).length === 12);
     verifica('K12 ricalcolato dal CSV: 1 giorno', /^1 giorno$/.test((await page.textContent('#kpi-K12 .kpi-valore')).trim()));
-    verifica('K14 ricalcolato dal CSV: 100%', (await page.textContent('#kpi-K14 .kpi-valore')).trim() === '100%');
     verifica('K13 senza date di offerta: «nessun dato», non zero', (await page.textContent('#kpi-K13 .kpi-valore')).trim() === 'nessun dato');
     verifica('pipeline invariata: le righe reali non entrano tra le opportunità', (await page.evaluate(() => stato.opportunita.length)) === 300);
     const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-azione=esporta-csv-richieste]')]);
@@ -307,15 +306,13 @@ const PROVE = {
   async livelli() {
     const { ctx, page, errori } = await apri();
     await page.goto(BASE + 'index.html#indicatori');
-    const attesi = { direzione: ['K1', 'K3', 'K6', 'K4'], commerciale: ['K9'], operativo: ['K12', 'K13', 'K14', 'K15', 'K16'] };
+    const attesi = { marketing: ['K15', 'K4'], offerta: ['K12', 'K1', 'K2', 'K13', 'K9'], contratto: ['K3', 'K7', 'K8', 'K10'], previsione: ['K6', 'K5', 'K11'] };
     for (const [livello, codici] of Object.entries(attesi)) {
       await clic(page, `[data-azione=livello][data-id=${livello}]`);
       const presenti = await page.$$eval('.kpi[id^=kpi-]', (els) => els.map((e) => e.id.slice(4)));
       const spiegati = await page.$$eval('.kpi[id^=kpi-] .kpi-spiegazione', (els) => els.filter((e) => e.textContent.trim().length > 20).length);
       verifica(`${livello}: ${codici.join(', ')} con la spiegazione in parole`, codici.every((c) => presenti.includes(c)) && spiegati === presenti.length, presenti.join(','));
     }
-    await clic(page, '[data-azione=livello][data-id=commerciale]');
-    verifica('commerciale: ricontatti scaduti e prossimi passi', await page.isVisible('#ricontatti-scaduti'));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },
@@ -332,7 +329,7 @@ const PROVE = {
     await clic(page, '#modulo-utente [type=submit]');
     verifica('utente e ruolo nel piè di pagina', /Alfredo Prova/.test(await page.textContent('#riga-utente')) && /commerciale/.test(await page.textContent('#riga-utente')));
     await page.goto(BASE + 'index.html#indicatori');
-    verifica('il ruolo commerciale apre la vista Commerciale', /Commerciale/.test(await page.textContent('h1')));
+    verifica('il ruolo commerciale apre la vista «Fino all\'offerta»', /Fino all'offerta/.test(await page.textContent('h1')));
     await page.evaluate(() => { const s = ARCHIVI.locale.scrivi; ARCHIVI.locale.scrivi = (d, m) => { window.ultime = m; s(d, m); }; });
     const id = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && faseRaggiunta(o) === 0).id);
     await page.goto(BASE + 'index.html#pipeline');

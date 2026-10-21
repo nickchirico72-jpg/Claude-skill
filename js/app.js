@@ -995,7 +995,7 @@ function leggiModulo(modulo) {
     tariffa: tariffa > 0 && tariffa !== datiServizio(servizio).tariffa ? tariffa : null,
     ...(d.get("ambiente") && mq > 0 ? { preventivo: { ambiente: d.get("ambiente"), mq, frequenza: d.get("frequenza") } } : {}),
     storico: { contatto: d.get("dataRichiesta") },
-    dataRegistrazione: d.get("dataAnnotazione"),   // quando la richiesta è stata annotata nel CRM (K14)
+    dataRegistrazione: d.get("dataAnnotazione"),   // quando la richiesta è stata annotata nel CRM
     ...(d.get("dataRisposta") ? { dataPrimaRisposta: d.get("dataRisposta") } : {}),
     consensoPrivacy: base === "consenso",
     campagna: "", contenuto: "", paginaArrivo: "",
@@ -1443,14 +1443,14 @@ function apriFirmaLink(id) {
       <p><strong>${esc(o.servizio)} · ${esc(o.comune)}</strong></p>
       <p class="nota-piccola">${Number(o.ore)} ore al mese · ${formattaEuro(valoreAnnuo(o))} all'anno${o.scadenzaOfferta ? " · valida fino al " + formattaData(o.scadenzaOfferta) : ""}</p>
     </div>
-    <p class="nota-piccola">Prototipo: nessun messaggio viene inviato. La firma si registra con la data di oggi e conta nel KPI K16.</p>
+    <p class="nota-piccola">Prototipo: nessun messaggio viene inviato. La firma si registra con la data di oggi.</p>
     <div class="azioni-finestra">
       <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
       <button class="pulsante primario" type="button" data-azione="conferma-firma" data-id="${esc(o.id)}">${icona("spunta")} Il cliente ha firmato (simulazione)</button>
     </div>`);
 }
 
-// Registra il contratto firmato da link: data di oggi, avvio proposto, firma da link (K16)
+// Registra il contratto firmato da link: data di oggi, avvio proposto, firma da link
 function confermaFirma(id) {
   const o = trova(id);
   const contratto = CONFIG.fasi.find((f) => f.id === "contratto");

@@ -3561,3 +3561,23 @@ h1[tabindex="-1"]:focus {
     font-weight: 700;
   }
 }
+
+/* Approfondimenti richiudibili negli Indicatori (settori, contenuti, elenco delle richieste) */
+.approfondimento {
+  margin-bottom: 12px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.approfondimento summary {
+  min-height: 32px;
+  font-family: Sora, system-ui, sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.approfondimento[open] summary {
+  margin-bottom: 10px;
+}

@@ -1,7 +1,7 @@
 """
 CONTROLLO DEL DATABASE DI PROVA
 Stampa conteggi, valori ammessi, chiavi esterne, coerenza del percorso (PASSAGGIO 01, punti 5 e 6),
-i criteri A1-A4 del PASSAGGIO 3, le ipotesi H1-H5, le tabelle nuove e i valori attesi di K12-K17
+i criteri A1-A4 del PASSAGGIO 3, le ipotesi H1-H5, le tabelle nuove e i valori attesi di K12, K13 e K15
 (per controllare le query di Nicolò). Non stampa le query di riferimento: dice solo se girano.
 Uso: python3 generatore/controlla_dati.py
 """
@@ -193,7 +193,8 @@ for n, sql in enumerate(re.findall(r"```sql\n(.*?)```", blocco, re.S)[:5], 1):
         problemi.append(f"query di riferimento {n}")
 
 print("\nTabelle nuove")
-condizione("kpi_catalogo con 17 righe (K1-K17), livelli e tipi ammessi", uno("SELECT COUNT(*) FROM kpi_catalogo") == 17 and uno(
+condizione("kpi_catalogo con 14 righe (K1-K13 e K15; K14, K16, K17 tolti il 21/10), livelli e tipi ammessi", uno("SELECT COUNT(*) FROM kpi_catalogo") == 14
+    and uno("SELECT COUNT(*) FROM kpi_catalogo WHERE codice IN ('K14','K16','K17')") == 0 and uno(
     "SELECT COUNT(*) FROM kpi_catalogo WHERE livello_anthony NOT IN ('operativo','tattico','strategico') OR tipo NOT IN ('efficacia','efficienza','adozione') OR fonte NOT IN ('fittizi','reali','entrambi')") == 0,
     ", ".join(f"{l} {n}" for l, n in con.execute("SELECT livello_anthony, COUNT(*) FROM kpi_catalogo GROUP BY 1")))
 condizione("contenuti di prova", uno("SELECT COUNT(*) FROM contenuti WHERE tema LIKE '[prova]%'") == len(P.CONTENUTI),
@@ -212,21 +213,14 @@ verifica("js/dati-db.js ha le stesse righe del database", len(diversi))
 mysql = (RADICE / "data" / "gate_mysql.sql").read_text(encoding="utf-8")
 verifica("data/gate_mysql.sql crea tutte le tabelle", sum(f"CREATE TABLE {t} (" not in mysql for t in TABELLE))
 
-print("\nValori attesi per gli esercizi K12-K17 (dati fittizi; controlla la tua query con questi)")
+print("\nValori attesi per gli esercizi K12, K13 e K15 (dati fittizi; controlla la tua query con questi)")
 k12 = uno("SELECT ROUND(AVG(julianday(data_prima_risposta) - julianday(data_contatto)), 2) FROM opportunita")
 print(f"  K12 tempo medio di prima risposta: {k12} giorni su {uno('SELECT COUNT(*) FROM opportunita')} opportunità")
 k13 = con.execute("""SELECT ROUND(AVG(julianday(f.data_invio) - julianday(o.data_contatto)), 2), COUNT(*)
   FROM offerte f JOIN opportunita o USING(id_opp) WHERE f.versione = 1""").fetchone()
 print(f"  K13 tempo medio dalla richiesta alla prima offerta: {k13[0]} giorni su {k13[1]} opportunità con offerta")
-reg = uno("SELECT COUNT(*) FROM opportunita WHERE data_registrazione IS NOT NULL")
-print(f"  K14 richieste registrate entro 24 ore: " + ("n.d., nessuna richiesta con data_registrazione nei dati storici" if not reg else
-      f"{pct(uno('SELECT COUNT(*) FROM opportunita WHERE julianday(data_registrazione) - julianday(data_contatto) <= 1'), reg)}% su {reg}"))
 dig = uno("SELECT COUNT(*) FROM opportunita o JOIN canali c USING(canale) WHERE c.tipo = 'digitale'")
 print(f"  K15 quota di richieste digitali: {dig} su {uno('SELECT COUNT(*) FROM opportunita')} = {pct(dig, uno('SELECT COUNT(*) FROM opportunita'))}%")
-contratti = uno("SELECT COUNT(*) FROM opportunita WHERE fase = 'contratto'")
-firmate = uno("SELECT COUNT(DISTINCT id_opp) FROM offerte WHERE firma_da_link = 1 AND esito = 'firmata'")
-print(f"  K16 offerte firmate da link: {firmate} su {contratti} contratti = {pct(firmate, contratti)}% (cresce solo con la demo)")
-print("  K17 facilità percepita: n.d. sui dati fittizi (arriva solo dai dati reali)")
 
 for fonte in [f for (f,) in con.execute("SELECT DISTINCT fonte FROM richieste_reali ORDER BY fonte")]:
     w = f"fonte = '{fonte}'"
@@ -235,11 +229,7 @@ for fonte in [f for (f,) in con.execute("SELECT DISTINCT fonte FROM richieste_re
     print(f"  K12 prima risposta: {uno(f'SELECT ROUND(AVG(julianday(data_risposta) - julianday(data_richiesta)), 2) FROM richieste_reali WHERE {w}')} giorni")
     print(f"  K13 richiesta → offerta: {uno(f'SELECT ROUND(AVG(julianday(data_offerta) - julianday(data_richiesta)), 2) FROM richieste_reali WHERE {w} AND data_offerta IS NOT NULL')} giorni "
           f"su {uno(f'SELECT COUNT(*) FROM richieste_reali WHERE {w} AND data_offerta IS NOT NULL')} richieste con offerta")
-    r = uno(f"SELECT COUNT(*) FROM richieste_reali WHERE {w} AND data_registrazione IS NOT NULL")
-    print(f"  K14 registrate entro 24 ore: {uno(f'SELECT COUNT(*) FROM richieste_reali WHERE {w} AND julianday(data_registrazione) - julianday(data_richiesta) <= 1')} su {r} registrate")
     d = uno(f"SELECT COUNT(*) FROM richieste_reali r JOIN canali c USING(canale) WHERE {w} AND c.tipo = 'digitale'")
     print(f"  K15 richieste digitali: {d} su {tot} = {pct(d, tot)}%")
-    print(f"  K17 facilità percepita: {uno(f'SELECT ROUND(AVG(voto_facilita), 2) FROM richieste_reali WHERE {w}') or 'n.d.'} "
-          f"su {uno(f'SELECT COUNT(voto_facilita) FROM richieste_reali WHERE {w}')} voti")
 
 print("\nRISULTATO: " + ("tutti i controlli superati" if not problemi else f"{len(problemi)} controlli non superati: " + "; ".join(problemi)))

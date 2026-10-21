@@ -1,21 +1,23 @@
 /*
- * INDICATORI A TRE LIVELLI (modifica 4 del 20/10)
- * Direzione, Commerciale, Operativo/adozione, più «Altri indicatori» per tutto il resto del catalogo.
- * Ogni KPI viene dal catalogo (tabella kpi_catalogo): codice K1-K17, formula, spiegazione in parole, APQC e soglia.
+ * INDICATORI LUNGO IL PERCORSO DEL CLIENTE (riorganizzati il 21/10)
+ * Marketing (da dove arrivano i clienti) → Fino all'offerta → Dall'offerta al contratto → Previsione e portafoglio.
+ * Ogni KPI viene dal catalogo (tabella kpi_catalogo, 14 KPI: K14, K16 e K17 tolti il 21/10): codice, spiegazione in parole,
+ * formula, livello della piramide di Anthony, APQC e soglia. Le liste di lavoro (ferme, ricontatti, prossimi passi)
+ * stanno solo nella Pipeline, per non ripeterle.
  * La fonte si sceglie in alto: dati fittizi (database di prova) oppure dati reali (fotografia di partenza, test),
  * anche importati qui da un CSV a 7 colonne; non si mescolano mai. Senza dati si scrive «nessun dato», mai zero.
  * Ogni sezione dice a quale delle quattro domande risponde.
  */
 
 const LIVELLI = {
-  direzione: { nome: "Direzione", chi: "Risultati e costi", kpi: ["K1", "K3", "K6", "K4"],
-    istruzione: "Il pilota in quattro numeri: contatti qualificati, offerte firmate, fatturato atteso e costo per canale." },
-  commerciale: { nome: "Commerciale", chi: "Trattative da seguire", kpi: ["K9"],
-    istruzione: "Cosa fare oggi: riprendi le trattative ferme, richiama chi è da ricontattare, segui i prossimi passi." },
-  operativo: { nome: "Operativo", titolo: "Operativo e adozione", chi: "Tempi e adozione", kpi: ["K12", "K13", "K14", "K15", "K16"],
-    istruzione: "Quanto in fretta si risponde e quanto si usano i nuovi strumenti: modulo, annotazione, canali digitali, firma da link." },
-  altri: { nome: "Altri indicatori", chi: "Approfondimenti", kpi: ["K2", "K5", "K7", "K8", "K10", "K11", "K17"],
-    istruzione: "Gli altri indicatori del catalogo: funnel, margine, motivi di perdita, canali e contenuti." },
+  marketing: { nome: "Marketing", chi: "Da dove arrivano i clienti", kpi: ["K15", "K4"],
+    istruzione: "Quali canali e quali settori portano clienti coerenti, e quanto costano." },
+  offerta: { nome: "Fino all'offerta", chi: "Dalla richiesta all'offerta", kpi: ["K12", "K1", "K2", "K13", "K9"],
+    istruzione: "Quanto in fretta si risponde e quante richieste arrivano fino all'offerta." },
+  contratto: { nome: "Dall'offerta al contratto", chi: "Chiusura", kpi: ["K3", "K7", "K8", "K10"],
+    istruzione: "Quante offerte diventano contratti, in quanto tempo e perché si perdono le altre." },
+  previsione: { nome: "Previsione e portafoglio", chi: "Direzione", kpi: ["K6", "K5", "K11"],
+    istruzione: "Cosa ci si può aspettare dalle trattative aperte e se il portafoglio è coerente con capacità e margini." },
 };
 
 const NESSUN_DATO = "nessun dato";
@@ -29,7 +31,7 @@ function nomeFonte(fonte) {
     : "Dati reali · " + (fonte === "partenza" ? "fotografia di partenza" : fonte === "test" ? "test di tre settimane" : fonte);
 }
 
-// Riga del catalogo dei KPI per codice (K1 ... K17)
+// Riga del catalogo dei KPI per codice (K1 ... K15)
 function kpiCatalogo(codice) {
   return righeDb("kpi_catalogo").find((k) => k.codice === codice);
 }
@@ -58,7 +60,7 @@ function tesseraKpi({ codice, valore, dettaglio, calcolo, raggiunto = null, tipo
       <details class="kpi-come">
         <summary>Come si calcola</summary>
         <p class="kpi-formula">${esc(k.formula)}${calcolo && !vuoto ? "<br><strong>" + calcolo + "</strong>" : ""}</p>
-        <p class="kpi-meta">${esc(k.tipo)} · APQC ${esc(k.processo_apqc)}</p>
+        <p class="kpi-meta">Livello ${esc(k.livello_anthony)} · ${esc(k.tipo)} · APQC ${esc(k.processo_apqc)}</p>
       </details>
       ${raggiunto === null || vuoto ? `<p class="kpi-obiettivo">Soglia: ${esc(k.soglia)}</p>`
         : `<p class="kpi-obiettivo ${raggiunto ? "ok" : "sotto"}">${icona(raggiunto ? "spunta" : "attenzione")} ${esc(k.soglia)}: ${raggiunto ? "raggiunta" : "non raggiunta"}</p>`}
@@ -108,12 +110,7 @@ function tessereFittizi(k, tutte) {
     K12: () => tesseraKpi({ codice: "K12", valore: formattaGiorni(k.primaRisposta), dettaglio: k.entroUnGiorno + " risposte entro un giorno su " + k.conRisposta,
       raggiunto: k.primaRisposta === null ? null : k.primaRisposta <= ob.primaRispostaGiorni }),
     K13: () => tesseraKpi({ codice: "K13", valore: formattaGiorni(k.tempoOfferta), dettaglio: "media su " + k.conOfferta + " opportunità arrivate all'offerta" }),
-    K14: () => tesseraKpi({ codice: "K14", valore: quota(k.registrateEntro24, k.registrate),
-      dettaglio: k.registrate ? k.registrateEntro24 + " su " + k.registrate + " richieste annotate" : "nei dati storici l'annotazione non c'è: contano le richieste nuove",
-      raggiunto: k.registrate ? k.registrateEntro24 / k.registrate >= ob.registrateEntro24 : null }),
     K15: () => tesseraKpi({ codice: "K15", valore: quota(k.digitali, k.contatti), dettaglio: k.digitali + " richieste da canali digitali su " + k.contatti }),
-    K16: () => tesseraKpi({ codice: "K16", valore: quota(k.firmateDaLink, k.contratti), dettaglio: k.firmateDaLink + " contratti firmati da link su " + k.contratti }),
-    K17: () => tesseraKpi({ codice: "K17", valore: NESSUN_DATO, dettaglio: "si misura solo sui dati reali: scegli la fonte «test» in alto" }),
   };
 }
 
@@ -127,11 +124,7 @@ function tessereReali(r) {
     K12: () => tesseraKpi({ codice: "K12", valore: formattaGiorni(r.primaRisposta), dettaglio: r.entroUnGiorno + " risposte entro un giorno su " + r.conRisposta,
       raggiunto: r.primaRisposta === null ? null : r.primaRisposta <= ob.primaRispostaGiorni }),
     K13: () => tesseraKpi({ codice: "K13", valore: formattaGiorni(r.tempoOfferta), dettaglio: "media su " + r.conOfferta + " richieste con offerta" }),
-    K14: () => tesseraKpi({ codice: "K14", valore: quota(r.registrateEntro24, r.registrate), dettaglio: r.registrateEntro24 + " su " + r.registrate + " richieste annotate",
-      raggiunto: r.registrate ? r.registrateEntro24 / r.registrate >= ob.registrateEntro24 : null }),
     K15: () => tesseraKpi({ codice: "K15", valore: quota(r.digitali, r.totale), dettaglio: r.digitali + " richieste da canali digitali su " + r.totale }),
-    K17: () => tesseraKpi({ codice: "K17", valore: r.facilita === null ? NESSUN_DATO : r.facilita.toLocaleString("it-IT", { maximumFractionDigits: 1 }) + " su 5",
-      dettaglio: r.voti + " voti di facilità", raggiunto: r.facilita === null ? null : r.facilita >= ob.facilita }),
   };
 }
 
@@ -161,7 +154,7 @@ function barraIndicatori(scelta, reali) {
 function disegnaIndicatori() {
   const reali = fontiReali();
   const scelta = interfaccia.indicatori;
-  if (!LIVELLI[scelta.livello]) scelta.livello = "direzione";
+  if (!LIVELLI[scelta.livello]) scelta.livello = "offerta";
   if (scelta.fonte !== "fittizi" && !reali.includes(scelta.fonte)) scelta.fonte = "fittizi";
   const livello = LIVELLI[scelta.livello];
   const corpo = scelta.fonte === "fittizi" ? vistaFittizi(scelta.livello) : vistaReali(scelta.livello, kpiReali(scelta.fonte));
@@ -173,153 +166,131 @@ function disegnaIndicatori() {
     </div>`;
 }
 
-// Costo di acquisizione per gruppo di canale (K4): costi del database e contratti dei canali di ogni gruppo
+// Risultati per gruppo di canale: contatti, contratti, chiusura, quota di classe A, margine medio e costo per contratto (K4)
 function risultatiPerGruppo(opportunita) {
   const perCanale = risultatiPerCanale(opportunita);
   return gruppiCanali().map((g) => {
     const canali = perCanale.filter((r) => gruppoCanale(r.fonte) === g);
+    const gruppo = opportunita.filter((o) => gruppoCanale(o.canale) === g);
     const costi = canali.some((r) => r.costi !== null) ? canali.reduce((s, r) => s + (r.costi || 0), 0) : null;
     const contratti = canali.reduce((s, r) => s + r.contratti, 0);
-    return { gruppo: g, canali: canali.map((r) => r.fonte), contatti: canali.reduce((s, r) => s + r.contatti, 0), contratti, costi,
-      costoAcquisizione: costi !== null && contratti ? costi / contratti : null };
+    const chiuse = gruppo.filter((o) => o.perso || o.storico.contratto).length;
+    return { gruppo: g, canali: canali.filter((r) => r.contatti).map((r) => r.fonte), contatti: gruppo.length, contratti,
+      chiusura: chiuse ? contratti / chiuse : null,
+      quotaA: gruppo.length ? gruppo.filter((o) => calcolaPunteggio(o, opportunita).classe === "A").length / gruppo.length : null,
+      margineMedio: gruppo.length ? media(gruppo.map((o) => marginePercentuale(o, opportunita))) : null,
+      costi, costoAcquisizione: costi !== null && contratti ? costi / contratti : null };
   });
 }
 
-// Vista sui dati fittizi del livello scelto
+// K10 come tessera con la tabella dei motivi (è una distribuzione, non un numero solo)
+function tesseraK10(perdite) {
+  const k = kpiCatalogo("K10");
+  const totale = perdite.reduce((s, m) => s + m.numero, 0);
+  return `
+    <article class="riquadro kpi" id="kpi-K10">
+      <p class="kpi-etichetta"><span class="kpi-codice">K10</span> ${esc(k.nome)} ${domanda("diagnostica")}</p>
+      <p class="kpi-spiegazione">${esc(k.spiegazione)}</p>
+      ${totale ? `<table class="tabella"><tbody>${perdite.map((m) => `<tr><td>${esc(maiuscola(m.motivo))}</td>
+        <td class="num">${m.numero}</td><td class="num"><strong>${quota(m.numero, totale)}</strong></td></tr>`).join("")}</tbody></table>`
+        : `<p class="vuoto">${NESSUN_DATO}: nessuna trattativa persa.</p>`}
+      <details class="kpi-come"><summary>Come si calcola</summary>
+        <p class="kpi-formula">${esc(k.formula)}</p>
+        <p class="kpi-meta">Livello ${esc(k.livello_anthony)} · ${esc(k.tipo)} · APQC ${esc(k.processo_apqc)}</p></details>
+    </article>`;
+}
+
+// Vista sui dati fittizi della sezione scelta
 function vistaFittizi(livello) {
   const tutte = stato.opportunita;
   const k = calcolaKpi(tutte);
   const t = tessereFittizi(k, tutte);
   const tessere = (codici) => `<div class="griglia ${codici.length > 2 ? "tre" : ""}">${codici.map((c) => t[c]()).join("")}</div>`;
-  const riga = (o, testo) => `<li><a class="link" href="#cliente-${esc(o.aziendaId)}">${esc(nomeCliente(o))}</a> <span class="nota-piccola">· ${testo}</span></li>`;
 
-  if (livello === "direzione") {
+  if (livello === "marketing") {
+    const contenuti = risultatiPerContenuto(tutte);
+    const settori = risultatiPerSettore(tutte).filter((x) => x.contatti);
     return `
       <section class="sezione" id="domanda-descrittiva">
-        <h2>${domanda("descrittiva")} Risultati del pilota</h2>
-        ${tessere(["K1", "K3", "K6", "K4"])}
+        <h2>${domanda("descrittiva")} Canali</h2>
+        ${tessere(["K15", "K4"])}
       </section>
       <section class="sezione" id="domanda-diagnostica">
-        <h2>${domanda("diagnostica")} K4 Costo di acquisizione per canale <span class="sottotitolo">i 7 gruppi di canale</span></h2>
+        <h2>${domanda("diagnostica")} Quali canali portano clienti coerenti <span class="sottotitolo">i 7 gruppi di canale</span></h2>
         <div class="tabella-scorrevole"><table class="tabella">
-          <thead><tr><th>Canale</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Costi</th><th class="num">Costo per contratto</th></tr></thead>
-          <tbody>${risultatiPerGruppo(tutte).map((r) => `<tr>
-            <td><strong>${esc(r.gruppo)}</strong><br><span class="nota-piccola">${esc(r.canali.join(", ") || "nessun canale attivo")}</span></td>
+          <thead><tr><th>Canale</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Chiusura</th><th class="num">Classe A</th><th class="num">Margine medio</th><th class="num">Costo per contratto (K4)</th></tr></thead>
+          <tbody>${risultatiPerGruppo(tutte).filter((r) => r.contatti).map((r) => `<tr>
+            <td><strong>${esc(maiuscola(r.gruppo))}</strong><br><span class="nota-piccola">${esc(r.canali.join(", "))}</span></td>
             <td class="num">${r.contatti}</td><td class="num">${r.contratti}</td>
-            <td class="num">${r.costi === null ? NESSUN_DATO : formattaEuro(r.costi)}</td>
+            <td class="num">${r.chiusura === null ? NESSUN_DATO : formattaPercentuale(r.chiusura)}</td>
+            <td class="num">${r.quotaA === null ? NESSUN_DATO : formattaPercentuale(r.quotaA)}</td>
+            <td class="num">${r.margineMedio === null ? NESSUN_DATO : formattaPercentuale(r.margineMedio)}</td>
             <td class="num">${r.costoAcquisizione === null ? NESSUN_DATO : formattaEuro(r.costoAcquisizione)}</td></tr>`).join("")}</tbody>
         </table></div>
-        <p class="nota-piccola" style="margin-top:8px">Costi del canale ÷ contratti del canale. «Nessun dato» = canale senza costi registrati o senza contratti. Costi: tabella costi_canale del database.</p>
-      </section>`;
-  }
-
-  if (livello === "commerciale") {
-    const ferme = tutte.filter(trattativaFerma).sort((a, b) => dataFaseAttuale(a).localeCompare(dataFaseAttuale(b)));
-    const ricontatti = tutte.filter(ricontattoScaduto).sort((a, b) => a.ricontatto.data.localeCompare(b.ricontatto.data));
-    const prossimi = attivitaDaFare().slice(0, 8);
-    return `
-      <section class="sezione" id="domanda-descrittiva">
-        <h2>${domanda("descrittiva")} Trattative da riprendere</h2>
-        <div class="griglia tre">
-          ${t.K9()}
-          <div class="riquadro"><h3>Le più ferme</h3>
-            ${ferme.length ? `<ul class="elenco-semplice">${ferme.slice(0, 6).map((o) => riga(o, "in «" + CONFIG.fasi[faseRaggiunta(o)].nome + "» da " + giorni(giorniTra(dataFaseAttuale(o), oggi())))).join("")}</ul>`
-              : `<p class="vuoto">${NESSUN_DATO}: nessuna trattativa ferma.</p>`}</div>
-          <div class="riquadro" id="ricontatti-scaduti"><h3>Da ricontattare, data scaduta <span class="conteggio">${ricontatti.length}</span></h3>
-            ${ricontatti.length ? `<ul class="elenco-semplice">${ricontatti.map((o) => riga(o, "dal " + formattaData(o.ricontatto.data) + (o.ricontatto.nota ? " · " + esc(o.ricontatto.nota) : ""))).join("")}</ul>`
-              : `<p class="vuoto">${NESSUN_DATO}: nessun ricontatto scaduto. Si segna dal dettaglio di un'opportunità, con «Da ricontattare».</p>`}</div>
-        </div>
-      </section>
-      <section class="sezione" id="domanda-prescrittiva">
-        <h2>${domanda("prescrittiva")} Prossimi passi</h2>
-        <div class="griglia">
-          <div class="riquadro"><h3>In agenda <span class="conteggio">${attivitaDaFare().length}</span></h3>
-            ${prossimi.length ? `<ul class="elenco-passi">${prossimi.map((x) => `<li>${scadenza(x.data)} <span><a class="link" href="#cliente-${esc(x.aziendaId)}">${esc((trovaAzienda(x.aziendaId) || {}).ragioneSociale)}</a>
-              · ${esc(x.testo)}</span></li>`).join("")}</ul>` : `<p class="vuoto">${NESSUN_DATO}: nessuna attività in agenda.</p>`}</div>
-          ${sezioneConsigli(3)}
-        </div>
-      </section>`;
-  }
-
-  if (livello === "operativo") {
-    return `
-      <section class="sezione" id="domanda-descrittiva">
-        <h2>${domanda("descrittiva")} Tempi di risposta</h2>
-        ${tessere(["K12", "K13"])}
+        <p class="nota-piccola" style="margin-top:8px">Chiusura = contratti ÷ trattative chiuse. Classe A = clienti coerenti con capacità e margini. «Nessun dato» = canale senza costi registrati o senza contratti.</p>
       </section>
       <section class="sezione">
-        <h2>${domanda("descrittiva")} Adozione dei nuovi strumenti</h2>
-        ${tessere(["K14", "K15", "K16"])}
+        <details class="approfondimento"><summary>${domanda("diagnostica")} Per settore</summary>
+          <div class="tabella-scorrevole"><table class="tabella">
+            <thead><tr><th>Settore</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Conversione</th><th class="num">Classe A</th><th class="num">Margine atteso</th></tr></thead>
+            <tbody>${settori.map((x) => `<tr>
+              <td>${esc(maiuscola(x.settore))}${x.pilota ? '<span class="chip-pilota">pilota</span>' : ""}</td>
+              <td class="num">${x.contatti}</td><td class="num">${x.contratti}</td><td class="num">${quota(x.contratti, x.contatti)}</td>
+              <td class="num">${x.quotaA === null ? NESSUN_DATO : formattaPercentuale(x.quotaA)}</td><td class="num">${formattaEuro(x.margineAtteso)}</td></tr>`).join("")}</tbody>
+          </table></div>
+        </details>
+        <details class="approfondimento"><summary>${domanda("diagnostica")} Per contenuto (link tracciati)</summary>
+          <div class="tabella-scorrevole"><table class="tabella">
+            <thead><tr><th>Contenuto</th><th class="num">Richieste</th><th class="num">Qualificate</th><th class="num">Classe A</th><th class="num">Contratti</th></tr></thead>
+            <tbody>${contenuti.map((c) => `<tr>
+              <td>${c.contenuto ? `<strong>${esc(c.nome)}</strong> · ${esc(c.contenuto.canale)}<br><span class="nota-piccola">${esc(c.contenuto.tema)}</span>` : esc(c.nome)}</td>
+              <td class="num">${c.richieste}</td><td class="num">${c.qualificate} (${quota(c.qualificate, c.richieste)})</td>
+              <td class="num">${c.classeA}</td><td class="num">${c.contratti}</td></tr>`).join("")}</tbody>
+          </table></div>
+          <p class="nota-piccola">Contenuti di prova senza effetti inseriti: le differenze sono casuali.</p>
+        </details>
       </section>`;
   }
 
-  // Altri indicatori
-  const funnel = calcolaFunnel(tutte);
-  const massimo = funnel[0].n || 1;
-  const canali = risultatiPerCanale(tutte).filter((r) => r.contatti);
-  const perdite = motiviPerdita(tutte);
-  const totalePerse = perdite.reduce((s, m) => s + m.numero, 0);
-  const contenuti = risultatiPerContenuto(tutte);
-  const settori = risultatiPerSettore(tutte);
+  if (livello === "offerta") {
+    const funnel = calcolaFunnel(tutte);
+    const massimo = funnel[0].n || 1;
+    return `
+      <section class="sezione" id="domanda-descrittiva">
+        <h2>${domanda("descrittiva")} Velocità e passaggi</h2>
+        ${tessere(["K12", "K1", "K2", "K13", "K9"])}
+        <p class="nota-piccola">Le trattative da riprendere (ferme, da ricontattare, senza prossima azione) sono in <a class="link" href="#pipeline">Pipeline → Da seguire</a>.</p>
+      </section>
+      <section class="sezione">
+        <h2>${domanda("descrittiva")} Funnel <span class="sottotitolo">opportunità che hanno raggiunto ogni fase, perse comprese</span></h2>
+        <div class="riquadro"><div class="funnel">
+          ${funnel.map((f) => {
+            const conv = f.conversione === null ? "" : formattaPercentuale(f.conversione) + " della fase prima";
+            return `<div class="funnel-riga" tabindex="0" title="${f.nome}: ${f.n}${conv ? " · " + conv : ""}">
+              <span class="funnel-fase">${f.nome}</span><span class="funnel-barra"><span style="width:${(f.n / massimo) * 100}%"></span></span>
+              <span class="funnel-numero">${f.n}</span><span class="funnel-conv">${conv}</span></div>`;
+          }).join("")}
+        </div></div>
+      </section>`;
+  }
+
+  if (livello === "contratto") {
+    return `
+      <section class="sezione" id="domanda-descrittiva">
+        <h2>${domanda("descrittiva")} Offerte e contratti</h2>
+        ${tessere(["K3", "K7", "K8"])}
+      </section>
+      <section class="sezione" id="domanda-diagnostica">
+        <h2>${domanda("diagnostica")} Perché si perde</h2>
+        <div class="griglia">${tesseraK10(motiviPerdita(tutte))}</div>
+      </section>`;
+  }
+
+  // Previsione e portafoglio
   return `
-    <section class="sezione" id="domanda-descrittiva">
-      <h2>${domanda("descrittiva")} Altri KPI del catalogo</h2>
-      ${tessere(["K2", "K7", "K8", "K5", "K11", "K17"])}
-    </section>
-    <section class="sezione">
-      <h2>${domanda("descrittiva")} Funnel commerciale <span class="sottotitolo">opportunità che hanno raggiunto ogni fase, perse comprese</span></h2>
-      <div class="riquadro"><div class="funnel">
-        ${funnel.map((f) => {
-          const conv = f.conversione === null ? "" : formattaPercentuale(f.conversione) + " della fase prima";
-          return `<div class="funnel-riga" tabindex="0" title="${f.nome}: ${f.n}${conv ? " · " + conv : ""}">
-            <span class="funnel-fase">${f.nome}</span><span class="funnel-barra"><span style="width:${(f.n / massimo) * 100}%"></span></span>
-            <span class="funnel-numero">${f.n}</span><span class="funnel-conv">${conv}</span></div>`;
-        }).join("")}
-      </div></div>
-    </section>
-    <section class="sezione" id="domanda-diagnostica">
-      <h2>${domanda("diagnostica")} Quali canali portano clienti coerenti <span class="sottotitolo">canale × classe A/B/C e margine</span></h2>
-      <div class="tabella-scorrevole"><table class="tabella matrice">
-        <thead><tr><th>Canale</th><th>Gruppo</th><th class="num">Contatti</th><th class="num">A</th><th class="num">B</th><th class="num">C</th><th class="num">Quota A</th><th class="num">Margine medio</th><th class="num">Margine atteso (aperte)</th><th class="num">Contratti</th></tr></thead>
-        <tbody>${canali.sort((a, b) => b.quotaA - a.quotaA).map((r) => `<tr>
-          <td>${esc(r.fonte)}</td><td>${esc(gruppoCanale(r.fonte))}</td><td class="num">${r.contatti}</td>
-          ${["A", "B", "C"].map((c) => `<td class="num cella-${c}">${r.classi[c]}</td>`).join("")}
-          <td class="num"><strong>${formattaPercentuale(r.quotaA)}</strong></td>
-          <td class="num">${r.margineMedio === null ? NESSUN_DATO : formattaPercentuale(r.margineMedio)}</td>
-          <td class="num">${formattaEuro(r.margineAtteso)}</td><td class="num">${r.contratti}</td></tr>`).join("")}</tbody>
-      </table></div>
-    </section>
-    <section class="sezione">
-      <h2>${domanda("diagnostica")} K10 Perché perdiamo <span class="sottotitolo">${quanti(totalePerse, "trattativa persa", "trattative perse")}</span></h2>
-      <p class="kpi-spiegazione">${esc(kpiCatalogo("K10").spiegazione)}</p>
-      ${perdite.length ? `<div class="tabella-scorrevole"><table class="tabella">
-        <thead><tr><th>Motivo</th><th class="num">Trattative</th><th class="num">Quota</th><th class="num">Valore annuo perso</th></tr></thead>
-        <tbody>${perdite.map((m) => `<tr><td>${esc(m.motivo)}</td><td class="num">${m.numero}</td>
-          <td class="num">${quota(m.numero, totalePerse)}</td><td class="num">${formattaEuro(m.valore)}</td></tr>`).join("")}</tbody>
-      </table></div>` : `<p class="vuoto">${NESSUN_DATO}: nessuna trattativa persa.</p>`}
-    </section>
-    <section class="sezione">
-      <h2>${domanda("diagnostica")} Richieste qualificate per contenuto <span class="sottotitolo">link tracciati con utm_content</span></h2>
-      <div class="tabella-scorrevole"><table class="tabella">
-        <thead><tr><th>Contenuto</th><th>Canale e formato</th><th class="num">Richieste</th><th class="num">Qualificate</th><th class="num">Classe A</th><th class="num">Contratti</th></tr></thead>
-        <tbody>${contenuti.map((c) => `<tr>
-          <td>${c.contenuto ? `<strong>${esc(c.nome)}</strong><br><span class="nota-piccola">${esc(c.contenuto.tema)}</span>` : esc(c.nome)}</td>
-          <td>${c.contenuto ? esc(c.contenuto.canale) + " · " + esc(c.contenuto.formato) : "–"}</td>
-          <td class="num">${c.richieste}</td><td class="num">${c.qualificate} (${quota(c.qualificate, c.richieste)})</td>
-          <td class="num">${c.classeA}</td><td class="num">${c.contratti}</td></tr>`).join("")}</tbody>
-      </table></div>
-      <p class="nota-piccola" style="margin-top:8px">Contenuti di prova: nel database nessun contenuto ha un effetto inserito apposta, quindi le differenze sono casuali.</p>
-    </section>
-    <section class="sezione">
-      <h2>${domanda("diagnostica")} Risultati per settore <span class="sottotitolo">settore pilota: ${esc(CONFIG.pilota.settore)}</span></h2>
-      <div class="tabella-scorrevole"><table class="tabella">
-        <thead><tr><th>Settore</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Conversione</th><th class="num">Valore annuo contratti</th><th class="num">Margine atteso</th><th class="num">Quota A</th></tr></thead>
-        <tbody>${settori.filter((s) => s.contatti).map((s) => `<tr>
-          <td>${esc(s.settore)}${s.fuoriElenco ? " (non più in elenco)" : ""}${s.pilota ? '<span class="chip-pilota">pilota</span>' : ""}</td>
-          <td class="num">${s.contatti}</td><td class="num">${s.contratti}</td><td class="num">${quota(s.contratti, s.contatti)}</td>
-          <td class="num">${formattaEuro(s.valoreContratti)}</td><td class="num">${formattaEuro(s.margineAtteso)}</td>
-          <td class="num">${s.quotaA === null ? NESSUN_DATO : formattaPercentuale(s.quotaA)}</td></tr>`).join("")}</tbody>
-      </table></div>
+    <section class="sezione" id="domanda-predittiva">
+      <h2>${domanda("predittiva")} Cosa ci si può aspettare</h2>
+      ${tessere(["K6", "K5", "K11"])}
     </section>
     ${sezioniPrevisioneEConsigli()}`;
 }
@@ -337,12 +308,12 @@ function vistaReali(livello, r) {
   };
   const tabella = (titolo, valore) => `
     <div class="riquadro"><h3>${titolo}</h3><table class="tabella"><tbody>
-      ${conteggio(valore).map(([v, n]) => `<tr><td>${esc(v)}</td><td class="num">${n}</td></tr>`).join("")}
+      ${conteggio(valore).map(([v, n]) => `<tr><td>${esc(maiuscola(v))}</td><td class="num">${n}</td></tr>`).join("")}
     </tbody></table></div>`;
   return `
     <section class="sezione" id="domanda-descrittiva">
       <h2>${domanda("descrittiva")} ${quanti(r.totale, "richiesta registrata", "richieste registrate")}</h2>
-      ${si.length ? `<div class="griglia tre">${si.map((c) => t[c]()).join("")}</div>` : `<p class="vuoto">${NESSUN_DATO}: nessun KPI di questo livello si calcola con le 7 colonne del CSV.</p>`}
+      ${si.length ? `<div class="griglia tre">${si.map((c) => t[c]()).join("")}</div>` : `<p class="vuoto">${NESSUN_DATO}: nessun KPI di questa sezione si calcola con le 7 colonne del CSV.</p>`}
     </section>
     ${nonCalcolabili(no)}
     <section class="sezione" id="domanda-diagnostica">
@@ -350,7 +321,7 @@ function vistaReali(livello, r) {
       <div class="griglia tre">${tabella("Per canale", (x) => gruppoCanale(x.canale))}${tabella("Per esito", (x) => x.esito)}${tabella("Per settore", (x) => x.settore)}</div>
     </section>
     <section class="sezione">
-      <h2>Elenco delle richieste <span class="conteggio">${r.totale}</span></h2>
+      <details class="approfondimento"><summary>Elenco delle richieste <span class="conteggio">${r.totale}</span></summary>
       <div class="tabella-scorrevole"><table class="tabella impilata" id="elenco-reali">
         <thead><tr><th>Richiesta</th><th>Annotazione</th><th>Canale</th><th>Settore</th><th>Prima risposta</th><th>Offerta</th><th>Esito</th></tr></thead>
         <tbody>${r.righe.map((x) => `<tr>
@@ -359,6 +330,7 @@ function vistaReali(livello, r) {
           <td data-etichetta="Prima risposta">${formattaData(x.data_risposta) || "–"}</td><td data-etichetta="Offerta">${formattaData(x.data_offerta) || "–"}</td>
           <td data-etichetta="Esito">${esc(x.esito)}</td></tr>`).join("")}</tbody>
       </table></div>
+      </details>
     </section>`;
 }
 
