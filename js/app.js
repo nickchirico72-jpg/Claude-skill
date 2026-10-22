@@ -2014,6 +2014,7 @@ const SCHERMATE = {
   indicatori: disegnaIndicatori,
   riepilogo: disegnaRiepilogo,   // riepilogo del mese da stampare: #riepilogo
   lunedi: disegnaLunedi,         // lista del lunedì da stampare o copiare: #lunedi
+  "come-funziona": disegnaComeFunziona,   // i 5 livelli della piattaforma e la demo guidata
 };
 
 // Nome della schermata nel titolo della scheda del browser, es. "Clienti · Gate"
@@ -2031,6 +2032,7 @@ function schermataAttuale() {
   if (hash.startsWith("preventivo-") && trova(hash.slice(11))) return { nome: "preventivo", parametro: hash.slice(11), menu: "pipeline" };
   if (hash === "riepilogo") return { nome: "riepilogo", menu: "indicatori" };
   if (hash === "lunedi") return { nome: "lunedi", menu: "pipeline" };
+  if (hash === "come-funziona") return { nome: "come-funziona", menu: "" };
   // hasOwn: un indirizzo come #constructor non deve trovare le proprietà nascoste degli oggetti
   return Object.hasOwn(TITOLI, hash) ? { nome: hash, menu: hash } : { nome: "pipeline", menu: "pipeline" };
 }
@@ -2047,7 +2049,7 @@ function aggiornaContatore(id, n, testo) {
 function disegna() {
   const { nome, parametro, menu } = schermataAttuale();
   const titolo = nome === "cliente" ? trovaAzienda(parametro).ragioneSociale : nome === "preventivo" ? "Preventivo " + nomeCliente(trova(parametro))
-    : nome === "riepilogo" ? "Riepilogo del mese" : nome === "lunedi" ? "Lista del lunedì" : TITOLI[nome];
+    : nome === "riepilogo" ? "Riepilogo del mese" : nome === "lunedi" ? "Lista del lunedì" : nome === "come-funziona" ? "Come funziona" : TITOLI[nome];
   document.title = titolo + " · Gate";
   let focusSulla = false;
   let html;

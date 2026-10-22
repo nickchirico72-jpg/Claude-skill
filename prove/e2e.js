@@ -55,7 +55,7 @@ const PROVE = {
       const { ctx, page, errori } = await apri(dispositivo);
       const sigla = dispositivo === 'desktop' ? 'desktop' : 'mobile';
       for (const [nome, indirizzo] of [['pipeline', 'index.html#pipeline'], ['clienti', 'index.html#clienti'], ['scheda-cliente', 'index.html#cliente-c1'],
-        ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['riepilogo', 'index.html#riepilogo'], ['lunedi', 'index.html#lunedi'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
+        ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['riepilogo', 'index.html#riepilogo'], ['lunedi', 'index.html#lunedi'], ['come-funziona', 'index.html#come-funziona'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
         await page.goto(BASE + indirizzo);
         await page.waitForTimeout(400);
         verifica(`${dispositivo} ${nome}: nessuno scorrimento orizzontale`, !(await scorreOrizzontale(page)));
@@ -414,6 +414,49 @@ const PROVE = {
     const [backup] = await Promise.all([page.waitForEvent('download'), clic(page, '#pulsante-ponte')]);
     const dopo = await page.evaluate(() => ({ opp: stato.opportunita.length, az: stato.aziende.length, hash: location.hash, valido: strutturaValida(stato) }));
     verifica('sostituzione: prima il backup dei dati attuali, poi i dati del gestionale', /backup/.test(backup.suggestedFilename()) && dopo.opp === 300 && dopo.az === 120 && dopo.valido && dopo.hash === '#pipeline', JSON.stringify(dopo));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // N6 (PASSAGGIO 4): Come funziona e demo guidata, cronometrata: nota → conferma → preventivo e punteggio → pacchetto → offerta → firma → chi esegue → indicatori → tempo risparmiato
+  async demoGuidata() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#pipeline');
+    await clic(page, '.pie a[href="#come-funziona"]');
+    const livelli = await page.$$eval('.livello-piattaforma', (el) => el.map((l) => ({ passi: l.querySelectorAll('.passi-piattaforma li').length, link: l.querySelectorAll('a, button').length })));
+    const etichette = await page.$$eval('.passi-piattaforma .chip', (el) => [...new Set(el.map((e) => e.textContent))]);
+    verifica('come funziona: 5 livelli, ognuno con i suoi passaggi e i collegamenti', livelli.length === 5 && livelli.every((l) => l.passi > 0 && l.link > 0), JSON.stringify(livelli));
+    verifica('ogni passaggio ha la sua etichetta (automatico, l\'assistente propone, persona)', etichette.length === 3, etichette.join(' | '));
+    if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, 'come-funziona-desktop.png'), fullPage: true });
+    const contrattiPrima = await page.evaluate(() => calcolaKpi(stato.opportunita).contratti);
+    const inizio = Date.now();
+    await clic(page, '.demo-guidata [data-azione=nota]');
+    await page.selectOption('#modulo-nota [name=esempio]', '0');
+    await page.waitForSelector('.campo-nota');
+    if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, 'nota-desktop.png') });
+    await clic(page, '#conferma-nota');
+    const id = await page.evaluate(() => location.hash.replace('#preventivo-', ''));
+    await page.selectOption('#modulo-preventivo [name=pacchetto]', 'Plus');
+    if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, 'offerta-pacchetto-desktop.png'), fullPage: true });
+    await clic(page, '[data-azione=registra-offerta]');
+    await clic(page, '#modulo-fase [type=submit]');
+    await clic(page, `#scheda-${id} [data-azione=firma-link]`);
+    await clic(page, '[data-azione=conferma-firma]');
+    if (await page.$(`#commessa-${id} [data-azione=assegna-squadra]`)) await clic(page, `#commessa-${id} [data-azione=assegna-squadra]`);
+    else {
+      await clic(page, `#commessa-${id} [data-azione=proponi]`);
+      await clic(page, `#commessa-${id} [data-azione=risposta-si]`);
+    }
+    const assegnata = await page.evaluate((i) => !!trova(i).allocazione, id);
+    await page.goto(BASE + 'index.html#indicatori');
+    await clic(page, '[data-azione=livello][data-id=contratto]');
+    const contrattiDopo = await page.evaluate(() => calcolaKpi(stato.opportunita).contratti);
+    await clic(page, '[data-azione=livello][data-id=previsione]');
+    await page.waitForSelector('#tempo-risparmiato');
+    const secondi = (Date.now() - inizio) / 1000;
+    verifica('demo guidata: un contratto in più, commessa assegnata, tempo risparmiato in vista', contrattiDopo === contrattiPrima + 1 && assegnata, contrattiPrima + ' → ' + contrattiDopo);
+    verifica('demo guidata in meno di 90 secondi (con le pause del test)', secondi < 90, secondi.toFixed(1) + ' s');
+    console.log(`  ..   durata della demo guidata: ${secondi.toFixed(1)} s`);
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },

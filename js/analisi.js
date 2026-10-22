@@ -298,3 +298,77 @@ function listaLunedi(rif = oggi(), opportunita = stato.opportunita) {
     { id: "rinnovi", titolo: "Contratti da rinnovare", spiegazione: "in scadenza entro " + c.giorniScadenzaContratti + " giorni, in evidenza entro " + c.giorniScadenzaEvidenza + "; giorni = giorni alla scadenza", righe: contratti },
   ];
 }
+
+// ------------------------------------------------------------ Come funziona (N6)
+
+// I 5 livelli della piattaforma: ogni passaggio dice chi lo fa e porta alla schermata in cui avviene
+const LIVELLI_PIATTAFORMA = [
+  { titolo: "Canali del cliente", sotto: "nessuna app per il cliente", passi: [
+    ["Il cliente chiama, scrive, incontra Gate o compila il modulo del sito", "persona", "sopralluogo.html", "Apri il modulo"],
+    ["Ogni link di LinkedIn e del sito porta canale, campagna e contenuto", "automatico", "#canali", "Sito e social"]] },
+  { titolo: "Cattura automatica", sotto: "la richiesta entra nel CRM", passi: [
+    ["La nota della telefonata diventa una richiesta compilata", "propone", "#nota", "Da una nota"],
+    ["Le richieste dei moduli e delle campagne si importano dopo l'anteprima", "propone", "#canali", "Sito e social"],
+    ["Data di registrazione e tempo impiegato si salvano da soli", "automatico", null, null]] },
+  { titolo: "Archivio unico", sotto: "clienti, referenti, trattative", passi: [
+    ["Cliente, referente e trattativa nascono insieme, senza doppioni", "automatico", "#clienti", "Clienti"],
+    ["Privacy: base giuridica e consenso di ogni referente", "persona", "#clienti", "Clienti"],
+    ["Scambio con il gestionale in CSV, con i controlli prima di sostituire i dati", "propone", "#ponte", "Gestionale e Excel"]] },
+  { titolo: "Strumenti di lavoro", sotto: "dalla richiesta alla commessa", passi: [
+    ["Preventivo indicativo e punteggio di coerenza", "automatico", "#pipeline", "Pipeline"],
+    ["Offerta da pacchetto: prezzo e margine calcolati, la persona sceglie e invia", "propone", "#pipeline", "Pipeline"],
+    ["Firma da link: contratto, data di chiusura e scadenza registrati", "automatico", "#pipeline", "Pipeline"],
+    ["Chi esegue: la squadra con ore libere è proposta, il partner risponde su WhatsApp", "propone", "#allocazione", "Allocazione"],
+    ["Promemoria, avvisi e lista del lunedì", "automatico", "#lunedi", "Lista del lunedì"]] },
+  { titolo: "Cruscotto", sotto: "per decidere", passi: [
+    ["KPI lungo il percorso del cliente", "automatico", "#indicatori", "Indicatori"],
+    ["Cosa fare domani: previsioni e azioni proposte, la direzione decide", "propone", "#indicatori-domani", "Cosa fare domani"],
+    ["Tempo risparmiato e riepilogo del mese", "automatico", "#riepilogo", "Riepilogo del mese"]] },
+];
+
+const ETICHETTE_PASSI = {
+  automatico: { testo: "automatico", classe: "chip-ok" },
+  propone: { testo: "l'assistente propone, la persona conferma", classe: "chip-info" },
+  persona: { testo: "persona", classe: "" },
+};
+
+// Passi della demo guidata (sotto i 90 secondi)
+const DEMO_GUIDATA = [
+  ["Nota della telefonata", "Nuovo contatto → «Da una nota» → esempio 1 → «Conferma e registra»"],
+  ["Preventivo e punteggio", "si apre da solo dopo la conferma"],
+  ["Offerta da pacchetto", "pacchetto Plus → «Segna l'offerta come inviata» → Salva"],
+  ["Firma da link", "dalla scheda in Offerta → «Firma da link» → «Il cliente ha firmato»"],
+  ["Chi esegue", "Allocazione: squadra o partner"],
+  ["Indicatori aggiornati", "«Dall'offerta al contratto»: un contratto in più"],
+  ["Tempo risparmiato", "«Cosa fare domani»: ore ed euro al mese"],
+];
+
+// Pagina «Come funziona»: i 5 livelli, chi fa cosa e la demo guidata
+function disegnaComeFunziona() {
+  const link = (dove, testo) => {
+    if (!dove) return "";
+    if (dove === "#nota") return `<button class="pulsante-testo positivo" type="button" data-azione="nota">${esc(testo)}</button>`;
+    if (dove === "#canali") return `<button class="pulsante-testo positivo" type="button" data-azione="canali">${esc(testo)}</button>`;
+    if (dove === "#ponte") return `<button class="pulsante-testo positivo" type="button" data-azione="ponte">${esc(testo)}</button>`;
+    if (dove === "#indicatori-domani") return `<button class="pulsante-testo positivo" type="button" data-azione="vai-domani">${esc(testo)}</button>`;
+    return `<a class="link" href="${dove}"${dove.endsWith(".html") ? ' target="_blank" rel="noopener"' : ""}>${esc(testo)}</a>`;
+  };
+  return `
+    ${intestazione({ titolo: "Come funziona", istruzione: "La piattaforma su cinque livelli: per ogni passaggio, chi lo fa. Ogni livello porta alla schermata in cui avviene." })}
+    <p class="legenda-passi">${Object.values(ETICHETTE_PASSI).map((e) => `<span class="chip ${e.classe}">${e.testo}</span>`).join(" ")}</p>
+    <ol class="livelli-piattaforma">
+      ${LIVELLI_PIATTAFORMA.map((l, i) => `
+        <li class="riquadro livello-piattaforma" id="livello-${i + 1}">
+          <h2 class="titolo-riquadro"><span class="numero-livello">${i + 1}</span> ${esc(l.titolo)} <span class="sottotitolo">${esc(l.sotto)}</span></h2>
+          <ul class="passi-piattaforma">${l.passi.map(([testo, chi, dove, etichetta]) => `
+            <li><span class="chip ${ETICHETTE_PASSI[chi].classe}">${ETICHETTE_PASSI[chi].testo}</span> <span>${esc(testo)}</span> ${link(dove, etichetta)}</li>`).join("")}
+          </ul>
+        </li>`).join("")}
+    </ol>
+    <section class="riquadro demo-guidata">
+      <h2 class="titolo-riquadro">Demo guidata, meno di 90 secondi</h2>
+      <ol class="elenco-consigli">${DEMO_GUIDATA.map(([passo, come]) => `<li><strong>${esc(passo)}</strong> <span class="consiglio-perche">${esc(come)}</span></li>`).join("")}</ol>
+      <button class="pulsante primario" type="button" data-azione="nota">Inizia dalla nota</button>
+    </section>
+    <p class="nota-piccola">Il CRM non sostituisce il gestionale di Gate: tiene il modello commerciale (fasi, campi, preventivo, punteggio, KPI) e scambia i dati con il gestionale in CSV.</p>`;
+}

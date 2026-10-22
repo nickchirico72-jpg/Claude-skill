@@ -53,6 +53,22 @@ Le sezioni degli Indicatori seguono il percorso del cliente (riorganizzate il 21
   <img src="docs/screenshot/allocazione-mobile.png" alt="Allocazione da telefono" width="200">
 </p>
 
+## Piattaforma su cinque livelli (PASSAGGIO 4)
+
+Gate riceve le richieste soprattutto per telefono e dopo incontri sul posto, e nessuno le annota in un elenco. Ha un gestionale interno introdotto da poco. Il CRM **non sostituisce il gestionale**: tiene il «modello Gate» (fasi, campi, preventivo, punteggio, KPI) e scambia i dati con il gestionale in CSV. I cinque livelli sono: canali del cliente (nessuna app) → cattura automatica → archivio unico → strumenti di lavoro → cruscotto. La pagina **Come funziona** (piè di pagina) li mostra, con il collegamento alla schermata e chi fa ogni passaggio: automatico, l'assistente propone e la persona conferma, oppure persona.
+
+| | Cosa fa | Dove | Slide |
+|---|---|---|---|
+| **N1 Richiesta da nota** | Una nota scritta o dettata (con il microfono della tastiera, fuori dal browser) diventa una richiesta compilata. Le regole sono leggibili (`assistente` in `js/config.js`), senza intelligenza artificiale. Ogni campo mostra il valore, la frase da cui viene e lo stato: sicuro, da controllare o mancante. Solo «Conferma e registra» crea la trattativa; i secondi impiegati si salvano. 5 note di esempio: 9 campi su 9 corretti in ognuna. | Nuovo contatto → «Da una nota» | TO-BE, demo |
+| **N2 Offerta da pacchetto** | Pacchetti Base, Plus e Completo per uffici e studi, con prezzo al mq all'anno (valori di prova). Il prezzo nasce da mq × €/mq; ore e tariffa si ricavano da lì, così margine e punteggio restano coerenti. L'offerta stampabile ha servizi inclusi e opzionali, prezzo annuo e mensile, validità con data e condizioni, ma non il margine. «Segna l'offerta come inviata» funziona anche senza sopralluogo (le fasi saltate sono dichiarate); poi firma da link, con la scadenza del contratto a 12 mesi. | Schermata Preventivo | soluzione, demo |
+| **N3 Tempo risparmiato** | Quattro attività con minuti prima e dopo (stime modificabili), volumi del mese dai dati, ore ed euro risparmiati e la formula in parole. «Annotare una richiesta» usa la media dei secondi veri dopo 3 richieste da nota. Con i valori di partenza: **59,9 ore e 1.497 € al mese**. | Indicatori → Cosa fare domani; una riga nel Riepilogo del mese | soluzione e piattaforma |
+| **N4 Lista del lunedì** | Quattro sezioni alla data scelta: richieste senza prima risposta (giorni lavorativi), trattative ferme, offerte senza esito da oltre 14 giorni, contratti da rinnovare entro 90 giorni (quelli entro 60 in evidenza). Ordine: prima le trattative buone, poi per valore. Si stampa o si copia come testo. Su questi dati: 0, 6, 11 e 12 righe al 19/10; 6, 20, 12 e 9 al 13/10 (uguali in app e database). | «Da seguire» → Lista del lunedì | TO-BE, demo |
+| **N5 Ponte con il gestionale** | Export di 7 CSV con i nomi del dizionario: le 5 tabelle richieste più storico delle fasi e commerciali, per non perdere date e responsabili. L'import controlla tipi, valori ammessi e collegamenti, elenca le righe scartate con il motivo e sostituisce i dati di lavoro dopo aver scaricato un backup. Stessa logica in `strumenti/ponte_gestionale.py`. | Clienti → Gestionale e Excel | soluzione e piattaforma |
+| **N6 Come funziona** | I 5 livelli, chi fa ogni passaggio e la demo guidata in 7 passi (nota → preventivo → pacchetto → firma → chi esegue → indicatori → tempo risparmiato), sotto i 90 secondi. | Piè di pagina → Come funziona | demo |
+| N7 Report mensile al cliente | Non fatto: era opzionale. Il Riepilogo del mese per la direzione ne è la base. | | |
+
+Dati aggiunti: 12 **contratti in corso** dei clienti storici (tabella `contratti_in_corso`, firmati tra 11/2025 e 1/2026), la **scadenza dei contratti** (`opportunita.data_scadenza_contratto`), il **pacchetto** dell'offerta (`offerte.pacchetto`) e i **tempi di registrazione** (`tempi_registrazione`). Le altre tabelle restano identiche, quindi i KPI già verificati non cambiano.
+
 ## Il flusso della demo (meno di 90 secondi)
 
 1. **Il cliente chiede un sopralluogo.** Apre `sopralluogo.html` dal link di un post LinkedIn (`?utm_source=linkedin&utm_campaign=uffici-e-commercio&utm_content=prova-03`) e invia la richiesta su WhatsApp.
@@ -183,10 +199,12 @@ js/dati.js              stato, dati iniziali dal database, migrazione, backup, C
 js/allocazione.js       squadre, partner, DURC, messaggio WhatsApp
 js/punteggio.js         preventivo indicativo, margine e punteggio di coerenza (0-100)
 js/kpi.js               KPI del catalogo (fittizi e reali), funnel, canali, contenuti, settori
-js/analisi.js           consigli «Cosa fare domani»
+js/analisi.js           «Cosa fare domani», tempo risparmiato, lista del lunedì, Come funziona
 js/clienti.js           schermata Clienti
 js/canali.js            sito e social: link tracciati, piano dei contenuti, import delle richieste
-js/indicatori.js        Indicatori su tre livelli con la scelta della fonte
+js/assistente.js        richiesta da nota: regole di estrazione e scheda da confermare
+js/ponte.js             ponte con il gestionale: CSV del dizionario, controlli, import
+js/indicatori.js        Indicatori, Riepilogo del mese, Lista del lunedì
 js/preventivi.js        schermata Preventivo: conti, prezzi di riferimento, riepilogo da stampare
 js/app.js               Pipeline, Allocazione, finestre, firma da link, eventi
 generatore/             parametri.py, genera_dati.py, kpi_catalogo.py, esporta.py, importa_richieste.py, controlla_dati.py
@@ -194,7 +212,7 @@ data/                   gate.db (SQLite), gate_mysql.sql (MySQL), csv/, esempi/
 docs/                   kpi.md, dati-generati.md, backlog.md, esercizi-k12-k13-k15.md, passaggi/, ritorni/, screenshot/
 sql/  export/           le query di Nicolò e i CSV per Power BI
 prove/e2e.js            prove automatiche (Playwright)
-strumenti/              versione in un solo file
+strumenti/              versione in un solo file, archivio MySQL, ponte con il gestionale in Python
 ```
 
 ## Progetto

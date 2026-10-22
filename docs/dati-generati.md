@@ -29,6 +29,12 @@ Database di prova creato da `generatore/genera_dati.py` (seme 20261019, data di 
 - `campagna`, `contenuto`, `pagina_arrivo`: valorizzati sul 30% delle opportunità da sito web e LinkedIn (31 su 104), con 4 contenuti di prova. Distribuzione: prova-01 9, prova-02 14, prova-03 6, prova-04 2. **Nessun effetto inserito sui contenuti.**
 - Tabella `canali`: 15 canali, 12 attivi (telefono ed email aggiunti il 20/10); Facebook, Instagram e Google Ads sono spenti, con la nota "da confermare con Gate". La colonna `gruppo` li raccoglie nei 7 gruppi della modifica 1 (sito, LinkedIn, telefono, email, passaparola, portale/gara, altro). Il generatore storico usa solo i 6 canali dello schema v0.
 
+## PASSAGGIO 4 (22/10)
+- Tabella `contratti_in_corso`: **12 contratti dei clienti storici**, firmati tra l'1/11/2025 e il 31/1/2026, con scadenza a 12 mesi (dal 3/11/2026 al 17/1/2027: al 19/10 sono tutti entro 90 giorni, 8 entro 60). Sono fuori dalla pipeline e quindi **non cambiano i KPI del funnel**; servono alla lista dei rinnovi. Sono generati con un seme a parte, così le altre tabelle restano identiche.
+- `opportunita.data_scadenza_contratto` = data di chiusura + 12 mesi per i 29 contratti; vuota per le altre.
+- `offerte.pacchetto` vuoto nei dati storici; `tempi_registrazione` vuota (si riempie con le richieste da nota).
+- **Richieste senza prima risposta:** al 19/10 nessuna, perché l'ultima richiesta è del 14/10 e tutte hanno avuto risposta. Al 13/10 sono 6: è la data dell'esercizio SQL.
+
 ## Anomalie da pulire (volute)
 - **Clienti doppi:** 4 clienti del pilota compaiono due volte con il nome scritto diversamente ("Agenzia Sigma" e "Agenzia Sigma S.r.l.", "Studio Legale Tau srl", "Negozio Sigma" con spazi in fondo, "Negozio Beta (sede)").
 - **Campi vuoti (NULL):** 6 referenti senza email, 9 senza telefono, 6 clienti senza superficie, 7 opportunità senza ore stimate.

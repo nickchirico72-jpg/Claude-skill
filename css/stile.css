@@ -4016,3 +4016,56 @@ h1[tabindex="-1"]:focus {
   }
 }
 
+/* Come funziona (N6): i 5 livelli, chi fa cosa */
+.legenda-passi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.livelli-piattaforma {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.numero-livello {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--secondary);
+  color: #fff;
+  font-size: 13px;
+}
+
+.passi-piattaforma {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.passi-piattaforma li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.passi-piattaforma .chip {
+  min-width: 0;
+}
+
+.demo-guidata {
+  margin-bottom: 12px;
+  border-left: 4px solid var(--accent);
+}
+
