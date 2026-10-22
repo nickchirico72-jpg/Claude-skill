@@ -3863,3 +3863,80 @@ h1[tabindex="-1"]:focus {
 .approfondimento[open] summary {
   margin-bottom: 10px;
 }
+
+/* ============================================ Richiesta da nota (assistente a regole) */
+.da-nota {
+  margin: 6px 0 4px;
+}
+
+.azioni-nota {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+
+.esempio-nota {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.esempio-nota select {
+  width: 100%;
+}
+
+.riepilogo-nota {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 8px;
+  font-size: 13.5px;
+}
+
+.campi-nota {
+  display: grid;
+  gap: 10px 16px;
+}
+
+@media (min-width: 640px) {
+  .campi-nota {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.campo-nota {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--ok);
+  border-radius: 8px;
+}
+
+.campo-nota[data-stato="controllare"] { border-left-color: var(--attenzione); background: hsl(40 95% 91% / 0.45); }
+.campo-nota[data-stato="mancante"] { border-left-color: var(--critico); background: hsl(0 85% 95% / 0.55); }
+.campo-nota[data-stato="corretto"] { border-left-color: var(--primary); }
+
+.stato-campo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 4px;
+}
+
+.frase-nota {
+  min-width: 0;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.cronometro {
+  margin-right: auto;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+

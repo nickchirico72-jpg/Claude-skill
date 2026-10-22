@@ -286,6 +286,39 @@ const PROVE = {
     await ctx.close();
   },
 
+  // N1 (PASSAGGIO 4): richiesta da nota. Le 5 note di prova: almeno 7 campi su 9 per nota; poi il flusso dalla nota alla conferma
+  async nota() {
+    const { ctx, page, errori } = await apri('telefono');
+    await page.goto(BASE + 'index.html#pipeline');
+    const esiti = await page.evaluate(() => CONFIG.assistente.noteDiProva.map((n) => controllaNota(n)));
+    esiti.forEach((e, i) => verifica(`nota di prova ${i + 1}: ${e.corretti}/9 campi corretti`, e.corretti >= 7, e.errori.join('; ')));
+    const prima = await page.evaluate(() => stato.opportunita.length);
+    await clic(page, '[data-azione=nuovo]');
+    await clic(page, '[data-azione=nota]');
+    await page.selectOption('#modulo-nota [name=esempio]', '0');
+    await page.waitForSelector('.campo-nota');
+    const stati = await page.$$eval('.campo-nota[data-stato]', (el) => el.map((e) => e.dataset.stato));
+    verifica('scheda: ogni campo con stato e frase da cui viene', stati.length === 12 && stati.includes('sicuro') && (await page.$$('.frase-nota')).length >= 9, stati.join(','));
+    verifica('niente si salva prima della conferma', (await page.evaluate(() => stato.opportunita.length)) === prima);
+    await page.fill('#modulo-nota [name=nome]', 'Dott.ssa Laura Bianchi');
+    verifica('un campo corretto a mano diventa «corretto da te»', /corretto da te/.test(await page.textContent('#stato-nome')));
+    if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, 'nota-mobile.png'), fullPage: true });
+    await page.waitForTimeout(1100);
+    await clic(page, '#conferma-nota');
+    const r = await page.evaluate(() => {
+      const o = stato.opportunita[stato.opportunita.length - 1];
+      const t = stato.tempiRegistrazione[stato.tempiRegistrazione.length - 1];
+      return { n: stato.opportunita.length, azienda: nomeCliente(o), canale: o.canale, fase: faseAttuale(o), reg: o.dataRegistrazione, prev: o.preventivo,
+        punteggio: calcolaPunteggio(o, stato.opportunita).totale, secondi: t && t.secondi, tempoDi: t && t.opportunitaId === o.id, hash: location.hash, id: o.id };
+    });
+    verifica('conferma: opportunità in Contatto con canale, registrazione di oggi, preventivo e punteggio', r.n === prima + 1 && r.azienda === 'Studio Legale Ferri'
+      && r.canale === 'LinkedIn' && r.fase === 'contatto' && r.reg && r.prev && r.prev.mq === 350 && r.punteggio > 0, JSON.stringify(r));
+    verifica('secondi della registrazione salvati', r.tempoDi && r.secondi >= 1, r.secondi + ' s');
+    verifica('dopo la conferma si apre il preventivo', r.hash === '#preventivo-' + r.id, r.hash);
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
   // Dati della versione 3 salvati nel browser: migrati senza errori, con l'avviso per passare ai dati del database
   async migrazione() {
     const vecchi = fs.readFileSync(path.join(__dirname, 'backup-v3.json'), 'utf8');

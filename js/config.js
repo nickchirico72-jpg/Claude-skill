@@ -249,6 +249,87 @@ const CONFIG = {
     "nessuna risposta": "Fissa sempre una data di sollecito dopo l'offerta",
   },
 
+  // --------------------------------------- Richiesta da nota (PASSAGGIO 4, N1)
+  // Regole leggibili con cui l'assistente propone i campi di una nota scritta o dettata. Nessuna intelligenza artificiale:
+  // solo parole chiave ed espressioni regolari. Niente si salva senza la conferma di una persona.
+  // Le parole che finiscono con * valgono anche come inizio di parola (es. "commercialist*" trova "commercialista").
+  assistente: {
+    // Parole che introducono il nome dell'azienda (non fanno parte del nome)
+    introducono: ["azienda", "ditta", "società", "societa"],
+    // Parole con cui comincia il nome dell'azienda (fanno parte del nome), dalla più lunga
+    prefissi: ["Studio Legale", "Studio Tecnico", "Studio Commercialisti", "Studio Medico", "Studio", "Poliambulatorio", "Clinica",
+      "Laboratorio Analisi", "Laboratorio", "Hotel", "Albergo", "B&B", "Residence", "Ristorante", "Supermercato", "Discount",
+      "Centro Uffici", "Centro Commerciale", "Agenzia", "Negozio", "Officine", "Istituto", "Consorzio", "Deposito", "Autotrasporti"],
+    settori: {
+      "uffici e commercio": ["ufficio", "uffici", "studio legale", "studio tecnico", "studio professionale", "commercialist*", "notai*",
+        "avvocat*", "agenzia", "negozio", "negozi", "showroom", "coworking", "amministrativ*"],
+      "GDO": ["supermercat*", "discount", "centro commerciale", "ipermercat*", "punto vendita"],
+      "industria": ["stabiliment*", "officin*", "fabbric*", "produzione", "manifattur*", "industrial*"],
+      "ricettivo": ["hotel", "albergo", "b&b", "residence", "ristorant*", "camere", "ricettiv*"],
+      "sanità": ["ambulatori*", "poliambulatori*", "clinica", "studio medico", "laboratorio analisi", "dentist*", "sanitari*"],
+      "trasporti": ["logistica", "autotrasport*", "spedizion*", "autostazione", "corrier*"],
+      "enti pubblici": ["comune di", "scuola", "istituto", "asl", "pubblica amministrazione", "ufficio comunale"],
+    },
+    // Tipo di ambienti del preventivo (nomi uguali a preventivo.ambienti)
+    ambienti: {
+      "Uffici e studi": ["ufficio", "uffici", "studio legale", "studio tecnico", "studio professionale", "sede amministrativa"],
+      "Negozi e sale d'attesa": ["negozio", "negozi", "sala d'attesa", "sale d'attesa", "showroom", "punto vendita"],
+      "Ambulatori e studi medici": ["ambulatori*", "poliambulatori*", "studio medico", "studi medici", "clinica"],
+      "Magazzini e capannoni": ["magazzin*", "capannon*", "deposito"],
+      "Hotel e ricettivo": ["hotel", "albergo", "camere", "b&b", "residence"],
+    },
+    // «Tutti i giorni» per un ufficio vuol dire di solito dal lunedì al venerdì: proposta da controllare
+    frequenzaGiornaliera: "5 volte a settimana",
+    frequenzaGiorniAlterni: "3 volte a settimana",
+    // Canale (nomi del dizionario canali), in ordine di priorità quando la nota ne cita più di uno
+    canali: [
+      ["LinkedIn", ["linkedin"]],
+      ["passaparola", ["passaparola", "consigliat*", "consiglio di", "su consiglio"]],
+      ["intermediario", ["intermediari*", "agenzia", "un'agenzia"]],
+      ["profilo Google", ["google"]],
+      ["sito web", ["sito", "internet", "online"]],
+      ["WhatsApp Business", ["whatsapp"]],
+      ["portale gare", ["gara", "portale"]],
+      ["porta a porta", ["porta a porta"]],
+      ["contatto diretto", ["evento", "fiera", "incontro", "sul posto", "di persona"]],
+    ],
+    // Se la nota non dice come ci ha conosciuto ma che ha chiamato, il canale proposto è il telefono (da controllare)
+    canaleTelefono: ["telefonat*", "ha chiamato", "ci ha chiamato", "chiamata"],
+    ruoli: ["responsabile acquisti", "responsabile di sede", "responsabile amministrativo", "facility manager", "office manager",
+      "socio amministratore", "amministratore delegato", "amministratore", "titolare", "direttore", "direttrice", "segreteria",
+      "segretaria", "proprietario", "presidente", "responsabile"],
+    titoli: ["sig.ra", "sig.", "signora", "signor", "dott.ssa", "dott.", "dottoressa", "dottor", "avv.", "ing.", "arch."],
+    // Servizio proposto in base al settore (si può cambiare prima di confermare)
+    servizioPerSettore: {
+      "uffici e commercio": "cleaning e hospitality", "GDO": "logistica e retail", "industria": "servizi alle strutture",
+      "ricettivo": "cleaning e hospitality", "sanità": "cleaning e hospitality", "trasporti": "logistica e retail",
+      "enti pubblici": "cleaning e hospitality",
+    },
+    // Note di esempio (INVENTATE: nomi, numeri e indirizzi non esistono) con il risultato atteso per la prova (prove/e2e.js)
+    noteDiProva: [
+      { testo: "Ha chiamato la dott.ssa Laura Bianchi, office manager dello Studio Legale Ferri di Bari. Hanno uffici di 350 mq in via Sparano, " +
+          "vorrebbero la pulizia 3 volte a settimana. Ci ha conosciuti tramite LinkedIn. Tel 333 123 4567, email l.bianchi@studioferri.example",
+        atteso: { azienda: "Studio Legale Ferri", comune: "Bari", settore: "uffici e commercio", mq: 350, ambiente: "Uffici e studi",
+          frequenza: "3 volte a settimana", canale: "LinkedIn", ruolo: "office manager", telefono: "3331234567", email: "l.bianchi@studioferri.example" } },
+      { testo: "Incontro sul posto con il titolare della ditta Logistica Mare a Modugno: capannone e magazzino di 1.200 metri quadri, pulizia settimanale. " +
+          "Ce l'ha consigliato un cliente (passaparola). Cell. 340 555 0101",
+        atteso: { azienda: "Logistica Mare", comune: "Modugno", settore: "trasporti", mq: 1200, ambiente: "Magazzini e capannoni",
+          frequenza: "1 volta a settimana", canale: "passaparola", ruolo: "titolare", telefono: "3405550101", email: "" } },
+      { testo: "Telefonata dal Poliambulatorio San Nicola, Bitonto. Parla la responsabile acquisti, sig.ra Marta Greco. Ambulatori per circa 280 m2, " +
+          "servono pulizie tutti i giorni. Ci hanno trovati sul sito. marta.greco@sannicola.example",
+        atteso: { azienda: "Poliambulatorio San Nicola", comune: "Bitonto", settore: "sanità", mq: 280, ambiente: "Ambulatori e studi medici",
+          frequenza: "5 volte a settimana", canale: "sito web", ruolo: "responsabile acquisti", telefono: "", email: "marta.greco@sannicola.example" } },
+      { testo: "Società Adriatica Servizi Srl di Molfetta, uffici amministrativi 600 mq, due volte alla settimana. Referente: Paolo Conti, facility manager, " +
+          "080 123 4567. Contatto avuto a un evento a Bari.",
+        atteso: { azienda: "Adriatica Servizi Srl", comune: "Molfetta", settore: "uffici e commercio", mq: 600, ambiente: "Uffici e studi",
+          frequenza: "2 volte a settimana", canale: "contatto diretto", ruolo: "facility manager", telefono: "0801234567", email: "" } },
+      { testo: "Hotel Belvedere a Monopoli, 40 camere più la hall: chiedono un preventivo per pulizie 6 volte a settimana, circa 900 mq. " +
+          "Ci ha chiamato il direttore, Giorgio Lamanna, 347 222 3344: dice che ci conosce tramite un'agenzia (intermediario).",
+        atteso: { azienda: "Hotel Belvedere", comune: "Monopoli", settore: "ricettivo", mq: 900, ambiente: "Hotel e ricettivo",
+          frequenza: "6 volte a settimana", canale: "intermediario", ruolo: "direttore", telefono: "3472223344", email: "" } },
+    ],
+  },
+
   // ------------------------------------------- Collegamento con sito e social
   // Ogni link del modulo porta utm_source (canale), utm_campaign (settore pilota) e utm_content (id del contenuto):
   // così il CRM segue ogni richiesta dal contenuto che l'ha generata fino al contratto e al margine. Niente pixel di tracciamento.

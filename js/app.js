@@ -835,6 +835,7 @@ function apriNuovoContatto(aziendaId = "") {
     <form class="modulo" id="modulo-contatto" novalidate>
       <div>
         <h2>${scelta ? "Nuova opportunità" : "Nuovo contatto"}</h2>
+        ${scelta ? "" : `<button class="pulsante accento piccolo da-nota" type="button" data-azione="nota">${icona("matita")} Da una nota: i campi si compilano da soli</button>`}
         <p class="nota-piccola">Scegli il cliente o creane uno nuovo, poi indica il servizio: il punteggio di coerenza si aggiorna mentre scrivi.</p>
         <p class="nota-obbligatorio">* obbligatorio</p>
       </div>
