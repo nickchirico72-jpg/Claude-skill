@@ -9,6 +9,8 @@ Uso: python3 generatore/controlla_dati.py
 import json
 import re
 import sqlite3
+import sys
+import tempfile
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -257,6 +259,24 @@ def lista_lunedi(rif):
 
 for giorno in [P.DATA_RIFERIMENTO, "2026-10-13"]:
     print(f"  ..   al {giorno}: " + ", ".join(f"{k} {v}" for k, v in lista_lunedi(giorno).items()))
+
+print("\nPonte con il gestionale (N5): andata e ritorno in CSV")
+sys.path.insert(0, str(RADICE / "strumenti"))
+import ponte_gestionale as G  # noqa: E402
+
+with tempfile.TemporaryDirectory() as cartella:
+    G.esporta(cartella)
+    _, scartate_rt, problemi_rt = G.importa(cartella, Path(cartella) / "nuovo.db")
+    nuovo = sqlite3.connect(Path(cartella) / "nuovo.db")
+    diversi = [t for t in G.TABELLE if uno(f"SELECT COUNT(*) FROM {t}") != nuovo.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]]
+    nuovo.close()
+    condizione(f"export dei {len(G.TABELLE)} CSV e import in un database vuoto: stesse righe in ogni tabella, nessuna scartata",
+               not diversi and not scartate_rt and not problemi_rt, ", ".join(f"{t} {uno(f'SELECT COUNT(*) FROM {t}')}" for t in G.TABELLE))
+    with open(Path(cartella) / "opportunita.csv", "a", encoding="utf-8") as f:
+        f.write("9999,8888,,,LinkedIn,cleaning e hospitality,trattativa,,,,2026-13-01,,,,,,,,,,,,\n")
+    _, scartate_neg, _ = G.importa(cartella, Path(cartella) / "nuovo.db")
+    condizione("una riga sbagliata viene scartata con il motivo", len(scartate_neg) == 1 and "cliente 8888 inesistente" in scartate_neg[0][2]
+               and "fase non ammesso" in scartate_neg[0][2] and "data_contatto" in scartate_neg[0][2], scartate_neg[0][2] if scartate_neg else "")
 
 print("\nApp e MySQL leggono gli stessi dati")
 js = (RADICE / "js" / "dati-db.js").read_text(encoding="utf-8")

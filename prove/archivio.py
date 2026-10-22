@@ -245,6 +245,16 @@ def main():
         except A.CampoSconosciuto as e:
             verifica("un campo dell'app senza colonna ferma la migrazione", True, str(e))
 
+        print("\nponte con il gestionale (CSV scaricati dall'app, letti dal ponte Python)")
+        ponte = STATI / "ponte"
+        if (ponte / "opportunita.csv").exists():
+            import ponte_gestionale as G
+            tabelle, scartate, problemi = G.controlla(ponte)
+            verifica("i 7 CSV dell'app passano i controlli di strumenti/ponte_gestionale.py senza scarti",
+                     len(tabelle) == 7 and not scartate and not problemi, ", ".join(f"{n} {len(r)}" for n, r in tabelle.items()) + "; ".join(str(x) for x in scartate[:2]))
+        else:
+            print("  ..   nessun CSV dell'app in prove/archivio/ponte (lancia prove/e2e.js)")
+
         print("\ndomande di Alfredo (query leggibili)")
         domande = {
             "Quante trattative sono aperte, per fase?": """

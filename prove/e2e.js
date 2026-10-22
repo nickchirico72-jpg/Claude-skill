@@ -383,6 +383,41 @@ const PROVE = {
     await ctx.close();
   },
 
+  // N5 (PASSAGGIO 4): ponte con il gestionale. Export dei 7 CSV, import con controlli, sostituzione dopo il backup
+  async ponte() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#clienti');
+    await clic(page, '.pagina-clienti [data-azione=ponte]');
+    const scaricati = [];
+    page.on('download', (d) => scaricati.push(d));
+    await clic(page, '#modulo-ponte [data-azione=esporta-ponte]:not([data-id])');
+    await page.waitForTimeout(3000);
+    const cartella = path.join(__dirname, 'archivio', 'ponte');
+    fs.mkdirSync(cartella, { recursive: true });
+    const percorsi = [];
+    for (const d of scaricati) {
+      const nome = d.suggestedFilename().replace(/^gate-/, '').replace(/-\d{4}-\d{2}-\d{2}/, '');
+      await d.saveAs(path.join(cartella, nome));
+      percorsi.push(path.join(cartella, nome));
+    }
+    const intestazione = fs.readFileSync(path.join(cartella, 'opportunita.csv'), 'utf8').split('\r\n')[0];
+    verifica('export: 7 CSV con i nomi del dizionario', scaricati.length === 7 && /^id_opp,id_cliente,id_commerciale,id_referente,canale/.test(intestazione), scaricati.map((d) => d.suggestedFilename()).join(', '));
+    // File con una riga sbagliata: viene scartata con il motivo, le altre passano
+    const sbagliato = path.join(cartella, '..', 'opportunita-con-errore.csv');
+    fs.writeFileSync(sbagliato, fs.readFileSync(path.join(cartella, 'opportunita.csv'), 'utf8') + '9999,8888,,,LinkedIn,cleaning e hospitality,trattativa,,,,2026-10-01,,,,,,,,,,,,\r\n');
+    await page.setInputFiles('#modulo-ponte [name=file]', percorsi.filter((x) => !x.endsWith('opportunita.csv')).concat(sbagliato));
+    await clic(page, '#modulo-ponte [type=submit]');
+    await page.waitForSelector('#anteprima-ponte table');
+    const anteprima = await page.textContent('#anteprima-ponte');
+    verifica('import: righe valide per tabella e riga scartata con il motivo', /Righe scartate/.test(anteprima) && /fase non ammesso/.test(anteprima) && /cliente 8888 inesistente/.test(anteprima), anteprima.slice(0, 200));
+    await page.evaluate(() => { stato.opportunita[0].note = 'modifica da non perdere: finisce nel backup'; salva(); });
+    const [backup] = await Promise.all([page.waitForEvent('download'), clic(page, '#pulsante-ponte')]);
+    const dopo = await page.evaluate(() => ({ opp: stato.opportunita.length, az: stato.aziende.length, hash: location.hash, valido: strutturaValida(stato) }));
+    verifica('sostituzione: prima il backup dei dati attuali, poi i dati del gestionale', /backup/.test(backup.suggestedFilename()) && dopo.opp === 300 && dopo.az === 120 && dopo.valido && dopo.hash === '#pipeline', JSON.stringify(dopo));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
   // Dati della versione 3 salvati nel browser: migrati senza errori, con l'avviso per passare ai dati del database
   async migrazione() {
     const vecchi = fs.readFileSync(path.join(__dirname, 'backup-v3.json'), 'utf8');

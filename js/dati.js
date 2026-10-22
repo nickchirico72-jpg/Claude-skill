@@ -70,13 +70,20 @@ function maiuscola(testo) {
 // Costruisce lo stato iniziale dal database di prova (js/dati-db.js): stessi clienti, opportunità e attività delle query SQL.
 // Le date si spostano in avanti in modo che la data di riferimento del database (19/10/2026) sia oggi: la demo resta attuale.
 function datiIniziali() {
-  const spostamento = giorniTra(DATI_DB.dataRiferimento, oggi());
+  const tabelle = Object.fromEntries(["clienti", "referenti", "commerciali", "opportunita", "storico_fasi", "offerte", "attivita", "contratti_in_corso"]
+    .map((nome) => [nome, righeDb(nome)]));
+  return statoDaTabelle(tabelle, DATI_DB.dataRiferimento, giorniTra(DATI_DB.dataRiferimento, oggi()));
+}
+
+// Stato dell'app da tabelle con i nomi del dizionario dati (database di esempio o CSV del gestionale).
+// riferimento = "oggi" dei dati; spostamento = giorni da aggiungere a ogni data (i dati di esempio finiscono così a oggi)
+function statoDaTabelle(t, riferimento, spostamento = 0) {
   const data = (d) => (d ? aggiungiGiorni(d, spostamento) : null);
-  const clienti = righeDb("clienti");
-  const opp = righeDb("opportunita");
-  const storicoDb = righeDb("storico_fasi");
-  const offerteDb = righeDb("offerte");
-  const responsabili = Object.fromEntries(righeDb("commerciali").map((c) => [c.id_commerciale, c.nome]));
+  const clienti = t.clienti;
+  const opp = t.opportunita;
+  const storicoDb = t.storico_fasi || [];
+  const offerteDb = t.offerte || [];
+  const responsabili = Object.fromEntries((t.commerciali || []).map((c) => [c.id_commerciale, c.nome]));
 
   // Fonte dell'azienda = canale della sua prima opportunità
   const primaOpp = new Map();
@@ -86,12 +93,12 @@ function datiIniziali() {
   const aziende = clienti.map((c) => ({
     id: "c" + c.id_cliente, ragioneSociale: c.nome, piva: "", settore: c.settore, comune: c.comune,
     fonte: primaOpp.has(c.id_cliente) ? primaOpp.get(c.id_cliente).canale : "contatto diretto",
-    note: "", creata: data(primaOpp.has(c.id_cliente) ? primaOpp.get(c.id_cliente).data_contatto : DATI_DB.dataRiferimento),
+    note: "", creata: data(primaOpp.has(c.id_cliente) ? primaOpp.get(c.id_cliente).data_contatto : riferimento),
     superficie: c.superficie_mq, tipoCliente: c.tipo_cliente,
   }));
   const creata = Object.fromEntries(aziende.map((a) => [a.id, a.creata]));
 
-  const referenti = righeDb("referenti").map((r) => ({
+  const referenti = t.referenti.map((r) => ({
     id: "r" + r.id_referente, aziendaId: "c" + r.id_cliente, nome: r.nome, ruolo: r.ruolo || "",
     telefono: telefonoDaSalvare(r.telefono || ""), email: r.email || "", canale: r.telefono ? "Telefono" : "Email", decisore: !!r.decisore,
     privacy: { base: r.base_giuridica, data: r.base_giuridica === CONFIG.basiGiuridiche[0] ? null : creata["c" + r.id_cliente],
@@ -99,7 +106,7 @@ function datiIniziali() {
   }));
 
   // Contratti recenti: ancora da assegnare; gli altri già avviati prima del prototipo
-  const limite = aggiungiGiorni(DATI_DB.dataRiferimento, -CONFIG.giorniContrattiDaAssegnare);
+  const limite = aggiungiGiorni(riferimento, -CONFIG.giorniContrattiDaAssegnare);
   const opportunita = opp.map((o) => {
     const storico = {};
     let perso = null;
@@ -110,11 +117,11 @@ function datiIniziali() {
     const offerte = offerteDb.filter((f) => f.id_opp === o.id_opp).sort((a, b) => b.versione - a.versione);
     const tariffa = (CONFIG.servizi[o.servizio] || {}).tariffa || 1;
     return {
-      id: "op" + o.id_opp, codice: codiceRiferimento(o.id_opp), aziendaId: "c" + o.id_cliente, referenteId: "r" + o.id_referente,
+      id: "op" + o.id_opp, codice: codiceRiferimento(o.id_opp), aziendaId: "c" + o.id_cliente, referenteId: o.id_referente != null ? "r" + o.id_referente : null,
       canale: o.canale, comune: (clienti.find((c) => c.id_cliente === o.id_cliente) || {}).comune || "Bari", servizio: o.servizio,
       ore: o.ore_mese_stimate ?? Math.round(o.valore_annuo / 12 / tariffa),
       // Valori del database: restano finché non si cambiano servizio, sede, ore o tariffa nell'app
-      valore: o.valore_annuo, margine: o.margine_pct, capacitaSimulata: o.capacita_simulata,
+      valore: o.valore_annuo, margine: o.margine_pct, capacitaSimulata: o.capacita_simulata ?? null,
       tariffa: null, note: "", perso, storico, proposte: [],
       scadenzaOfferta: !perso && !storico.contratto && offerte.length ? aggiungiGiorni(data(offerte[0].data_invio), CONFIG.giorniValiditaOfferta) : null,
       avvio: storico.contratto ? aggiungiGiorni(storico.contratto, CONFIG.giorniAvvioServizio) : null,
@@ -128,7 +135,7 @@ function datiIniziali() {
 
   // Attività svolte (dal database) e promemoria delle trattative aperte non ferme (creati dall'app: il database registra solo il passato)
   const perOpp = Object.fromEntries(opportunita.map((o) => [o.id, o]));
-  const attivita = righeDb("attivita").map((x) => {
+  const attivita = (t.attivita || []).map((x) => {
     const o = perOpp["op" + x.id_opp];
     return { id: "at" + x.id_attivita, aziendaId: o.aziendaId, referenteId: o.referenteId, opportunitaId: o.id, daFare: false,
       tipo: x.tipo === "sopralluogo" ? "Visita" : maiuscola(x.tipo), data: data(x.data),
@@ -145,13 +152,16 @@ function datiIniziali() {
   });
 
   // Contratti già in corso dei clienti storici (firmati prima della pipeline): servono alla lista dei rinnovi, non ai KPI del funnel
-  const contratti = righeDb("contratti_in_corso").map((c) => ({
+  const contratti = (t.contratti_in_corso || []).map((c) => ({
     id: "ct" + c.id_contratto, aziendaId: "c" + c.id_cliente, servizio: c.servizio, valore: c.valore_annuo, ore: c.ore_mese,
     firma: data(c.data_firma), scadenza: data(c.data_scadenza_contratto), responsabile: responsabili[c.id_commerciale] || "",
   }));
 
+  // Contatori oltre gli id già usati, così i record nuovi non ne riprendono uno (anche con i dati di un gestionale)
+  const massimo = (righe, campo) => Math.max(0, ...righe.map((r) => Number(r[campo]) || 0));
   return { versione: CONFIG.versioneDati, aziende, referenti, opportunita, attivita, contratti, tempiRegistrazione: [], contenuti: [], richiesteReali: [], registro: [],
-    contatore: opp.length, contatoreId: 10000, ultimoBackup: null };
+    contatore: massimo(opp, "id_opp"), contatoreId: Math.max(10000, massimo(clienti, "id_cliente"), massimo(t.referenti, "id_referente"), massimo(opp, "id_opp")),
+    ultimoBackup: null };
 }
 
 // Dati salvati prima della versione 4 (esempi di config.js): c'è un avviso per passare ai dati del database
