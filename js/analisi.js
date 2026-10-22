@@ -231,3 +231,70 @@ function cambiaTempo(campo) {
 document.addEventListener("input", (evento) => {
   if (evento.target.classList && evento.target.classList.contains("campo-tempo")) cambiaTempo(evento.target);
 });
+
+// ------------------------------------------------------------ Lista del lunedì (N4)
+
+// Giorni lavorativi (dal lunedì al venerdì, festività escluse) dopo «da» fino ad «a» compreso
+function giorniLavorativi(da, a) {
+  let n = 0;
+  for (let d = aggiungiGiorni(da, 1); d <= a; d = aggiungiGiorni(d, 1)) {
+    const giorno = new Date(d + "T12:00:00Z").getUTCDay();
+    if (giorno !== 0 && giorno !== 6) n++;
+  }
+  return n;
+}
+
+// Fase di un'opportunità a una data: l'ultima registrata fino a quel giorno (indice in CONFIG.fasi)
+function faseAl(o, rif) {
+  let indice = 0;
+  CONFIG.fasi.forEach((f, i) => { if (o.storico[f.id] && o.storico[f.id] <= rif) indice = i; });
+  return indice;
+}
+
+// Le quattro sezioni della lista alla data di riferimento (fotografia a quel giorno); ogni trattativa compare in una sola sezione
+function listaLunedi(rif = oggi(), opportunita = stato.opportunita) {
+  const c = CONFIG.lunedi;
+  // Aperta a quella data: richiesta già arrivata, né persa né firmata entro quel giorno
+  const aperta = (o) => o.storico.contatto <= rif && !(o.perso && o.perso.data <= rif) && !(o.storico.contratto && o.storico.contratto <= rif);
+  const inizioFase = (o) => {
+    const data = o.storico[CONFIG.fasi[faseAl(o, rif)].id];
+    return o.riaperta && o.riaperta > data && o.riaperta <= rif ? o.riaperta : data;
+  };
+  const riga = (o, giorni, azione) => ({ id: o.id, aziendaId: o.aziendaId, cliente: nomeCliente(o), punteggio: calcolaPunteggio(o, opportunita),
+    valore: valoreAnnuo(o), giorni, responsabile: o.responsabile || "", azione });
+  // Prima le trattative buone (punteggio da 70), poi per valore annuo
+  const ordina = (righe) => righe.sort((x, y) => (y.punteggio && trattativaBuona(y.punteggio)) - (x.punteggio && trattativaBuona(x.punteggio)) || y.valore - x.valore);
+
+  const senzaRisposta = opportunita.filter((o) => aperta(o) && (!o.dataPrimaRisposta || o.dataPrimaRisposta >= rif)
+    && giorniLavorativi(o.storico.contatto, rif) > c.giorniLavorativiRisposta)
+    .map((o) => riga(o, giorniLavorativi(o.storico.contatto, rif), "Richiamare oggi: richiesta del " + formattaData(o.storico.contatto) + " senza risposta"));
+  const giaElencate = new Set(senzaRisposta.map((r) => r.id));
+  const offerte = opportunita.filter((o) => aperta(o) && !giaElencate.has(o.id) && CONFIG.fasi[faseAl(o, rif)].id === "offerta"
+    && giorniTra(o.storico.offerta, rif) > c.giorniOffertaSenzaEsito)
+    .map((o) => riga(o, giorniTra(o.storico.offerta, rif), "Richiamare: offerta inviata " + giorni(giorniTra(o.storico.offerta, rif)) + " fa"));
+  offerte.forEach((r) => giaElencate.add(r.id));
+  const ferme = opportunita.filter((o) => aperta(o) && !giaElencate.has(o.id) && giorniTra(inizioFase(o), rif) > CONFIG.fasi[faseAl(o, rif)].giorniFerma)
+    .map((o) => {
+      const fase = CONFIG.fasi[faseAl(o, rif)];
+      return riga(o, giorniTra(inizioFase(o), rif), "Riprendere: ferma da " + giorni(giorniTra(inizioFase(o), rif)) + " in «" + fase.nome + "» (soglia " + fase.giorniFerma + ")");
+    });
+  // Contratti in scadenza: quelli in corso dei clienti storici e quelli firmati nella pipeline
+  const limite = aggiungiGiorni(rif, c.giorniScadenzaContratti);
+  const contratti = (stato.contratti || []).filter((x) => x.firma <= rif).map((x) => ({ id: x.id, aziendaId: x.aziendaId, cliente: (trovaAzienda(x.aziendaId) || {}).ragioneSociale || "",
+    punteggio: null, valore: x.valore, scadenza: x.scadenza, responsabile: x.responsabile || "" }))
+    .concat(opportunita.filter((o) => scadenzaContratto(o) && o.storico.contratto <= rif).map((o) => ({ id: o.id, aziendaId: o.aziendaId, cliente: nomeCliente(o),
+      punteggio: calcolaPunteggio(o, opportunita), valore: valoreAnnuo(o), scadenza: scadenzaContratto(o), responsabile: o.responsabile || "" })))
+    .filter((x) => x.scadenza >= rif && x.scadenza <= limite)
+    .map((x) => {
+      const mancano = giorniTra(rif, x.scadenza);
+      const evidenza = mancano <= c.giorniScadenzaEvidenza;
+      return { ...x, giorni: mancano, evidenza, azione: (evidenza ? "Proporre subito il rinnovo" : "Preparare il rinnovo") + ": scade il " + formattaData(x.scadenza) };
+    })
+    .sort((x, y) => y.evidenza - x.evidenza || y.valore - x.valore);   // prima quelli entro 60 giorni, poi per valore
+  return [
+    { id: "risposta", titolo: "Richieste senza prima risposta", spiegazione: "da più di " + quanti(c.giorniLavorativiRisposta, "giorno lavorativo", "giorni lavorativi") + " (K12); giorni = giorni lavorativi di attesa", righe: ordina(senzaRisposta) },
+    { id: "ferme", titolo: "Trattative ferme", spiegazione: "oltre i giorni previsti per la loro fase (K9); giorni = giorni nella fase", righe: ordina(ferme) },
+    { id: "offerte", titolo: "Offerte senza esito", spiegazione: "inviate da più di " + c.giorniOffertaSenzaEsito + " giorni; giorni = giorni dall'invio", righe: ordina(offerte) },
+    { id: "rinnovi", titolo: "Contratti da rinnovare", spiegazione: "in scadenza entro " + c.giorniScadenzaContratti + " giorni, in evidenza entro " + c.giorniScadenzaEvidenza + "; giorni = giorni alla scadenza", righe: contratti },
+  ];
+}

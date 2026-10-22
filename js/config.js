@@ -245,6 +245,14 @@ const CONFIG = {
   giorniContrattiDaAssegnare: 14,
 
   // Le quattro domande: soglie dei consigli "Cosa conviene fare?" (ipotesi da tarare con Gate)
+  // Lista del lunedì (PASSAGGIO 4, N4): soglie delle quattro sezioni
+  lunedi: {
+    giorniLavorativiRisposta: 1,   // richieste senza prima risposta da più di 1 giorno lavorativo (K12)
+    giorniOffertaSenzaEsito: 14,   // offerte inviate senza esito da più di 14 giorni
+    giorniScadenzaContratti: 90,   // contratti in scadenza entro 90 giorni...
+    giorniScadenzaEvidenza: 60,    // ...in evidenza quelli entro 60
+  },
+
   // Avvisi in cima alla Pipeline: compaiono solo quando c'è qualcosa da fare
   avvisi: {
     giorniDurc: 30,              // DURC di un partner scaduto o in scadenza entro 30 giorni

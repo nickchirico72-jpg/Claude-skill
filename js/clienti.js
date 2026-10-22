@@ -90,7 +90,8 @@ function sezioneDaSeguire() {
   const elenco = elencoLimitato("da-seguire", tutte);
   return `
     <section class="riquadro da-fare-riquadro" id="da-seguire" tabindex="-1" aria-label="Da seguire">
-      <h2 class="titolo-riquadro">${icona("attenzione")} Da seguire <span class="conteggio">${tutte.length}</span></h2>
+      <h2 class="titolo-riquadro">${icona("attenzione")} Da seguire <span class="conteggio">${tutte.length}</span>
+        <a class="link link-lunedi" href="#lunedi">Lista del lunedì</a></h2>
       ${tutte.length ? `<ul class="elenco-da-fare">${elenco.righe.map(({ o, s }) => `
         <li class="da-fare">
           <div class="da-fare-testo">

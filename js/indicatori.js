@@ -143,6 +143,7 @@ function barraIndicatori(scelta, reali) {
           <select id="scelta-fonte">${fonti.map((f) => `<option value="${esc(f)}" ${f === scelta.fonte ? "selected" : ""}>${esc(nomeFonte(f))}</option>`).join("")}</select>
         </label>` : ""}
         <a class="pulsante-testo positivo" href="#riepilogo">Riepilogo del mese</a>
+        <a class="pulsante-testo positivo" href="#lunedi">Lista del lunedì</a>
         <button class="pulsante-testo positivo" type="button" data-azione="esporta-csv-richieste">Esporta CSV</button>
         <button class="pulsante-testo positivo" type="button" data-azione="importa-csv-reali">Importa CSV dati reali</button>
       </div>
@@ -537,6 +538,65 @@ function disegnaRiepilogo() {
     </article>`;
 }
 
+// ============================================================ LISTA DEL LUNEDÌ (N4)
+
+// Pagina da stampare o copiare: cosa sollecitare questa settimana e quali contratti rinnovare, alla data di riferimento
+function disegnaLunedi() {
+  interfaccia.lunedi = interfaccia.lunedi || { rif: oggi() };
+  const rif = interfaccia.lunedi.rif;
+  const sezioni = listaLunedi(rif);
+  return `
+    ${intestazione({ titolo: "Lista del lunedì", istruzione: "Cosa sollecitare questa settimana e quali contratti rinnovare: stampala o copiala nella chat del team.",
+      azione: `<div class="azioni-intestazione"><a class="pulsante-testo positivo esporta" href="#pipeline">Torna alla Pipeline</a>
+        <button class="pulsante secondario" type="button" data-azione="copia-lunedi">Copia come testo</button>
+        <button class="pulsante primario" type="button" data-azione="stampa-riepilogo">Stampa</button></div>` })}
+    <label class="data-lunedi">Data di riferimento <input type="date" id="data-lunedi" value="${esc(rif)}" max="${aggiungiGiorni(oggi(), 365)}"></label>
+    <article class="foglio" id="foglio-lunedi" aria-label="Lista del lunedì">
+      <header class="foglio-testa">
+        <p class="marchio-stampa">Gate <span>S.R.L.</span></p>
+        <div><h2>Lista del lunedì</h2><p>al ${formattaData(rif)} · ${quanti(sezioni.reduce((s, x) => s + x.righe.length, 0), "riga", "righe")}</p></div>
+      </header>
+      ${sezioni.map((s, i) => `
+        <section class="sezione-lunedi" id="lunedi-${s.id}">
+          <h3>${i + 1}. ${s.titolo} <span class="conteggio">${s.righe.length}</span></h3>
+          <p class="nota-piccola">${esc(s.spiegazione)}</p>
+          ${s.righe.length ? `<div class="tabella-scorrevole"><table class="tabella impilata">
+            <thead><tr><th>Cliente</th><th>Punteggio</th><th class="num">Valore annuo</th><th class="num">Giorni</th><th>Responsabile</th><th>Azione suggerita</th></tr></thead>
+            <tbody>${s.righe.map((r) => `<tr class="${r.evidenza ? "in-evidenza" : ""}">
+              <td data-etichetta="Cliente"><a class="link" href="#cliente-${esc(r.aziendaId)}">${esc(r.cliente)}</a></td>
+              <td data-etichetta="Punteggio">${r.punteggio ? badgePunteggio(r.punteggio) : '<span class="nota-piccola">cliente storico</span>'}</td>
+              <td class="num" data-etichetta="Valore annuo">${formattaEuro(r.valore)}</td>
+              <td class="num" data-etichetta="Giorni">${r.giorni}</td>
+              <td data-etichetta="Responsabile">${r.responsabile ? esc(r.responsabile) : '<span class="nota-piccola">da assegnare</span>'}</td>
+              <td data-etichetta="Azione suggerita">${r.evidenza ? `<strong>${esc(r.azione)}</strong>` : esc(r.azione)}</td></tr>`).join("")}</tbody>
+          </table></div>` : '<p class="vuoto">Niente da segnalare.</p>'}
+        </section>`).join("")}
+      <p class="foglio-piede">Ordine: prima le trattative buone (punteggio da ${CONFIG.punteggio.buona}), poi per valore annuo; i rinnovi entro ${CONFIG.lunedi.giorniScadenzaEvidenza} giorni in evidenza.</p>
+    </article>`;
+}
+
+// La lista come testo semplice, da incollare in una chat o in una email
+function testoLunedi() {
+  const rif = (interfaccia.lunedi || {}).rif || oggi();
+  return ["LISTA DEL LUNEDÌ – " + formattaData(rif)].concat(listaLunedi(rif).map((s, i) =>
+    `\n${i + 1}. ${s.titolo.toUpperCase()} (${s.righe.length})\n` + (s.righe.length ? s.righe.map((r) => "- " + [r.cliente,
+      r.punteggio ? "punteggio " + r.punteggio.totale : "cliente storico", formattaEuro(r.valore) + "/anno", r.giorni + " giorni",
+      r.responsabile || "da assegnare", r.azione].join(" · ")).join("\n") : "- niente da segnalare"))).join("\n");
+}
+
+// Copia la lista negli appunti; se il browser non lo permette, la mostra già selezionata
+function copiaLunedi() {
+  const testo = testoLunedi();
+  const mostra = () => {
+    apriFinestra(`<h2>Lista del lunedì come testo</h2><p class="nota-piccola">Il testo è selezionato: copialo con Ctrl+C (o tieni premuto sul telefono).</p>
+      <textarea id="testo-lunedi" rows="14" readonly>${esc(testo)}</textarea>
+      <div class="azioni-finestra"><button class="pulsante primario" type="button" data-azione="chiudi">Chiudi</button></div>`);
+    document.getElementById("testo-lunedi").select();
+  };
+  if (navigator.clipboard) navigator.clipboard.writeText(testo).then(() => mostraAvviso("Lista copiata: incollala nella chat del team"), mostra);
+  else mostra();
+}
+
 // Azioni della schermata: livello, CSV (stato dell'interfaccia o dati reali importati)
 Object.assign(AZIONI_CLIENTI, {
   livello: (el) => {
@@ -547,6 +607,7 @@ Object.assign(AZIONI_CLIENTI, {
   "importa-csv-reali": () => apriImportaCsvReali(),
   "conferma-csv-reali": () => confermaCsvReali(),
   "stampa-riepilogo": () => window.print(),
+  "copia-lunedi": () => copiaLunedi(),
 });
 
 GESTORI_MODULI["modulo-csv-reali"] = (modulo) => {
@@ -559,6 +620,11 @@ GESTORI_MODULI["modulo-csv-reali"] = (modulo) => {
 };
 
 document.addEventListener("change", (evento) => {
+  if (evento.target.id === "data-lunedi" && formattaData(evento.target.value)) {
+    interfaccia.lunedi = { rif: evento.target.value };
+    disegna();
+    return document.getElementById("data-lunedi").focus();
+  }
   if (evento.target.id !== "scelta-fonte") return;
   interfaccia.indicatori.fonte = evento.target.value;
   disegna();

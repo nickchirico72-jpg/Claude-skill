@@ -55,7 +55,7 @@ const PROVE = {
       const { ctx, page, errori } = await apri(dispositivo);
       const sigla = dispositivo === 'desktop' ? 'desktop' : 'mobile';
       for (const [nome, indirizzo] of [['pipeline', 'index.html#pipeline'], ['clienti', 'index.html#clienti'], ['scheda-cliente', 'index.html#cliente-c1'],
-        ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['riepilogo', 'index.html#riepilogo'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
+        ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['riepilogo', 'index.html#riepilogo'], ['lunedi', 'index.html#lunedi'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
         await page.goto(BASE + indirizzo);
         await page.waitForTimeout(400);
         verifica(`${dispositivo} ${nome}: nessuno scorrimento orizzontale`, !(await scorreOrizzontale(page)));
@@ -354,6 +354,31 @@ const PROVE = {
     await page.evaluate(() => { stato.tempiRegistrazione = [30, 42, 48].map((s, i) => ({ id: 'tr' + i, secondi: s, data: oggi() })); disegna(); });
     const veri = await page.evaluate(() => tempoRisparmiato().righe[0]);
     verifica('con 3 richieste da nota il «dopo» è la media vera (40 s = 0,7 min)', veri.dopoVero && veri.dopo === 0.7, JSON.stringify(veri));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // N4 (PASSAGGIO 4): lista del lunedì, uguale al database (controlla_dati.py) a oggi e al 13/10 del database
+  async lunedi() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#pipeline');
+    await clic(page, '#da-seguire .link-lunedi');
+    const conta = (rif) => page.evaluate((r) => Object.fromEntries(listaLunedi(r).map((s) => [s.id, s.righe.length]).concat([['evidenza', listaLunedi(r)[3].righe.filter((x) => x.evidenza).length]])), rif);
+    const oggiApp = await conta(await page.evaluate(() => oggi()));
+    verifica('al 19/10 del database: risposta 0, ferme 6, offerte 11, rinnovi 12 (8 entro 60 giorni)', JSON.stringify(oggiApp) === JSON.stringify({ risposta: 0, ferme: 6, offerte: 11, rinnovi: 12, evidenza: 8 }), JSON.stringify(oggiApp));
+    const r13 = await page.evaluate(() => aggiungiGiorni(oggi(), -6));
+    await page.fill('#data-lunedi', r13);
+    await page.dispatchEvent('#data-lunedi', 'change');
+    await page.waitForTimeout(200);
+    const al13 = await conta(r13);
+    verifica('al 13/10 del database: risposta 6, ferme 20, offerte 12, rinnovi 9; la pagina segue la data scelta', al13.risposta === 6 && al13.ferme === 20 && al13.offerte === 12 && al13.rinnovi === 9
+      && (await page.$$('#lunedi-risposta tbody tr')).length === 6, JSON.stringify(al13));
+    const righe = await page.$$eval('#lunedi-ferme tbody tr', (tr) => tr.map((r) => r.textContent));
+    verifica('ogni riga: cliente, punteggio, valore, giorni, responsabile e azione suggerita', righe.length > 0 && /Riprendere: ferma da/.test(righe[0]) && /Commerciale|Intermediario|da assegnare/.test(righe[0]));
+    const testo = await page.evaluate(() => testoLunedi());
+    verifica('copia come testo: titolo, sezioni e righe', /^LISTA DEL LUNEDÌ/.test(testo) && /4\. CONTRATTI DA RINNOVARE/.test(testo) && testo.split('\n').length > 30);
+    await page.emulateMedia({ media: 'print' });
+    verifica('stampa: solo il foglio', await page.$eval('#foglio-lunedi', (el) => getComputedStyle(el).visibility) === 'visible' && await page.$eval('.data-lunedi', (el) => getComputedStyle(el).display) === 'none');
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },

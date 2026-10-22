@@ -9,6 +9,7 @@ Uso: python3 generatore/controlla_dati.py
 import json
 import re
 import sqlite3
+from datetime import date, timedelta
 from pathlib import Path
 
 import parametri as P
@@ -215,6 +216,47 @@ condizione(f"contratti_in_corso: {P.N_CONTRATTI_IN_CORSO} contratti di clienti s
                P.CONTRATTI_FIRMATI_DAL, P.CONTRATTI_FIRMATI_AL) == 0,
            f"firmati tra {P.CONTRATTI_FIRMATI_DAL} e {P.CONTRATTI_FIRMATI_AL}")
 print(f"  ..   tempi_registrazione: {uno('SELECT COUNT(*) FROM tempi_registrazione')} righe (si riempie con le richieste da nota)")
+
+print("\nLista del lunedì (N4): righe per sezione, stesse regole dell'app")
+
+
+def lista_lunedi(rif):
+    """Righe delle quattro sezioni alla data di riferimento (fotografia a quel giorno); ogni trattativa in una sola sezione."""
+    def lavorativi(da, a):
+        d, n = date.fromisoformat(da) + timedelta(days=1), 0
+        while d <= date.fromisoformat(a):
+            n += d.weekday() < 5
+            d += timedelta(days=1)
+        return n
+    soglie = {f: g for f, _, _, g in P.FASI}
+    ordine = [f for f, *_ in P.FASI if f != "perso"]
+    storico = {}
+    for id_opp, fase, giorno in con.execute("SELECT id_opp, fase, data_ingresso FROM storico_fasi"):
+        storico.setdefault(id_opp, {})[fase] = giorno
+    risposta, offerte, ferme = [], [], []
+    for id_opp, risposta_il in con.execute("SELECT id_opp, data_prima_risposta FROM opportunita"):
+        s = storico[id_opp]
+        if not (s["contatto"] <= rif and not (s.get("perso") and s["perso"] <= rif) and not (s.get("contratto") and s["contratto"] <= rif)):
+            continue
+        fase = [f for f in ordine if s.get(f) and s[f] <= rif][-1]
+        giorni = (date.fromisoformat(rif) - date.fromisoformat(s[fase])).days
+        if (risposta_il is None or risposta_il >= rif) and lavorativi(s["contatto"], rif) > 1:
+            risposta.append(id_opp)
+        elif fase == "offerta" and giorni > 14:
+            offerte.append(id_opp)
+        elif giorni > soglie[fase]:
+            ferme.append(id_opp)
+    limite = (date.fromisoformat(rif) + timedelta(days=90)).isoformat()
+    evidenza = (date.fromisoformat(rif) + timedelta(days=60)).isoformat()
+    scadenze = [x for (x,) in con.execute("""SELECT data_scadenza_contratto FROM contratti_in_corso WHERE data_firma <= ?
+      UNION ALL SELECT data_scadenza_contratto FROM opportunita WHERE fase = 'contratto' AND data_chiusura <= ?""", (rif, rif))]
+    rinnovi = [x for x in scadenze if rif <= x <= limite]
+    return {"risposta": len(risposta), "ferme": len(ferme), "offerte": len(offerte), "rinnovi": len(rinnovi),
+            "rinnovi entro 60 giorni": sum(x <= evidenza for x in rinnovi)}
+
+
+for giorno in [P.DATA_RIFERIMENTO, "2026-10-13"]:
+    print(f"  ..   al {giorno}: " + ", ".join(f"{k} {v}" for k, v in lista_lunedi(giorno).items()))
 
 print("\nApp e MySQL leggono gli stessi dati")
 js = (RADICE / "js" / "dati-db.js").read_text(encoding="utf-8")
