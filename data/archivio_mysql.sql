@@ -233,6 +233,7 @@ CREATE TABLE preventivi (
   ambiente VARCHAR(255) NOT NULL,
   mq DOUBLE NOT NULL CHECK (mq >= 0),
   frequenza VARCHAR(255) NOT NULL,
+  pacchetto VARCHAR(255),
   aggiornato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   aggiornato_da VARCHAR(255),
   FOREIGN KEY (id_opportunita) REFERENCES opportunita(id) ON DELETE CASCADE

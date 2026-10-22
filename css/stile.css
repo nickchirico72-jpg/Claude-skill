@@ -3695,6 +3695,12 @@ h1[tabindex="-1"]:focus {
     visibility: visible;
   }
 
+  /* Le parti nascoste non devono occupare spazio (altrimenti si stampa una pagina bianca in più) */
+  .barra-laterale, .pie, .avviso-fisso, .link-indietro, .intestazione, .avviso-stima,
+  .preventivo-griglia > form, #risultato-preventivo > :not(.stampa-preventivo) {
+    display: none !important;
+  }
+
   /* Riepilogo del mese: il foglio occupa la pagina A4, senza bordi né ombre (body: vince sullo stile a schermo) */
   body .foglio {
     position: absolute;

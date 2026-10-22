@@ -315,6 +315,26 @@ const PROVE = {
       && r.canale === 'LinkedIn' && r.fase === 'contatto' && r.reg && r.prev && r.prev.mq === 350 && r.punteggio > 0, JSON.stringify(r));
     verifica('secondi della registrazione salvati', r.tempoDi && r.secondi >= 1, r.secondi + ' s');
     verifica('dopo la conferma si apre il preventivo', r.hash === '#preventivo-' + r.id, r.hash);
+
+    // N2: offerta da pacchetto, stampabile senza margine, segnata come inviata e firmata da link
+    await page.selectOption('#modulo-preventivo [name=pacchetto]', 'Plus');
+    await page.waitForTimeout(200);
+    const conti = await page.evaluate(() => { const m = document.getElementById('modulo-preventivo'); return { ore: Number(m.ore.value), tariffa: Number(m.tariffa.value), frequenza: m.frequenza.value }; });
+    verifica('pacchetto Plus: frequenza del pacchetto e prezzo = mq × €/mq all\'anno', conti.frequenza === '3 volte a settimana' && Math.abs(conti.ore * conti.tariffa * 12 - 350 * 23) < conti.ore * 12 * 0.01, JSON.stringify(conti));
+    const offerta = await page.textContent('#stampa-preventivo');
+    verifica('offerta stampabile: pacchetto, servizi inclusi, prezzo, validità, condizioni e nessun margine',
+      /pacchetto Plus/.test(offerta) && /Servizi inclusi/.test(offerta) && /all'anno/.test(offerta) && /fino al/.test(offerta) && /Condizioni essenziali/.test(offerta) && !/[Mm]argine/.test(offerta));
+    await clic(page, '[data-azione=registra-offerta]');
+    await clic(page, '#modulo-fase [type=submit]');
+    const inviata = await page.evaluate((i) => { const o = trova(i); return { fase: faseAttuale(o), offerta: o.storico.offerta, scadenza: o.scadenzaOfferta, pacchetto: o.preventivo.pacchetto,
+      sopralluogo: stato.attivita.some((x) => x.opportunitaId === i || x.aziendaId === o.aziendaId && /sopralluogo non necessario/.test(x.testo)) }; }, r.id);
+    verifica('«Segna l\'offerta come inviata»: data di invio, validità, pacchetto; fasi saltate dichiarate', inviata.fase === 'offerta' && inviata.offerta && inviata.scadenza && inviata.pacchetto === 'Plus' && inviata.sopralluogo, JSON.stringify(inviata));
+    verifica('dopo l\'offerta si torna alla Pipeline con la scheda in vista', await page.evaluate(() => location.hash) === '#pipeline' && await page.isVisible(`#scheda-${r.id}`));
+    await clic(page, `#scheda-${r.id} [data-azione=firma-link]`);
+    await clic(page, '[data-azione=conferma-firma]');
+    const firmata = await page.evaluate((i) => { const o = trova(i); return { fase: faseAttuale(o), link: o.firmaDaLink, chiusura: o.storico.contratto, scadenza: o.scadenzaContratto, oggi: oggi() }; }, r.id);
+    verifica('firma da link: contratto, firma_da_link, chiusura oggi e scadenza a 12 mesi', firmata.fase === 'contratto' && firmata.link && firmata.chiusura === firmata.oggi
+      && firmata.scadenza === firmata.oggi.replace(/^\d{4}/, (a) => String(Number(a) + 1)), JSON.stringify(firmata));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },

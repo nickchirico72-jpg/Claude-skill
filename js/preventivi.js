@@ -3,7 +3,8 @@
  * 1. Dati del servizio: misure del sopralluogo (mq, tipo di ambienti, frequenza) → ore al mese, modificabili.
  * 2. Il preventivo: prezzo, costo del lavoro, spese, margine e classe A/B/C, con chi eseguirà il servizio.
  * 3. Prezzi di riferimento: tariffa minima (margine minimo), tariffa obiettivo e tariffa dei contratti simili già firmati.
- * 4. Riepilogo per il cliente, stampabile o salvabile in PDF (senza costi né margini).
+ * 4. Offerta per il cliente, stampabile o salvabile in PDF (senza costi né margini). Con un pacchetto standard
+ *    (Base, Plus, Completo: CONFIG.preventivo.pacchetti) il prezzo nasce da mq × prezzo al mq all'anno (PASSAGGIO 4, N2).
  * Tutti i valori (rese, costi, tariffe) sono di prova, da sostituire dopo l'intervista: la schermata lo dice sempre.
  */
 
@@ -12,10 +13,24 @@ function preventivoDalModulo(o, modulo) {
   if (!modulo) {
     const p = o.preventivo || {};
     return { servizio: o.servizio, ambiente: p.ambiente || "", mq: p.mq || 0, frequenza: p.frequenza || CONFIG.preventivo.frequenze[2].nome,
-      ore: Number(o.ore) || 0, tariffa: tariffaOraria(o) };
+      ore: Number(o.ore) || 0, tariffa: tariffaOraria(o), pacchetto: p.pacchetto || "" };
   }
   return { servizio: modulo.servizio.value, ambiente: modulo.ambiente.value, mq: Math.round(Number(modulo.mq.value)) || 0,
-    frequenza: modulo.frequenza.value, ore: Math.round(Number(modulo.ore.value)) || 0, tariffa: Number(modulo.tariffa.value) || 0 };
+    frequenza: modulo.frequenza.value, ore: Math.round(Number(modulo.ore.value)) || 0, tariffa: Number(modulo.tariffa.value) || 0,
+    pacchetto: modulo.pacchetto.value };
+}
+
+// Pacchetto standard per nome (null se «su misura» o non più in config.js)
+function trovaPacchetto(nome) {
+  return CONFIG.preventivo.pacchetti.find((p) => p.nome === nome) || null;
+}
+
+// Ore e tariffa di un pacchetto: ore dalle misure (resa e frequenza), tariffa = prezzo annuo (mq × €/mq) ÷ 12 ÷ ore
+function contiPacchetto(p, mq, ambiente) {
+  const prev = calcolaPreventivo({ servizio: p.servizio, mq, ambiente: ambiente || p.ambiente, frequenza: p.frequenza });
+  if (!prev) return null;
+  const anno = mq * p.prezzoMqAnno;
+  return { ore: prev.ore, tariffa: Math.round(anno / 12 / prev.ore * 100) / 100, anno };
 }
 
 // Conti del preventivo: prezzo, costo del lavoro (squadra o partner), spese dirette e margine
@@ -72,12 +87,15 @@ function disegnaPreventivo(id) {
     ${intestazione({
       occhiello: "Preventivo · rif. " + esc(o.codice),
       titolo: esc(nomeCliente(o)),
-      istruzione: "Parti dalle misure del sopralluogo, scegli la tariffa guardando costi e casi simili, poi registra l'offerta o stampa il riepilogo per il cliente.",
+      istruzione: "Scegli un pacchetto o parti dalle misure, controlla margine e casi simili, poi stampa l'offerta per il cliente e segnala come inviata.",
     })}
     <p class="avviso-stima">${icona("attenzione")} È una stima: va confermata dopo il sopralluogo.</p>
     <div class="preventivo-griglia">
       <form class="modulo riquadro" id="modulo-preventivo" data-id="${esc(o.id)}" novalidate>
         <h2 class="titolo-riquadro">1. Il servizio</h2>
+        <label>Pacchetto <select name="pacchetto"><option value="">Su misura</option>
+          ${CONFIG.preventivo.pacchetti.map((p) => `<option value="${esc(p.nome)}" ${p.nome === v.pacchetto ? "selected" : ""}>${esc(p.nome)}: ${esc(p.frequenza)}, ${formattaEuro(p.prezzoMqAnno)} al mq all'anno</option>`).join("")}
+        </select></label>
         <div class="riga-doppia">
           <label>Servizio <select name="servizio" ${o.allocazione ? "disabled" : ""}>${opzioni(Object.keys(CONFIG.servizi), v.servizio)}</select></label>
           <label>Tipo di ambienti <select name="ambiente"><option value="">— Senza misure —</option>${opzioni(CONFIG.preventivo.ambienti.map((a) => a.nome), v.ambiente)}</select></label>
@@ -90,11 +108,11 @@ function disegnaPreventivo(id) {
           <label>Ore al mese * <input name="ore" type="number" inputmode="numeric" min="1" step="1" required value="${v.ore || ""}"></label>
           <label>Tariffa (€/ora) * <input name="tariffa" type="number" inputmode="decimal" min="1" step="0.5" required value="${v.tariffa || ""}"></label>
         </div>
-        <p class="nota-piccola">Cambiando misure o frequenza, ore e tariffa si ricalcolano; poi puoi correggerle a mano.</p>
+        <p class="nota-piccola">Cambiando misure, frequenza o pacchetto, ore e tariffa si ricalcolano; poi puoi correggerle a mano (il pacchetto diventa «su misura»).</p>
         <div class="azioni-finestra">
-          <button class="pulsante secondario" type="button" data-azione="stampa-preventivo">Stampa per il cliente</button>
+          <button class="pulsante secondario" type="button" data-azione="stampa-preventivo">Stampa l'offerta per il cliente</button>
           <button class="pulsante secondario" type="submit">Salva il preventivo</button>
-          ${!inOfferta && !o.perso && faseRaggiunta(o) >= 2 ? `<button class="pulsante primario" type="button" data-azione="registra-offerta" data-id="${esc(o.id)}">Registra l'offerta inviata</button>` : ""}
+          ${!inOfferta && !o.perso && !o.storico.contratto ? `<button class="pulsante primario" type="button" data-azione="registra-offerta" data-id="${esc(o.id)}">Segna l'offerta come inviata</button>` : ""}
         </div>
       </form>
       <div id="risultato-preventivo">${risultatoPreventivo(o, v)}</div>
@@ -110,11 +128,14 @@ function risultatoPreventivo(o, v) {
   const tono = c.margine >= CONFIG.punteggio.margine.obiettivo ? "ok" : c.margine >= minimo ? "attenzione" : "critico";
   const amb = CONFIG.preventivo.ambienti.find((a) => a.nome === v.ambiente);
   const freq = CONFIG.preventivo.frequenze.find((f) => f.nome === v.frequenza);
+  const pacchetto = trovaPacchetto(v.pacchetto);
+  const validaFino = o.storico.offerta && o.scadenzaOfferta ? o.scadenzaOfferta : aggiungiGiorni(oggi(), CONFIG.giorniValiditaOfferta);
   const tariffaRif = (valore, testo) => valore === null ? "" : `<button class="pulsante secondario piccolo" type="button" data-azione="usa-tariffa" data-valore="${valore}">${testo}: ${euroOra(valore)}</button>`;
   return `
     <section class="riquadro conti-preventivo">
       <h2 class="titolo-riquadro">2. Il preventivo ${badgePunteggio(c.punteggio)}</h2>
       <p class="preventivo-prezzo"><strong>${formattaEuro(c.mese)}</strong> al mese · <strong>${formattaEuro(c.anno)}</strong> all'anno</p>
+      ${pacchetto ? `<p class="nota-piccola">Pacchetto ${esc(pacchetto.nome)}: ${v.mq} mq × ${formattaEuro(pacchetto.prezzoMqAnno)} al mq all'anno.</p>` : ""}
       <table class="criteri"><tbody>
         <tr><td>Ore al mese × tariffa</td><td class="punti">${v.ore} h × ${euroOra(v.tariffa)}</td></tr>
         <tr><td>Costo del lavoro (${c.esecutore === "squadra" ? "squadra interna" : "impresa partner"})</td><td class="punti">${euroOra(c.costoOrario)}</td></tr>
@@ -136,19 +157,22 @@ function risultatoPreventivo(o, v) {
         Tariffa mediana: vinte ${euroOra(s.tariffaVinte)}, perse ${euroOra(s.tariffaPerse)}. Il confronto diventa più affidabile con più offerte decise.`
         : NESSUN_DATO + ": ancora nessuna offerta decisa per questo servizio."}</p>
     </section>
-    <section class="stampa-preventivo" id="stampa-preventivo" aria-label="Riepilogo per il cliente">
+    <section class="stampa-preventivo" id="stampa-preventivo" aria-label="Offerta per il cliente">
       <p class="marchio-stampa">Gate <span>S.R.L.</span></p>
-      <h2>Proposta di servizio · ${esc(nomeCliente(o))}</h2>
+      <h2>Offerta di servizio${pacchetto ? " · pacchetto " + esc(pacchetto.nome) : ""} · ${esc(nomeCliente(o))}</h2>
       <p>Rif. ${esc(o.codice)} · ${formattaData(oggi())} · sede di lavoro: ${esc(o.comune)}</p>
       <table class="tabella"><tbody>
         <tr><td>Servizio</td><td>${esc(maiuscola(v.servizio))}</td></tr>
         ${amb && v.mq ? `<tr><td>Ambienti</td><td>${esc(amb.nome)}, circa ${v.mq} mq</td></tr>` : ""}
         ${freq ? `<tr><td>Frequenza</td><td>${esc(freq.nome)}</td></tr>` : ""}
-        <tr><td>Ore previste</td><td>${v.ore} ore al mese</td></tr>
-        <tr><td>Importo</td><td>${formattaEuro(c.mese)} al mese (${formattaEuro(c.anno)} all'anno), IVA esclusa</td></tr>
-        <tr><td>Validità</td><td>${CONFIG.giorniValiditaOfferta} giorni dalla data</td></tr>
+        ${pacchetto ? `<tr><td>Servizi inclusi</td><td>${pacchetto.inclusi.map(esc).join("; ")}</td></tr>
+          <tr><td>Servizi opzionali (su richiesta)</td><td>${pacchetto.opzionali.map(esc).join("; ")}</td></tr>` : `<tr><td>Ore previste</td><td>${v.ore} ore al mese</td></tr>`}
+        <tr><td>Prezzo</td><td><strong>${formattaEuro(c.anno)} all'anno</strong> (${formattaEuro(c.mese)} al mese), IVA esclusa</td></tr>
+        <tr><td>Validità</td><td>${CONFIG.giorniValiditaOfferta} giorni, fino al ${formattaData(validaFino)}</td></tr>
       </tbody></table>
-      <p class="nota-piccola">Preventivo indicativo, da confermare dopo il sopralluogo.</p>
+      <h3>Condizioni essenziali</h3>
+      <ul class="elenco-semplice">${CONFIG.preventivo.condizioni.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+      <p class="nota-piccola">Per accettare: firma dal link ricevuto con questa offerta, senza registrarti.</p>
     </section>`;
 }
 
@@ -156,8 +180,24 @@ function risultatoPreventivo(o, v) {
 function aggiornaPreventivo(modulo, campo) {
   const o = trova(modulo.dataset.id);
   if (!o) return;
-  // Misure, frequenza o servizio cambiati: ore e tariffa tornano quelle calcolate
-  if (campo && ["servizio", "ambiente", "mq", "frequenza"].includes(campo.name)) {
+  const pacchetto = trovaPacchetto(modulo.pacchetto.value);
+  // Pacchetto scelto: frequenza, ambienti e servizio del pacchetto; ore e tariffa dal prezzo al mq
+  if (campo && campo.name === "pacchetto" && pacchetto) {
+    modulo.frequenza.value = pacchetto.frequenza;
+    if (!modulo.ambiente.value) modulo.ambiente.value = pacchetto.ambiente;
+    if (!modulo.servizio.disabled) modulo.servizio.value = pacchetto.servizio;
+  }
+  // Frequenza, servizio, ore o tariffa cambiati a mano: il preventivo diventa su misura
+  if (campo && pacchetto && ["frequenza", "servizio", "ore", "tariffa"].includes(campo.name)) modulo.pacchetto.value = "";
+  const conPacchetto = trovaPacchetto(modulo.pacchetto.value);
+  if (campo && conPacchetto && ["pacchetto", "ambiente", "mq"].includes(campo.name)) {
+    const conti = contiPacchetto(conPacchetto, Number(modulo.mq.value), modulo.ambiente.value);
+    if (conti) {
+      modulo.ore.value = conti.ore;
+      modulo.tariffa.value = conti.tariffa;
+    }
+  } else if (campo && ["servizio", "ambiente", "mq", "frequenza"].includes(campo.name)) {
+    // Misure, frequenza o servizio cambiati: ore e tariffa tornano quelle calcolate
     const prev = calcolaPreventivo({ servizio: modulo.servizio.value, mq: Number(modulo.mq.value), ambiente: modulo.ambiente.value, frequenza: modulo.frequenza.value });
     if (prev) {
       modulo.ore.value = prev.ore;
@@ -180,8 +220,9 @@ function salvaPreventivo(modulo, poi = null) {
   applica(() => {
     Object.assign(o, { servizio: o.allocazione ? o.servizio : v.servizio, ore: v.ore,
       tariffa: v.tariffa !== datiServizio(v.servizio).tariffa ? v.tariffa : null, valore: null, margine: null, capacitaSimulata: null });
-    if (amb && v.mq > 0) o.preventivo = { ambiente: amb.nome, mq: v.mq, frequenza: v.frequenza };
-    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: "Preventivo: " + v.ore + " h/mese a " + euroOra(v.tariffa) + " = " + formattaEuro(v.ore * v.tariffa * 12) + "/anno" });
+    if (amb && v.mq > 0) o.preventivo = { ambiente: amb.nome, mq: v.mq, frequenza: v.frequenza, ...(trovaPacchetto(v.pacchetto) ? { pacchetto: v.pacchetto } : {}) };
+    registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: "Preventivo" + (trovaPacchetto(v.pacchetto) ? " (pacchetto " + v.pacchetto + ")" : "") + ": "
+      + v.ore + " h/mese a " + euroOra(v.tariffa) + " = " + formattaEuro(v.ore * v.tariffa * 12) + "/anno" });
   }, { messaggio: "Preventivo salvato: " + formattaEuro(v.ore * v.tariffa * 12) + " all'anno", evidenzia: o.id });
   if (poi) poi(o);
 }
@@ -196,9 +237,18 @@ Object.assign(AZIONI_CLIENTI, {
   },
   // Riepilogo per il cliente: la stampa mostra solo quello (si può salvare in PDF)
   "stampa-preventivo": () => window.print(),
-  // Salva il preventivo e apre la finestra «Offerta inviata» con la tariffa scelta
-  "registra-offerta": () => salvaPreventivo(document.getElementById("modulo-preventivo"),
-    (o) => apriFase(o, CONFIG.fasi.find((f) => f.id === "offerta"))),
+  // Salva il preventivo e apre la finestra «Offerta inviata» con la tariffa scelta.
+  // Un'offerta da pacchetto può partire anche senza sopralluogo: le fasi saltate si registrano con la stessa data, dichiarate nella cronologia
+  "registra-offerta": () => salvaPreventivo(document.getElementById("modulo-preventivo"), (o) => {
+    const offerta = CONFIG.fasi.find((f) => f.id === "offerta");
+    if (faseRaggiunta(o) < CONFIG.fasi.indexOf(offerta) - 1) {
+      applica(() => {
+        CONFIG.fasi.slice(faseRaggiunta(o) + 1, CONFIG.fasi.indexOf(offerta)).forEach((f) =>
+          registraFase(o, f, oggi(), f.id === "sopralluogo" ? "sopralluogo non necessario: offerta da pacchetto standard" : "registrata con l'offerta"));
+      }, { messaggio: "Fasi precedenti registrate con l'offerta", evidenzia: o.id, annullabile: false });
+    }
+    apriFase(o, offerta);
+  }),
 });
 
 GESTORI_MODULI["modulo-preventivo"] = (modulo) => salvaPreventivo(modulo);

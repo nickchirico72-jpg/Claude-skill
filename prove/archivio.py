@@ -150,7 +150,7 @@ def tutti_i_facoltativi(stato):
     perse[0]["perso"]["nota"] = "Ha scelto un fornitore interno; l'apostrofo e la \\ non devono rompere nulla"
     aperta = next(o for o in s["opportunita"] if not o.get("perso") and not o["storico"].get("contratto"))
     aperta.update({"riaperta": aperta["storico"]["contatto"], "motivazioneC": "Cliente strategico", "tariffa": 23.5, "note": "Note\nsu due righe",
-                   "preventivo": {"ambiente": "Uffici e studi", "mq": 380.5, "frequenza": "3 volte a settimana"},
+                   "preventivo": {"ambiente": "Uffici e studi", "mq": 380.5, "frequenza": "3 volte a settimana", "pacchetto": "Plus"},
                    "ricontatto": {"data": aperta["storico"]["contatto"], "nota": "Richiamare dopo le ferie"}})
     firmata = next(o for o in s["opportunita"] if o["storico"].get("contratto") and not o.get("perso"))
     firmata["allocazione"] = {"tipo": "squadra", "id": "sq1", "data": firmata["storico"]["contratto"]}

@@ -256,7 +256,7 @@ function strutturaValida(d) {
       ["valore", "margine", "capacitaSimulata"].every((k) => facoltativo(o[k], Number.isFinite)) &&
       ["dataPrimaRisposta", "dataRegistrazione"].every((k) => facoltativo(o[k], isData)) &&
       ["consensoPrivacy", "firmaDaLink"].every((k) => facoltativo(o[k], (v) => typeof v === "boolean")) &&
-      facoltativo(o.preventivo, (v) => isOggetto(v) && isTesto(v.ambiente) && isTesto(v.frequenza) && Number.isFinite(v.mq)) &&
+      facoltativo(o.preventivo, (v) => isOggetto(v) && isTesto(v.ambiente) && isTesto(v.frequenza) && Number.isFinite(v.mq) && facoltativo(v.pacchetto, isTesto)) &&
       facoltativo(o.ricontatto, (v) => isOggetto(v) && isData(v.data) && isTesto(v.nota)) &&
       (o.tariffa == null || (Number.isFinite(o.tariffa) && o.tariffa >= 0)) &&
       isOggetto(o.storico) && isData(o.storico.contatto) && Object.values(o.storico).every(isData) &&

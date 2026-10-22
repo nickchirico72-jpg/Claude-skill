@@ -120,6 +120,24 @@ const CONFIG = {
       { nome: "6 volte a settimana",  passaggiSettimana: 6, sconto: 0.06 },
     ],
     settimaneAlMese: 4.33,
+    // Pacchetti standard per uffici e studi professionali (settore pilota): prezzo al mq all'anno, frequenza, servizi.
+    // VALORI DI PROVA, DA SOSTITUIRE DOPO L'INTERVISTA. Ore e tariffa oraria si ricavano dal prezzo, così margine e punteggio restano coerenti.
+    pacchetti: [
+      { nome: "Base", frequenza: "2 volte a settimana", prezzoMqAnno: 15, ambiente: "Uffici e studi", servizio: "cleaning e hospitality",
+        inclusi: ["Pavimenti e superfici di lavoro", "Svuotamento dei cestini e raccolta differenziata", "Pulizia e igienizzazione dei bagni"],
+        opzionali: ["Vetri interni ed esterni", "Fornitura dei materiali di consumo per i bagni"] },
+      { nome: "Plus", frequenza: "3 volte a settimana", prezzoMqAnno: 23, ambiente: "Uffici e studi", servizio: "cleaning e hospitality",
+        inclusi: ["Pavimenti e superfici di lavoro", "Svuotamento dei cestini e raccolta differenziata", "Pulizia e igienizzazione dei bagni",
+          "Vetri interni una volta al mese", "Materiali di consumo per i bagni"],
+        opzionali: ["Vetri esterni", "Sanificazione periodica degli ambienti"] },
+      { nome: "Completo", frequenza: "5 volte a settimana", prezzoMqAnno: 39, ambiente: "Uffici e studi", servizio: "cleaning e hospitality",
+        inclusi: ["Pavimenti e superfici di lavoro", "Svuotamento dei cestini e raccolta differenziata", "Pulizia e igienizzazione dei bagni",
+          "Vetri interni ed esterni una volta al mese", "Materiali di consumo per i bagni", "Sanificazione trimestrale degli ambienti"],
+        opzionali: ["Pulizia straordinaria dopo lavori o traslochi", "Manutenzione del verde interno"] },
+    ],
+    // Condizioni essenziali stampate nell'offerta (VALORI DI PROVA, DA SOSTITUIRE DOPO L'INTERVISTA)
+    condizioni: ["Prezzi IVA esclusa, fatturazione mensile posticipata", "Durata 12 mesi, rinnovabile alla scadenza",
+      "Prodotti e attrezzature a carico di Gate", "Avvio del servizio entro 15 giorni dalla firma", "Personale assicurato e formato sulla sicurezza"],
     // Il margine minimo è quello del punteggio (punteggio.margine.minimo): sotto compare un avviso
   },
 

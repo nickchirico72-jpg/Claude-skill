@@ -111,7 +111,7 @@ TABELLE = [
      ["PRIMARY KEY (id_opportunita, fase)", "FOREIGN KEY (id_opportunita) REFERENCES opportunita(id) ON DELETE CASCADE"]),
     ("preventivi", "Misure del preventivo di una trattativa",
      [("id_opportunita", ID, "PRIMARY KEY"), ("ambiente", TESTO, "NOT NULL"), ("mq", NUMERO, "NOT NULL CHECK (mq >= 0)"),
-      ("frequenza", TESTO, "NOT NULL")] + META,
+      ("frequenza", TESTO, "NOT NULL"), ("pacchetto", TESTO, "")] + META,
      ["FOREIGN KEY (id_opportunita) REFERENCES opportunita(id) ON DELETE CASCADE"]),
     ("ricontatti", "Trattative da ricontattare in una data",
      [("id_opportunita", ID, "PRIMARY KEY"), ("data", DATA, "NOT NULL"), ("nota", "TEXT", "NOT NULL")] + META,
@@ -239,7 +239,7 @@ def da_stato(stato, utente="migrazione"):
         for fase, data in o["storico"].items():
             t["fasi_opportunita"].append({"id_opportunita": o["id"], "fase": fase, "data": data})
         if o.get("preventivo"):
-            controlla(o["preventivo"], ["ambiente", "mq", "frequenza"], "preventivo di " + o["id"])
+            controlla(o["preventivo"], ["ambiente", "mq", "frequenza", "pacchetto"], "preventivo di " + o["id"])
             t["preventivi"].append({"id_opportunita": o["id"], **o["preventivo"], "aggiornato_da": utente})
         if o.get("ricontatto"):
             controlla(o["ricontatto"], ["data", "nota"], "ricontatto di " + o["id"])
@@ -340,7 +340,7 @@ def a_stato(t):
     for r in t["fasi_opportunita"]:
         fasi.setdefault(r["id_opportunita"], {})[r["fase"]] = r["data"]
     for r in t["preventivi"]:
-        preventivi[r["id_opportunita"]] = {"ambiente": r["ambiente"], "mq": numero(r["mq"]), "frequenza": r["frequenza"]}
+        preventivi[r["id_opportunita"]] = senza_null({"ambiente": r["ambiente"], "mq": numero(r["mq"]), "frequenza": r["frequenza"], "pacchetto": r["pacchetto"]})
     for r in t["ricontatti"]:
         ricontatti[r["id_opportunita"]] = {"data": r["data"], "nota": r["nota"]}
     for r in t["allocazioni"]:
