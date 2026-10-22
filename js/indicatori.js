@@ -126,28 +126,21 @@ function tessereReali(r) {
   };
 }
 
-// Barra in cima: i livelli, la fonte dei dati con l'etichetta ben visibile, import ed export del CSV
+// Barra in cima: i livelli e, se ci sono dati reali importati (da Documenti), la scelta della fonte
 function barraIndicatori(scelta, reali) {
   const fonti = ["fittizi"].concat(reali);
   const r = scelta.fonte !== "fittizi" ? kpiReali(scelta.fonte) : null;
+  const esempio = r && r.esempio ? '<p class="chip chip-critico" role="status">Righe di esempio inventate, non dati di Gate</p>' : "";
+  const scegli = fonti.length > 1 ? `<div class="azioni-fonte"><label class="scegli-fonte">Fonte dei dati
+          <select id="scelta-fonte">${fonti.map((f) => `<option value="${esc(f)}" ${f === scelta.fonte ? "selected" : ""}>${esc(nomeFonte(f))}</option>`).join("")}</select>
+        </label></div>` : "";
   return `
     <nav class="livelli" aria-label="Livello decisionale">
       ${Object.entries(LIVELLI).map(([id, l]) => `
         <button class="livello-pulsante" type="button" data-azione="livello" data-id="${id}" aria-pressed="${scelta.livello === id}">
           <strong>${l.nome}</strong><span>${l.chi}</span></button>`).join("")}
     </nav>
-    <div class="barra-fonte">
-      ${r && r.esempio ? '<p class="chip chip-critico" role="status">Righe di esempio inventate, non dati di Gate</p>' : ""}
-      <div class="azioni-fonte">
-        ${fonti.length > 1 ? `<label class="scegli-fonte">Fonte dei dati
-          <select id="scelta-fonte">${fonti.map((f) => `<option value="${esc(f)}" ${f === scelta.fonte ? "selected" : ""}>${esc(nomeFonte(f))}</option>`).join("")}</select>
-        </label>` : ""}
-        <a class="pulsante-testo positivo" href="#riepilogo">Riepilogo del mese</a>
-        <a class="pulsante-testo positivo" href="#lunedi">Lista del lunedì</a>
-        <button class="pulsante-testo positivo" type="button" data-azione="esporta-csv-richieste">Esporta CSV</button>
-        <button class="pulsante-testo positivo" type="button" data-azione="importa-csv-reali">Importa CSV dati reali</button>
-      </div>
-    </div>`;
+    ${esempio || scegli ? `<div class="barra-fonte">${esempio}${scegli}</div>` : ""}`;
 }
 
 function disegnaIndicatori() {
@@ -453,7 +446,7 @@ function confermaCsvReali() {
   applica(() => {
     stato.richiesteReali = (stato.richiesteReali || []).filter((r) => !fonti.includes(r.fonte)).concat(righe);
     interfaccia.indicatori.fonte = fonti[0];
-  }, { messaggio: righe.length + " richieste reali importate (" + fonti.join(", ") + ")" });
+  }, { messaggio: righe.length + " richieste reali importate (" + fonti.join(", ") + ")", vai: "indicatori" });
   csvDaImportare = null;
 }
 
@@ -485,6 +478,11 @@ function confronto(ora, prima, meglioSeMeno = false) {
   return `<span class="${bene ? "meglio" : "peggio"}">${delta > 0 ? "▲ +" : "▼ "}${formattaPercentuale(delta)}</span> sul mese prima`;
 }
 
+// Un numero del riepilogo: etichetta, valore grande, nota sotto
+function numeroRiepilogo(etichetta, valore, nota) {
+  return `<div class="riepilogo-numero"><span>${etichetta}</span><strong>${valore}</strong><small>${nota}</small></div>`;
+}
+
 // Pagina A4 per la direzione: ultimi 30 giorni contro i 30 precedenti, situazione di oggi, cosa fare domani
 function disegnaRiepilogo() {
   const tutte = stato.opportunita;
@@ -496,10 +494,9 @@ function disegnaRiepilogo() {
   const portafoglio = coerenzaPortafoglio(tutte);
   const daAssegnare = tutte.filter((o) => o.storico.contratto && !o.perso && !o.allocazione).length;
   const motivo = motiviPerdita(tutte.filter((o) => o.perso && o.perso.data >= inizio))[0];
-  const numero = (etichetta, valore, nota) => `<div class="riepilogo-numero"><span>${etichetta}</span><strong>${valore}</strong><small>${nota}</small></div>`;
   return `
     ${intestazione({ titolo: "Riepilogo del mese", istruzione: "Una pagina per la direzione con i numeri degli ultimi 30 giorni: stampala o salvala in PDF.",
-      azione: `<div class="azioni-intestazione"><a class="pulsante-testo positivo esporta" href="#indicatori">Torna agli Indicatori</a>
+      azione: `<div class="azioni-intestazione"><a class="pulsante-testo positivo esporta" href="#documenti">Torna a Documenti</a>
         <button class="pulsante primario" type="button" data-azione="stampa-riepilogo">Stampa o salva in PDF</button></div>` })}
     <article class="foglio" id="foglio-riepilogo" aria-label="Riepilogo del mese">
       <header class="foglio-testa">
@@ -509,20 +506,20 @@ function disegnaRiepilogo() {
 
       <h3>Il mese</h3>
       <div class="riepilogo-numeri">
-        ${numero("Nuovi contatti", ora.contatti, confronto(ora.contatti, prima.contatti))}
-        ${numero("Offerte inviate", ora.offerte, confronto(ora.offerte, prima.offerte))}
-        ${numero("Contratti firmati", ora.contratti, confronto(ora.contratti, prima.contratti))}
-        ${numero("Valore dei contratti", formattaEuro(ora.valore), "all'anno · " + confronto(ora.valore, prima.valore))}
-        ${numero("Trattative perse", ora.perse, (motivo ? "soprattutto «" + esc(motivo.motivo) + "» · " : "") + confronto(ora.perse, prima.perse, true))}
-        ${numero("Prima risposta", formattaGiorni(ora.risposta), "media (K12) · " + confronto(ora.risposta, prima.risposta, true))}
+        ${numeroRiepilogo("Nuovi contatti", ora.contatti, confronto(ora.contatti, prima.contatti))}
+        ${numeroRiepilogo("Offerte inviate", ora.offerte, confronto(ora.offerte, prima.offerte))}
+        ${numeroRiepilogo("Contratti firmati", ora.contratti, confronto(ora.contratti, prima.contratti))}
+        ${numeroRiepilogo("Valore dei contratti", formattaEuro(ora.valore), "all'anno · " + confronto(ora.valore, prima.valore))}
+        ${numeroRiepilogo("Trattative perse", ora.perse, (motivo ? "soprattutto «" + esc(motivo.motivo) + "» · " : "") + confronto(ora.perse, prima.perse, true))}
+        ${numeroRiepilogo("Prima risposta", formattaGiorni(ora.risposta), "media (K12) · " + confronto(ora.risposta, prima.risposta, true))}
       </div>
 
       <h3>Oggi</h3>
       <div class="riepilogo-numeri quattro">
-        ${numero("Trattative aperte", p.aperte, k.ferme + " ferme (K9)")}
-        ${numero("Ricavi attesi", formattaEuro(p.ponderata), "all'anno, pesati per fase (K6)")}
-        ${numero("Trattative buone", quota(portafoglio.buone.n, portafoglio.totale.n), "punteggio da " + CONFIG.punteggio.buona + " in su (K11)")}
-        ${numero("Commesse da assegnare", daAssegnare, "contratti firmati senza squadra o partner")}
+        ${numeroRiepilogo("Trattative aperte", p.aperte, k.ferme + " ferme (K9)")}
+        ${numeroRiepilogo("Ricavi attesi", formattaEuro(p.ponderata), "all'anno, pesati per fase (K6)")}
+        ${numeroRiepilogo("Trattative buone", quota(portafoglio.buone.n, portafoglio.totale.n), "punteggio da " + CONFIG.punteggio.buona + " in su (K11)")}
+        ${numeroRiepilogo("Commesse da assegnare", daAssegnare, "contratti firmati senza squadra o partner")}
       </div>
       <p class="riepilogo-tempo">Tempo risparmiato con il CRM, stima: <strong>${tempoRisparmiato().ore.toLocaleString("it-IT", { maximumFractionDigits: 1 })} ore</strong>
         e <strong>${formattaEuro(tempoRisparmiato().euro)}</strong> al mese.</p>
@@ -538,6 +535,40 @@ function disegnaRiepilogo() {
     </article>`;
 }
 
+// ============================================================ DIREZIONE
+
+// Schermata essenziale per l'amministratore unico: quattro numeri e le decisioni della settimana
+function disegnaDirezione() {
+  const tutte = stato.opportunita;
+  const fine = oggi();
+  const ora = numeriPeriodo(tutte, aggiungiGiorni(fine, -29), fine);
+  const prima = numeriPeriodo(tutte, aggiungiGiorni(fine, -59), aggiungiGiorni(fine, -30));
+  const p = previsionePonderata(tutte);
+  const portafoglio = coerenzaPortafoglio(tutte);
+  const daAssegnare = tutte.filter((o) => o.storico.contratto && !o.perso && !o.allocazione).length;
+  // La prima azione di ogni previsione di «Cosa fare domani»: al massimo quattro decisioni
+  const decisioni = previsioniDomani(tutte).filter((x) => x.azioni.length).map((x) => ({ ...x.azioni[0], previsione: x.titolo }));
+  return `
+    <div class="pagina-direzione">
+    ${intestazione({ titolo: "Direzione", istruzione: "I numeri che contano e le decisioni della settimana. Il resto è negli Indicatori." })}
+    <div class="riepilogo-numeri quattro direzione-numeri">
+      ${numeroRiepilogo("Contratti del mese", ora.contratti, formattaEuro(ora.valore) + " all'anno · " + confronto(ora.contratti, prima.contratti))}
+      ${numeroRiepilogo("Ricavi attesi", formattaEuro(p.ponderata), "all'anno da " + p.aperte + " trattative aperte, pesati per fase")}
+      ${numeroRiepilogo("Trattative buone", quota(portafoglio.buone.n, portafoglio.totale.n), "punteggio da " + CONFIG.punteggio.buona + " in su")}
+      ${numeroRiepilogo("Commesse da assegnare", daAssegnare, daAssegnare ? '<a class="link" href="#allocazione">Assegnale</a>' : "tutte assegnate")}
+    </div>
+    <section class="riquadro decisioni" aria-label="Da decidere">
+      <h2 class="titolo-riquadro">Da decidere</h2>
+      ${decisioni.length ? `<ol class="elenco-consigli">${decisioni.map((x) => `<li>
+        <a class="link-titolo" href="${x.aziendaId ? "#cliente-" + esc(x.aziendaId) : x.link}">${esc(x.testo)}</a>
+        <span class="consiglio-perche">${esc(x.previsione)} · perché: ${esc(x.perche)}</span></li>`).join("")}</ol>`
+        : '<p class="nota-piccola">Nessuna decisione urgente.</p>'}
+    </section>
+    <p class="azioni-intestazione"><a class="pulsante secondario piccolo" href="#indicatori">Tutti gli indicatori</a>
+      <a class="pulsante secondario piccolo" href="#riepilogo">Riepilogo da stampare</a></p>
+    </div>`;
+}
+
 // ============================================================ LISTA DEL LUNEDÌ (N4)
 
 // Pagina da stampare o copiare: cosa sollecitare questa settimana e quali contratti rinnovare, alla data di riferimento
@@ -547,7 +578,7 @@ function disegnaLunedi() {
   const sezioni = listaLunedi(rif);
   return `
     ${intestazione({ titolo: "Lista del lunedì", istruzione: "Cosa sollecitare questa settimana e quali contratti rinnovare: stampala o copiala nella chat del team.",
-      azione: `<div class="azioni-intestazione"><a class="pulsante-testo positivo esporta" href="#pipeline">Torna alla Pipeline</a>
+      azione: `<div class="azioni-intestazione"><a class="pulsante-testo positivo esporta" href="#documenti">Torna a Documenti</a>
         <button class="pulsante secondario" type="button" data-azione="copia-lunedi">Copia come testo</button>
         <button class="pulsante primario" type="button" data-azione="stampa-riepilogo">Stampa</button></div>` })}
     <label class="data-lunedi">Data di riferimento <input type="date" id="data-lunedi" value="${esc(rif)}" max="${aggiungiGiorni(oggi(), 365)}"></label>

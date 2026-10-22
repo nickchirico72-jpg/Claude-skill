@@ -24,5 +24,7 @@ Ogni PASSAGGIO dal progetto di analisi (docs/passaggi/) diventa una o più user 
 | US-N5 | Come direzione voglio esportare e importare i dati nel formato del dizionario, per portare il modello nel nostro gestionale o in un CRM. | 1 | [PASSAGGIO 4](passaggi/2026-10-22-piattaforma-demo.md) (US-G nel progetto di analisi) | Fatta (22/10) |
 | US-N6 | Come chi guarda la demo voglio vedere quali passaggi sono automatici e quali li fa una persona, per capire subito cosa cambia per Gate. | 1 | [PASSAGGIO 4](passaggi/2026-10-22-piattaforma-demo.md) (– nel progetto di analisi) | Fatta (22/10) |
 | US-N7 | Come cliente di Gate voglio un report mensile chiaro, per vedere cosa è stato fatto e con quale impatto (solo se resta tempo). | 1 | [PASSAGGIO 4](passaggi/2026-10-22-piattaforma-demo.md) (US-K nel progetto di analisi) | Non fatta: opzionale, rimandata |
+| US-O | Come Alfredo, amministratore unico, voglio una schermata essenziale con i numeri che contano e le decisioni della settimana, per decidere in un minuto. | 1 | Richiesta del 22/10 | Fatta (22/10): schermata Direzione |
+| US-P | Come chi usa il CRM voglio trovare in un solo posto i report da stampare e i file da scambiare (gestionale, Excel, dati reali, backup). | 1 | Richiesta del 22/10 | Fatta (22/10): schermata Documenti, tolti i doppioni da Indicatori, Clienti e piè di pagina |
 
 Nota: dal PASSAGGIO 4 le user story nuove si numerano US-N1…N7, perché le sigle US-G…US-M del progetto di analisi qui sono già usate per altre storie.

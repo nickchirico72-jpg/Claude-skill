@@ -25,6 +25,10 @@
       </a>
 
       <nav class="navigazione" aria-label="Schermate">
+        <a class="nav-voce" href="#direzione" data-vai="direzione" title="Direzione: numeri e decisioni">
+          <svg class="icona" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/></svg>
+          <span class="nav-testo"><span>Direzione</span><span class="nav-descrizione">Numeri e decisioni</span></span>
+        </a>
         <a class="nav-voce" href="#pipeline" data-vai="pipeline" title="Pipeline: opportunità e punteggio">
           <svg class="icona" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 7v7M12 7v4M16 7v9"/></svg>
           <span class="nav-testo"><span>Pipeline</span><span class="nav-descrizione">Opportunità e punteggio</span></span>
@@ -43,6 +47,10 @@
           <svg class="icona" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
           <span class="nav-testo"><span>Indicatori</span><span class="nav-descrizione">KPI e funnel</span></span>
         </a>
+        <a class="nav-voce" href="#documenti" data-vai="documenti" title="Documenti: report, file e backup">
+          <svg class="icona" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+          <span class="nav-testo"><span>Documenti</span><span class="nav-descrizione">Report, file e backup</span></span>
+        </a>
       </nav>
     </aside>
 
@@ -58,14 +66,11 @@
 
         <footer class="pie">
           <p id="riga-utente" class="riga-utente"></p>
-          <p>Open Challenge by Enterprise 2026 · corso di Digital Transformation · LM-77, Università LUM. Dati fittizi. I dati restano solo in questo browser: usa "Salva backup" per conservarli o passarli a un collega.</p>
+          <p>Open Challenge by Enterprise 2026 · corso di Digital Transformation · LM-77, Università LUM. Dati fittizi. I dati restano solo in questo browser: salva un backup da «Documenti» per conservarli o passarli a un collega.</p>
           <div class="azioni-pie">
             <p id="stato-backup" class="stato-backup"></p>
-            <button class="pulsante secondario piccolo" type="button" data-azione="esporta-backup">Salva backup</button>
-            <button class="pulsante secondario piccolo" type="button" data-azione="importa-backup">Carica backup</button>
             <a class="pulsante secondario piccolo" href="#come-funziona">Come funziona</a>
             <button class="pulsante secondario piccolo" type="button" data-azione="canali">Sito e social</button>
-            <button class="pulsante secondario piccolo" type="button" data-azione="ripristina">Ripristina dati di esempio</button>
             <input type="file" id="file-backup" accept=".json,application/json" hidden>
           </div>
         </footer>
@@ -93,6 +98,7 @@
   <script src="js/ponte.js"></script>
   <script src="js/indicatori.js"></script>
   <script src="js/preventivi.js"></script>
+  <script src="js/documenti.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

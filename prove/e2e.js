@@ -55,7 +55,7 @@ const PROVE = {
       const { ctx, page, errori } = await apri(dispositivo);
       const sigla = dispositivo === 'desktop' ? 'desktop' : 'mobile';
       for (const [nome, indirizzo] of [['pipeline', 'index.html#pipeline'], ['clienti', 'index.html#clienti'], ['scheda-cliente', 'index.html#cliente-c1'],
-        ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['riepilogo', 'index.html#riepilogo'], ['lunedi', 'index.html#lunedi'], ['come-funziona', 'index.html#come-funziona'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
+        ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['riepilogo', 'index.html#riepilogo'], ['lunedi', 'index.html#lunedi'], ['come-funziona', 'index.html#come-funziona'], ['direzione', 'index.html#direzione'], ['documenti', 'index.html#documenti'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
         await page.goto(BASE + indirizzo);
         await page.waitForTimeout(400);
         verifica(`${dispositivo} ${nome}: nessuno scorrimento orizzontale`, !(await scorreOrizzontale(page)));
@@ -164,7 +164,7 @@ const PROVE = {
     await page.fill('#modulo-contenuto [name=tema]', 'Prova: pulizia degli studi legali');
     await clic(page, '#modulo-contenuto [type=submit]');
     await clic(page, '[data-azione=chiudi]');
-    await page.goto(BASE + 'index.html#indicatori');
+    await page.goto(BASE + 'index.html#documenti');
     await clic(page, '[data-azione=importa-csv-reali]');
     await page.setInputFiles('#modulo-csv-reali [name=file]', { name: 'prova.csv', mimeType: 'text/csv', buffer: Buffer.from(
       'data_richiesta;data_annotazione;canale;settore;data_risposta;data_offerta;esito\n2026-09-01;2026-09-02;sito;uffici e commercio;2026-09-03;2026-09-10;contratto\n2026-09-05;;telefono;sanità;;;aperta\n') });
@@ -383,14 +383,39 @@ const PROVE = {
     await ctx.close();
   },
 
+  // Direzione (essenziale per l'amministratore) e Documenti (file raccolti in una schermata, senza doppioni)
+  async direzioneDocumenti() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#direzione');
+    const numeri = await page.$$eval('.direzione-numeri .riepilogo-numero', (el) => el.length);
+    const decisioni = await page.$$eval('.decisioni li', (el) => el.length);
+    const daAssegnare = await page.evaluate(() => stato.opportunita.filter((o) => o.storico.contratto && !o.perso && !o.allocazione).length);
+    verifica('direzione: 4 numeri e da 1 a 4 decisioni', numeri === 4 && decisioni >= 1 && decisioni <= 4, numeri + ' numeri, ' + decisioni + ' decisioni');
+    verifica('direzione: commesse da assegnare uguali al contatore dell\'Allocazione', (await page.textContent('.direzione-numeri .riepilogo-numero:nth-child(4) strong')).trim() === String(daAssegnare));
+    await page.goto(BASE + 'index.html#indicatori');
+    verifica('indicatori: niente pulsanti di file (sono in Documenti)', !(await page.$('.pagina-indicatori [data-azione=importa-csv-reali], .pagina-indicatori [href="#riepilogo"]')));
+    await page.goto(BASE + 'index.html#clienti');
+    verifica('clienti: niente pulsante del gestionale (è in Documenti)', !(await page.$('.pagina-clienti [data-azione=ponte]')));
+    verifica('piè di pagina: niente carica backup e ripristina', !(await page.$('.pie [data-azione=importa-backup], .pie [data-azione=ripristina]')));
+    await page.goto(BASE + 'index.html#documenti');
+    const righe = await page.$$eval('.documento', (el) => el.map((d) => d.id.replace('documento-', '')));
+    verifica('documenti: report, gestionale, Excel, CSV reali, backup, dati di esempio', righe.join() === 'riepilogo,lunedi,gestionale,clienti,richieste,backup,esempio', righe.join());
+    const [backup] = await Promise.all([page.waitForEvent('download'), clic(page, '#documento-backup [data-azione=esporta-backup]')]);
+    verifica('backup da Documenti: file scaricato, data aggiornata qui e nel piè di pagina', /backup/.test(backup.suggestedFilename())
+      && (await page.textContent('#documento-backup .quando-backup')) === 'oggi' && !(await page.$('#stato-backup [data-azione=esporta-backup]')));
+    await clic(page, '#documento-riepilogo a');
+    verifica('riepilogo: voce di menu Documenti attiva', (await page.getAttribute('[data-vai=documenti]', 'aria-current')) === 'page');
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
   // N5 (PASSAGGIO 4): ponte con il gestionale. Export dei 7 CSV, import con controlli, sostituzione dopo il backup
   async ponte() {
     const { ctx, page, errori } = await apri();
-    await page.goto(BASE + 'index.html#clienti');
-    await clic(page, '.pagina-clienti [data-azione=ponte]');
+    await page.goto(BASE + 'index.html#documenti');
     const scaricati = [];
     page.on('download', (d) => scaricati.push(d));
-    await clic(page, '#modulo-ponte [data-azione=esporta-ponte]:not([data-id])');
+    await clic(page, '#documento-gestionale [data-azione=esporta-ponte]:not([data-id])');
     await page.waitForTimeout(3000);
     const cartella = path.join(__dirname, 'archivio', 'ponte');
     fs.mkdirSync(cartella, { recursive: true });
@@ -404,6 +429,7 @@ const PROVE = {
     verifica('export: 7 CSV con i nomi del dizionario', scaricati.length === 7 && /^id_opp,id_cliente,id_commerciale,id_referente,canale/.test(intestazione), scaricati.map((d) => d.suggestedFilename()).join(', '));
     // File con una riga sbagliata: viene scartata con il motivo, le altre passano
     const sbagliato = path.join(cartella, '..', 'opportunita-con-errore.csv');
+    await clic(page, '#documento-gestionale [data-azione=ponte]');
     fs.writeFileSync(sbagliato, fs.readFileSync(path.join(cartella, 'opportunita.csv'), 'utf8') + '9999,8888,,,LinkedIn,cleaning e hospitality,trattativa,,,,2026-10-01,,,,,,,,,,,,\r\n');
     await page.setInputFiles('#modulo-ponte [name=file]', percorsi.filter((x) => !x.endsWith('opportunita.csv')).concat(sbagliato));
     await clic(page, '#modulo-ponte [type=submit]');
@@ -504,7 +530,7 @@ const PROVE = {
   // Modifica 1: import di un CSV a 7 colonne con 12 righe, elenco a parte, KPI ricalcolati; export
   async csv() {
     const { ctx, page, errori } = await apri();
-    await page.goto(BASE + 'index.html#indicatori');
+    await page.goto(BASE + 'index.html#documenti');
     await clic(page, '[data-azione=importa-csv-reali]');
     const righe = ['data_richiesta;data_annotazione;canale;settore;data_risposta;data_offerta;esito'];
     for (let i = 1; i <= 12; i++) righe.push(`2026-09-${String(i).padStart(2, '0')};2026-09-${String(i).padStart(2, '0')};${i % 2 ? 'sito' : 'telefono'};uffici e commercio;2026-09-${String(i + 1).padStart(2, '0')};;${i % 3 ? 'aperta' : 'contratto'}`);
@@ -518,6 +544,8 @@ const PROVE = {
     verifica('K12 ricalcolato dal CSV: 1 giorno', /^1 giorno$/.test((await page.textContent('#kpi-K12 .kpi-valore')).trim()));
     verifica('K13 senza date di offerta: «nessun dato», non zero', (await page.textContent('#kpi-K13 .kpi-valore')).trim() === 'nessun dato');
     verifica('pipeline invariata: le righe reali non entrano tra le opportunità', (await page.evaluate(() => stato.opportunita.length)) === 300);
+    verifica('dopo l\'import si apre la schermata Indicatori', await page.evaluate(() => location.hash === '#indicatori'));
+    await page.goto(BASE + 'index.html#documenti');
     const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-azione=esporta-csv-richieste]')]);
     const testo = fs.readFileSync(await download.path(), 'utf8');
     verifica('export CSV a 7 colonne', testo.split('\r\n')[0].replace(/\uFEFF|"/g, '') === 'data_richiesta;data_annotazione;canale;settore;data_risposta;data_offerta;esito' && testo.split('\r\n').length === 13);

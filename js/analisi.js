@@ -313,7 +313,7 @@ const LIVELLI_PIATTAFORMA = [
   { titolo: "Archivio unico", sotto: "clienti, referenti, trattative", passi: [
     ["Cliente, referente e trattativa nascono insieme, senza doppioni", "automatico", "#clienti", "Clienti"],
     ["Privacy: base giuridica e consenso di ogni referente", "persona", "#clienti", "Clienti"],
-    ["Scambio con il gestionale in CSV, con i controlli prima di sostituire i dati", "propone", "#ponte", "Gestionale e Excel"]] },
+    ["Scambio con il gestionale in CSV, con i controlli prima di sostituire i dati", "propone", "#documenti", "Documenti"]] },
   { titolo: "Strumenti di lavoro", sotto: "dalla richiesta alla commessa", passi: [
     ["Preventivo indicativo e punteggio di coerenza", "automatico", "#pipeline", "Pipeline"],
     ["Offerta da pacchetto: prezzo e margine calcolati, la persona sceglie e invia", "propone", "#pipeline", "Pipeline"],
@@ -349,7 +349,6 @@ function disegnaComeFunziona() {
     if (!dove) return "";
     if (dove === "#nota") return `<button class="pulsante-testo positivo" type="button" data-azione="nota">${esc(testo)}</button>`;
     if (dove === "#canali") return `<button class="pulsante-testo positivo" type="button" data-azione="canali">${esc(testo)}</button>`;
-    if (dove === "#ponte") return `<button class="pulsante-testo positivo" type="button" data-azione="ponte">${esc(testo)}</button>`;
     if (dove === "#indicatori-domani") return `<button class="pulsante-testo positivo" type="button" data-azione="vai-domani">${esc(testo)}</button>`;
     return `<a class="link" href="${dove}"${dove.endsWith(".html") ? ' target="_blank" rel="noopener"' : ""}>${esc(testo)}</a>`;
   };

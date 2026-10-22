@@ -185,7 +185,6 @@ function disegnaClienti() {
       titolo: "Aziende e referenti",
       istruzione: "Cerca un'azienda e apri la sua scheda per chiamare i referenti, registrare un contatto e fissare la prossima azione.",
       azione: `<div class="azioni-intestazione">
-        <button class="pulsante-testo positivo esporta" type="button" data-azione="ponte">Gestionale e Excel</button>
         <button class="pulsante-testo positivo esporta" type="button" data-azione="canali">Sito e social</button>
         <button class="pulsante accento" type="button" data-azione="nuovo">${icona("piu")} Nuovo contatto</button></div>`,
     })}

@@ -1997,28 +1997,36 @@ function chiudiAvvisoFisso(pulsante) {
   el.hidden = !el.children.length;
 }
 
-// Promemoria nel piè di pagina: quando è stato fatto l'ultimo backup
-function aggiornaStatoBackup() {
+// Quando è stato fatto l'ultimo backup ("mai", "oggi", "3 giorni fa") e se è ora di farne uno (mai o da oltre 7 giorni)
+function quandoUltimoBackup() {
   const giorni = stato.ultimoBackup ? giorniTra(stato.ultimoBackup, oggi()) : null;
-  const quando = giorni === null ? "mai" : giorni <= 0 ? "oggi" : giorni === 1 ? "ieri" : giorni + " giorni fa";
+  return { quando: giorni === null ? "mai" : giorni <= 0 ? "oggi" : giorni === 1 ? "ieri" : giorni + " giorni fa", daFare: giorni === null || giorni > 7 };
+}
+
+// Promemoria nel piè di pagina (con il pulsante solo quando serve) e data in Documenti
+function aggiornaStatoBackup() {
+  const { quando, daFare } = quandoUltimoBackup();
   document.getElementById("stato-backup").innerHTML = "Ultimo backup: " + quando +
-    (giorni === null || giorni > 7 ? ' <span class="chip chip-attenzione">Fai un backup</span>' : "");
+    (daFare ? ' <button class="pulsante secondario piccolo" type="button" data-azione="esporta-backup">Salva backup</button>' : "");
+  document.querySelectorAll(".quando-backup").forEach((el) => { el.textContent = quando; });
 }
 
 const SCHERMATE = {
+  direzione: disegnaDirezione,   // quattro numeri e le decisioni della settimana, per l'amministratore
   pipeline: disegnaPipeline,
   clienti: disegnaClienti,
   cliente: disegnaSchedaCliente, // scheda di un'azienda: #cliente-<id>
   preventivo: disegnaPreventivo, // preventivo di un'opportunità: #preventivo-<id>
   allocazione: disegnaAllocazione,
   indicatori: disegnaIndicatori,
+  documenti: disegnaDocumenti,   // report da stampare, gestionale, Excel, CSV dei dati reali, backup
   riepilogo: disegnaRiepilogo,   // riepilogo del mese da stampare: #riepilogo
   lunedi: disegnaLunedi,         // lista del lunedì da stampare o copiare: #lunedi
   "come-funziona": disegnaComeFunziona,   // i 5 livelli della piattaforma e la demo guidata
 };
 
 // Nome della schermata nel titolo della scheda del browser, es. "Clienti · Gate"
-const TITOLI = { pipeline: "Pipeline", clienti: "Clienti", allocazione: "Allocazione", indicatori: "Indicatori" };
+const TITOLI = { direzione: "Direzione", pipeline: "Pipeline", clienti: "Clienti", allocazione: "Allocazione", indicatori: "Indicatori", documenti: "Documenti" };
 
 // Scorrimento morbido, oppure immediato per chi ha chiesto meno animazioni al sistema
 function comeScorrere() {
@@ -2030,8 +2038,8 @@ function schermataAttuale() {
   const hash = location.hash.slice(1);
   if (hash.startsWith("cliente-") && trovaAzienda(hash.slice(8))) return { nome: "cliente", parametro: hash.slice(8), menu: "clienti" };
   if (hash.startsWith("preventivo-") && trova(hash.slice(11))) return { nome: "preventivo", parametro: hash.slice(11), menu: "pipeline" };
-  if (hash === "riepilogo") return { nome: "riepilogo", menu: "indicatori" };
-  if (hash === "lunedi") return { nome: "lunedi", menu: "pipeline" };
+  if (hash === "riepilogo") return { nome: "riepilogo", menu: "documenti" };
+  if (hash === "lunedi") return { nome: "lunedi", menu: "documenti" };
   if (hash === "come-funziona") return { nome: "come-funziona", menu: "" };
   // hasOwn: un indirizzo come #constructor non deve trovare le proprietà nascoste degli oggetti
   return Object.hasOwn(TITOLI, hash) ? { nome: hash, menu: hash } : { nome: "pipeline", menu: "pipeline" };
@@ -2058,7 +2066,7 @@ function disegna() {
   } catch (errore) {
     // Un dato imprevisto non lascia la pagina bianca: si spiega cosa fare
     console.error(errore);
-    html = '<p class="vuoto">Questa schermata non si può mostrare: alcuni dati non sono validi. Usa «Salva backup» e poi «Ripristina dati di esempio».</p>';
+    html = '<p class="vuoto">Questa schermata non si può mostrare: alcuni dati non sono validi. In «Documenti» salva un backup e poi ripristina i dati di esempio.</p>';
   }
   document.getElementById("schermata").innerHTML = html;
 

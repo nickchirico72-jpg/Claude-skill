@@ -231,22 +231,15 @@ function statoDaPonte(t) {
 
 let ponteInAttesa = null;   // dati controllati, in attesa della conferma
 
-// Finestra «Ponte con il gestionale»: esporta i CSV del dizionario, importa quelli del gestionale
+// Finestra «Carica dal gestionale»: controlla i CSV del gestionale prima di sostituire i dati (lo scarico è in Documenti)
 function apriPonte() {
   ponteInAttesa = null;
   apriFinestra(`
     <form class="modulo" id="modulo-ponte" novalidate>
       <div>
-        <h2>Ponte con il gestionale</h2>
-        <p class="nota-piccola">Scambia i dati con il gestionale di Gate o con un altro CRM: un file CSV per tabella, con i nomi di campo del dizionario dati (UTF-8).</p>
+        <h2>Carica dal gestionale</h2>
+        <p class="nota-piccola">Un file CSV per tabella, con i nomi di campo del dizionario dati (UTF-8), dal gestionale di Gate o da un altro CRM.</p>
       </div>
-      <h3>1. Esporta</h3>
-      <div class="pulsanti-rapidi">
-        <button class="pulsante primario piccolo" type="button" data-azione="esporta-ponte">Scarica i ${Object.keys(TABELLE_PONTE).length} file</button>
-        ${Object.keys(TABELLE_PONTE).map((n) => `<button class="pulsante-testo positivo" type="button" data-azione="esporta-ponte" data-id="${n}">${n}</button>`).join(" ")}
-      </div>
-      <p class="nota-piccola">Per Excel c'è anche l'<button class="pulsante-testo positivo" type="button" data-azione="esporta-csv">elenco dei clienti con i referenti</button>.</p>
-      <h3>2. Importa</h3>
       <label>File CSV del gestionale (anche più file insieme) <input type="file" name="file" accept=".csv,text/csv" multiple></label>
       <p class="nota-piccola">Servono almeno clienti, referenti e opportunita. I dati importati sostituiscono quelli di lavoro: prima si scarica un backup.</p>
       <div id="anteprima-ponte" aria-live="polite"></div>
