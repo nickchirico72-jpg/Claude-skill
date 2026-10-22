@@ -1025,6 +1025,7 @@ function leggiModulo(modulo) {
     ...(d.get("dataRisposta") ? { dataPrimaRisposta: d.get("dataRisposta") } : {}),
     consensoPrivacy: base === "consenso",
     campagna: "", contenuto: "", paginaArrivo: "",
+    responsabile: responsabileAttuale(),
     perso: null,
     allocazione: null,
     proposte: [],
@@ -1404,6 +1405,7 @@ function salvaFase(modulo) {
       dettaglio = "tariffa " + tariffa.toLocaleString("it-IT") + " €/ora, valida fino al " + formattaData(scadenzaOfferta);
     } else if (fase.id === "contratto") {
       o.avvio = avvio;
+      o.scadenzaContratto = aggiungiMesi(data, CONFIG.durataContrattoMesi);
       dettaglio = "avvio del servizio il " + formattaData(avvio);
     }
     promemoria = registraFase(o, fase, data, dettaglio);
@@ -1485,6 +1487,7 @@ function confermaFirma(id) {
   applica(() => {
     o.firmaDaLink = true;
     o.avvio = aggiungiGiorni(oggi(), CONFIG.giorniAvvioServizio);
+    o.scadenzaContratto = aggiungiMesi(oggi(), CONFIG.durataContrattoMesi);
     promemoria = registraFase(o, contratto, oggi(), "firmata da link, avvio il " + formattaData(o.avvio));
   }, { messaggio: () => "Offerta firmata da link: " + messaggioFase(o, contratto, promemoria), evidenzia: o.id, fase: "contratto", vai: "allocazione" });
 }
@@ -1638,7 +1641,7 @@ function tornaIndietro(id) {
   applica(() => {
     delete o.storico[attuale.id];
     if (attuale.id === "offerta") o.scadenzaOfferta = null;
-    if (attuale.id === "contratto") o.avvio = null;
+    if (attuale.id === "contratto") o.avvio = o.scadenzaContratto = null;
     registraAttivita({ aziendaId: o.aziendaId, tipo: "Pipeline", testo: "Correzione: fase «" + attuale.nome + "» annullata, torna a «" + precedente.nome + "»" });
     // Il promemoria della fase annullata sparisce e torna quello della fase precedente (dalla sua data, mai prima di oggi)
     promemoria = cadenza(o, precedente, o.storico[precedente.id]);

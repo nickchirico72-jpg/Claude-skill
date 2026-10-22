@@ -159,6 +159,8 @@ def tutti_i_facoltativi(stato):
     s["attivita"][0].update({"ora": "09:30", "fase": "sopralluogo"})
     s["attivita"][1]["ora"] = ""
     s["ultimoBackup"] = "2026-10-20"
+    s["tempiRegistrazione"] = [{"id": "tr1", "opportunitaId": aperta["id"], "secondi": 42, "data": aperta["storico"]["contatto"]},
+                               {"id": "tr2", "secondi": 55, "data": aperta["storico"]["contatto"]}]
     return s
 
 

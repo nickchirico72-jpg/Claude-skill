@@ -83,6 +83,12 @@ function utenteAttuale() {
   return { nome: "Ospite", ruolo: "direzione", ospite: true };
 }
 
+// Responsabile delle trattative nuove: chi sta lavorando (vuoto per l'ospite della demo)
+function responsabileAttuale() {
+  const u = utenteAttuale();
+  return u.ospite ? "" : u.nome;
+}
+
 // Ruolo dell'utente (nome leggibile e vista degli Indicatori che si apre per prima)
 function ruoloUtente(u = utenteAttuale()) {
   return CONFIG.ruoli.find((r) => r.id === u.ruolo) || CONFIG.ruoli[0];

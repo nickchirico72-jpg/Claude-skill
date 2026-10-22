@@ -15,13 +15,13 @@ RADICE = Path(__file__).resolve().parent.parent
 
 # Ordine di creazione: prima le tabelle a cui puntano le chiavi esterne
 ORDINE = ["canali", "fasi", "clienti", "referenti", "commerciali", "opportunita", "storico_fasi", "offerte", "attivita",
-          "costi_canale", "contenuti", "kpi_catalogo", "richieste_reali"]
+          "costi_canale", "contenuti", "kpi_catalogo", "richieste_reali", "contratti_in_corso", "tempi_registrazione"]
 
 # Tipi MySQL per le colonne che non sono testo breve (gli altri TEXT diventano VARCHAR(255))
 TIPI_MYSQL = {
     "valore_annuo": "DECIMAL(12,2)", "importo_annuo": "DECIMAL(12,2)", "costo": "DECIMAL(10,2)",
     "margine_pct": "DECIMAL(5,3)", "margine_pct_previsto": "DECIMAL(5,3)", "probabilita": "DECIMAL(4,2)",
-    "ore_mese_stimate": "DECIMAL(7,1)", "mese": "CHAR(7)",
+    "ore_mese_stimate": "DECIMAL(7,1)", "ore_mese": "DECIMAL(7,1)", "secondi": "INT", "mese": "CHAR(7)",
     "decisore": "TINYINT", "attivo": "TINYINT", "consenso_privacy": "TINYINT", "firma_da_link": "TINYINT", "voto_facilita": "TINYINT",
     "formula": "TEXT", "spiegazione": "TEXT", "domanda_business": "TEXT", "dati_necessari": "TEXT", "note": "TEXT", "nota": "TEXT", "tema": "TEXT",
 }
@@ -107,6 +107,7 @@ def esporta_app(con, capacita):
         "basiGiuridiche": ["da verificare"] + [b for b in P.BASI_GIURIDICHE if b != "da verificare"],
         "modiRaccolta": P.MODI_RACCOLTA,
         "campagnaPilota": P.CAMPAGNA_PILOTA,
+        "durataContrattoMesi": P.DURATA_CONTRATTO_MESI,
         "punteggio": {
             "pesi": P.PESI, "soglie": {"A": 75, "B": 50}, "settoreFuoriPilota": P.SETTORE_FUORI_PILOTA, "buona": P.SOGLIA_BUONA,
             "distanzaKm": {"piena": P.DISTANZA_PIENA, "massima": P.DISTANZA_META},
@@ -122,7 +123,7 @@ def esporta_app(con, capacita):
     (RADICE / "js" / "dizionari.js").write_text(testo, encoding="utf-8")
     dati = {"dataRiferimento": P.DATA_RIFERIMENTO, "seme": P.SEME}
     for nome in ["clienti", "referenti", "commerciali", "storico_fasi", "offerte", "attivita", "costi_canale",
-                 "contenuti", "kpi_catalogo", "richieste_reali"]:
+                 "contenuti", "kpi_catalogo", "richieste_reali", "contratti_in_corso"]:
         dati[nome] = tabella(con, nome)
     dati["opportunita"] = tabella(con, "opportunita", ("capacita_simulata", capacita))
     testo = ("/*\n * DATI DEL DATABASE PER L'APP (FITTIZI, tranne la tabella richieste_reali)\n"

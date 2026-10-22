@@ -174,6 +174,14 @@ CONTENUTI = [
 ]
 QUOTA_CON_CONTENUTO = 0.30          # quota delle opportunità da sito web e LinkedIn con campagna e contenuto
 
+# ------------------------------------------------- PASSAGGIO 4 (22/10)
+# Contratti già in corso: clienti storici di Gate con un contratto firmato prima del periodo della pipeline.
+# Stanno nella tabella contratti_in_corso (non tra le opportunità): non cambiano i KPI del funnel.
+# Servono alla lista del lunedì (contratti da rinnovare). Durata di ogni contratto: 12 mesi.
+N_CONTRATTI_IN_CORSO = 12
+CONTRATTI_FIRMATI_DAL, CONTRATTI_FIRMATI_AL = "2025-11-01", "2026-01-31"
+DURATA_CONTRATTO_MESI = 12
+
 # Anomalie da pulire (volute)
 N_CLIENTI_DUPLICATI = 4             # stessi clienti scritti in modo diverso
 QUOTA_EMAIL_VUOTE = 0.06

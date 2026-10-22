@@ -52,7 +52,7 @@ def conversione(where="1=1", join=""):
 
 
 TABELLE = ["clienti", "referenti", "commerciali", "opportunita", "fasi", "storico_fasi", "offerte", "attivita", "costi_canale",
-           "canali", "contenuti", "kpi_catalogo", "richieste_reali"]
+           "canali", "contenuti", "kpi_catalogo", "richieste_reali", "contratti_in_corso", "tempi_registrazione"]
 print("Conteggi per tabella")
 for t in TABELLE:
     print(f"  {t:16} {uno(f'SELECT COUNT(*) FROM {t}')}")
@@ -204,10 +204,23 @@ esempio = uno("SELECT COUNT(*) FROM richieste_reali WHERE note LIKE 'ESEMPIO%'")
 if esempio:
     print(f"  ..   {esempio} righe sono ESEMPI DI PROVA (data/esempi/), non dati di Gate")
 
+print("\nCampi e tabelle del PASSAGGIO 4")
+verifica("data_scadenza_contratto = chiusura + 12 mesi per i contratti, vuota per gli altri", uno("""SELECT COUNT(*) FROM opportunita WHERE
+  (fase = 'contratto' AND (data_scadenza_contratto IS NULL OR data_scadenza_contratto <> date(data_chiusura, '+12 months')))
+  OR (fase <> 'contratto' AND data_scadenza_contratto IS NOT NULL)"""))
+verifica("offerte.pacchetto vuoto nei dati storici", uno("SELECT COUNT(*) FROM offerte WHERE pacchetto IS NOT NULL"))
+condizione(f"contratti_in_corso: {P.N_CONTRATTI_IN_CORSO} contratti di clienti storici, scadenza a 12 mesi dalla firma",
+           uno("SELECT COUNT(*) FROM contratti_in_corso") == P.N_CONTRATTI_IN_CORSO and uno(
+               "SELECT COUNT(*) FROM contratti_in_corso WHERE data_scadenza_contratto <> date(data_firma, '+12 months') OR data_firma NOT BETWEEN ? AND ?",
+               P.CONTRATTI_FIRMATI_DAL, P.CONTRATTI_FIRMATI_AL) == 0,
+           f"firmati tra {P.CONTRATTI_FIRMATI_DAL} e {P.CONTRATTI_FIRMATI_AL}")
+print(f"  ..   tempi_registrazione: {uno('SELECT COUNT(*) FROM tempi_registrazione')} righe (si riempie con le richieste da nota)")
+
 print("\nApp e MySQL leggono gli stessi dati")
 js = (RADICE / "js" / "dati-db.js").read_text(encoding="utf-8")
 app = json.loads(js[js.index("{"):js.rindex(";")])
-diversi = [t for t in ["clienti", "referenti", "opportunita", "storico_fasi", "offerte", "attivita", "contenuti", "kpi_catalogo", "richieste_reali"]
+diversi = [t for t in ["clienti", "referenti", "opportunita", "storico_fasi", "offerte", "attivita", "contenuti", "kpi_catalogo", "richieste_reali",
+                       "contratti_in_corso"]
            if len(app[t]["righe"]) != uno(f"SELECT COUNT(*) FROM {t}")]
 verifica("js/dati-db.js ha le stesse righe del database", len(diversi))
 mysql = (RADICE / "data" / "gate_mysql.sql").read_text(encoding="utf-8")

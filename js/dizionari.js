@@ -376,6 +376,7 @@ const DIZIONARI_DB = {
   "biglietto da visita"
  ],
  "campagnaPilota": "uffici-e-commercio",
+ "durataContrattoMesi": 12,
  "punteggio": {
   "pesi": {
    "settore": 20,

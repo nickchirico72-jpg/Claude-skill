@@ -36,6 +36,13 @@ function aggiungiGiorni(iso, n) {
   return d.toISOString().slice(0, 10);
 }
 
+// Data AAAA-MM-GG spostata di n mesi (il 31 diventa l'ultimo giorno del mese, se serve), es. aggiungiMesi("2026-10-22", 12) = "2027-10-22"
+function aggiungiMesi(iso, n) {
+  const [a, m, g] = iso.split("-").map(Number);
+  const ultimo = new Date(Date.UTC(a, m - 1 + n + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(a, m - 1 + n, Math.min(g, ultimo))).toISOString().slice(0, 10);
+}
+
 // "1 giorno", "35 giorni"
 function giorni(n) {
   return n === 1 ? "1 giorno" : n + " giorni";

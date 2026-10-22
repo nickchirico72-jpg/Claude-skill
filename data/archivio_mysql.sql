@@ -209,6 +209,8 @@ CREATE TABLE opportunita (
   perso_il DATE,
   motivo_perdita VARCHAR(255),
   nota_perdita TEXT,
+  responsabile VARCHAR(255),
+  data_scadenza_contratto DATE,
   aggiornato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   aggiornato_da VARCHAR(255),
   FOREIGN KEY (id_azienda) REFERENCES aziende(id),
@@ -294,6 +296,33 @@ CREATE TABLE attivita (
   FOREIGN KEY (id_azienda) REFERENCES aziende(id),
   FOREIGN KEY (id_referente) REFERENCES referenti(id),
   FOREIGN KEY (id_opportunita) REFERENCES opportunita(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Contratti già in corso dei clienti storici (firmati prima della pipeline): lista dei rinnovi
+CREATE TABLE contratti_in_corso (
+  id VARCHAR(64) PRIMARY KEY,
+  id_azienda VARCHAR(64) NOT NULL,
+  servizio VARCHAR(255) NOT NULL,
+  valore_annuo DOUBLE NOT NULL CHECK (valore_annuo >= 0),
+  ore_mese DOUBLE CHECK (ore_mese >= 0),
+  data_firma DATE NOT NULL,
+  data_scadenza_contratto DATE NOT NULL,
+  responsabile VARCHAR(255),
+  aggiornato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  aggiornato_da VARCHAR(255),
+  FOREIGN KEY (id_azienda) REFERENCES aziende(id),
+  CHECK (data_scadenza_contratto > data_firma)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Secondi impiegati a registrare una richiesta da nota (tempo risparmiato)
+CREATE TABLE tempi_registrazione (
+  id VARCHAR(64) PRIMARY KEY,
+  id_opportunita VARCHAR(64),
+  secondi INT NOT NULL CHECK (secondi >= 0),
+  data DATE NOT NULL,
+  aggiornato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  aggiornato_da VARCHAR(255),
+  FOREIGN KEY (id_opportunita) REFERENCES opportunita(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Contenuti del piano editoriale aggiunti nel CRM (link tracciati)

@@ -58,6 +58,8 @@ const CONFIG = {
   giorniAvvioServizio: 15,
   // Giorni di validità di un'offerta dalla data di invio (proposta, modificabile all'invio)
   giorniValiditaOfferta: 30,
+  // Durata di un contratto in mesi: la scadenza serve alla lista dei rinnovi (dal database, uguale per app e SQL)
+  durataContrattoMesi: DIZIONARI.durataContrattoMesi,
 
   // ------------------------------------------------- Fasi della pipeline
   // probabilita = probabilità di chiusura (ipotesi), usata per il margine atteso

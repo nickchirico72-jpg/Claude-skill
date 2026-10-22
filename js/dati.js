@@ -76,6 +76,7 @@ function datiIniziali() {
   const opp = righeDb("opportunita");
   const storicoDb = righeDb("storico_fasi");
   const offerteDb = righeDb("offerte");
+  const responsabili = Object.fromEntries(righeDb("commerciali").map((c) => [c.id_commerciale, c.nome]));
 
   // Fonte dell'azienda = canale della sua prima opportunità
   const primaOpp = new Map();
@@ -121,6 +122,7 @@ function datiIniziali() {
       dataPrimaRisposta: data(o.data_prima_risposta), dataRegistrazione: data(o.data_registrazione), consensoPrivacy: !!o.consenso_privacy,
       campagna: o.campagna || "", contenuto: o.contenuto || "", paginaArrivo: o.pagina_arrivo || "",
       firmaDaLink: offerte.some((f) => f.firma_da_link === 1),
+      responsabile: responsabili[o.id_commerciale] || "", scadenzaContratto: data(o.data_scadenza_contratto),
     };
   });
 
@@ -142,7 +144,14 @@ function datiIniziali() {
       automatica: true, tipo: fase.followUp.tipo, data: quando, testo: fase.followUp.testo });
   });
 
-  return { versione: CONFIG.versioneDati, aziende, referenti, opportunita, attivita, contenuti: [], richiesteReali: [], registro: [], contatore: opp.length, contatoreId: 10000, ultimoBackup: null };
+  // Contratti già in corso dei clienti storici (firmati prima della pipeline): servono alla lista dei rinnovi, non ai KPI del funnel
+  const contratti = righeDb("contratti_in_corso").map((c) => ({
+    id: "ct" + c.id_contratto, aziendaId: "c" + c.id_cliente, servizio: c.servizio, valore: c.valore_annuo, ore: c.ore_mese,
+    firma: data(c.data_firma), scadenza: data(c.data_scadenza_contratto), responsabile: responsabili[c.id_commerciale] || "",
+  }));
+
+  return { versione: CONFIG.versioneDati, aziende, referenti, opportunita, attivita, contratti, tempiRegistrazione: [], contenuti: [], richiesteReali: [], registro: [],
+    contatore: opp.length, contatoreId: 10000, ultimoBackup: null };
 }
 
 // Dati salvati prima della versione 4 (esempi di config.js): c'è un avviso per passare ai dati del database
@@ -215,6 +224,12 @@ function strutturaValida(d) {
   // Contenuti aggiunti nell'app al piano editoriale (facoltativi)
   if (d.contenuti !== undefined && !(Array.isArray(d.contenuti) && d.contenuti.every((c) => c && typeof c === "object" &&
     /^[\w-]+$/.test(c.id) && /^\d{4}-\d{2}-\d{2}$/.test(c.data_pubblicazione) && ["canale", "tema", "settore", "formato"].every((k) => typeof c[k] === "string")))) return false;
+  // Contratti in corso dei clienti storici e secondi impiegati per registrare le richieste da nota (facoltativi)
+  if (d.contratti !== undefined && !(Array.isArray(d.contratti) && d.contratti.every((c) => c && typeof c === "object" && /^[\w-]+$/.test(c.id) &&
+    d.aziende.some((a) => a && a.id === c.aziendaId) && typeof c.servizio === "string" && Number.isFinite(c.valore) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(c.firma) && /^\d{4}-\d{2}-\d{2}$/.test(c.scadenza)))) return false;
+  if (d.tempiRegistrazione !== undefined && !(Array.isArray(d.tempiRegistrazione) && d.tempiRegistrazione.every((t) => t && typeof t === "object" &&
+    /^[\w-]+$/.test(t.id) && Number.isInteger(t.secondi) && t.secondi >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(t.data)))) return false;
   // Contatori interi e non negativi: da contatoreId nascono i nuovi id (es. "at1001")
   if (![d.contatore, d.contatoreId].every((n) => Number.isSafeInteger(n) && n >= 0)) return false;
   if (d.ultimoBackup != null && !isData(d.ultimoBackup)) return false;
@@ -237,7 +252,7 @@ function strutturaValida(d) {
       facoltativo(x.opportunitaId, isId) && facoltativo(x.fase, isId) && facoltativo(x.automatica, (v) => typeof v === "boolean")) &&
     d.opportunita.every((o) => isOggetto(o) && isId(o.id) && isTesto(o.codice) && aziendaEsiste(o.aziendaId) &&
       isTesto(o.servizio) && testoFacoltativo(o.comune) && facoltativo(o.referenteId, isId) && Number.isFinite(o.ore) && o.ore >= 0 &&
-      ["canale", "campagna", "contenuto", "paginaArrivo"].every((k) => testoFacoltativo(o[k])) &&
+      ["canale", "campagna", "contenuto", "paginaArrivo", "responsabile"].every((k) => testoFacoltativo(o[k])) && facoltativo(o.scadenzaContratto, isData) &&
       ["valore", "margine", "capacitaSimulata"].every((k) => facoltativo(o[k], Number.isFinite)) &&
       ["dataPrimaRisposta", "dataRegistrazione"].every((k) => facoltativo(o[k], isData)) &&
       ["consensoPrivacy", "firmaDaLink"].every((k) => facoltativo(o[k], (v) => typeof v === "boolean")) &&
@@ -268,6 +283,11 @@ function carica() {
   let d = null;
   try {
     d = migra(JSON.parse(testo));
+    // Dati salvati prima del PASSAGGIO 4: si aggiungono i contratti in corso dei clienti storici (dati di prova del database)
+    if (d && d.versione === CONFIG.versioneDati && d.contratti === undefined && Array.isArray(d.aziende)) {
+      const aziende = new Set(d.aziende.map((a) => a && a.id));
+      d.contratti = datiIniziali().contratti.filter((c) => aziende.has(c.aziendaId));
+    }
   } catch (e) {
     d = null;
   }
@@ -360,7 +380,7 @@ function decisoreDi(o) {
 // Stato commerciale di un'azienda, ricavato dalle sue opportunità
 function statoAzienda(aziendaId) {
   const opp = opportunitaDi(aziendaId);
-  if (opp.some((o) => o.storico.contratto && !o.perso)) return "Cliente";
+  if (opp.some((o) => o.storico.contratto && !o.perso) || (stato.contratti || []).some((c) => c.aziendaId === aziendaId)) return "Cliente";
   if (opp.some((o) => !o.perso)) return "In trattativa";
   if (opp.length) return "Perso";
   return "Da qualificare";

@@ -100,7 +100,8 @@ TABELLE = [
       ("note", "TEXT", ""), ("scadenza_offerta", DATA, ""), ("data_avvio", DATA, ""), ("riaperta_il", DATA, ""), ("motivazione_c", "TEXT", ""),
       ("data_prima_risposta", DATA, ""), ("data_registrazione", DATA, ""), sino("consenso_privacy"), ("campagna", TESTO, ""),
       ("contenuto", TESTO, ""), ("pagina_arrivo", TESTO, ""), sino("firma_da_link"),
-      ("perso_il", DATA, ""), ("motivo_perdita", TESTO, ""), ("nota_perdita", "TEXT", "")] + META,
+      ("perso_il", DATA, ""), ("motivo_perdita", TESTO, ""), ("nota_perdita", "TEXT", ""),
+      ("responsabile", TESTO, ""), ("data_scadenza_contratto", DATA, "")] + META,
      ["FOREIGN KEY (id_azienda) REFERENCES aziende(id)", "FOREIGN KEY (id_referente) REFERENCES referenti(id)",
       "CHECK ((perso_il IS NULL) = (motivo_perdita IS NULL))"]),
     ("fasi_opportunita", "Data in cui ogni trattativa è entrata in ogni fase",
@@ -134,6 +135,14 @@ TABELLE = [
       ("ora", "VARCHAR(5)", "CHECK (ora = '' OR ora REGEXP '^[0-9]{2}:[0-9]{2}$')"), ("testo", "TEXT", "NOT NULL"), ("fase", "VARCHAR(16)", "")] + META,
      ["FOREIGN KEY (id_azienda) REFERENCES aziende(id)", "FOREIGN KEY (id_referente) REFERENCES referenti(id)",
       "FOREIGN KEY (id_opportunita) REFERENCES opportunita(id) ON DELETE CASCADE"]),
+    ("contratti_in_corso", "Contratti già in corso dei clienti storici (firmati prima della pipeline): lista dei rinnovi",
+     [("id", ID, "PRIMARY KEY"), ("id_azienda", ID, "NOT NULL"), ("servizio", TESTO, "NOT NULL"), ("valore_annuo", NUMERO, "NOT NULL CHECK (valore_annuo >= 0)"),
+      ("ore_mese", NUMERO, "CHECK (ore_mese >= 0)"), ("data_firma", DATA, "NOT NULL"), ("data_scadenza_contratto", DATA, "NOT NULL"),
+      ("responsabile", TESTO, "")] + META,
+     ["FOREIGN KEY (id_azienda) REFERENCES aziende(id)", "CHECK (data_scadenza_contratto > data_firma)"]),
+    ("tempi_registrazione", "Secondi impiegati a registrare una richiesta da nota (tempo risparmiato)",
+     [("id", ID, "PRIMARY KEY"), ("id_opportunita", ID, ""), ("secondi", "INT", "NOT NULL CHECK (secondi >= 0)"), ("data", DATA, "NOT NULL")] + META,
+     ["FOREIGN KEY (id_opportunita) REFERENCES opportunita(id) ON DELETE SET NULL"]),
     ("contenuti", "Contenuti del piano editoriale aggiunti nel CRM (link tracciati)",
      [("id", ID, "PRIMARY KEY"), ("data_pubblicazione", DATA, "NOT NULL"), ("canale", TESTO, "NOT NULL"), ("tema", TESTO, "NOT NULL"),
       ("settore", TESTO, "NOT NULL"), ("formato", TESTO, "NOT NULL")] + META, []),
@@ -194,8 +203,8 @@ def sn(valore):
 
 def da_stato(stato, utente="migrazione"):
     """Righe di ogni tabella a partire dallo stato dell'app (il backup JSON). utente = aggiornato_da."""
-    controlla(stato, ["versione", "aziende", "referenti", "opportunita", "attivita", "contenuti", "richiesteReali", "registro",
-                      "contatore", "contatoreId", "ultimoBackup"], "stato")
+    controlla(stato, ["versione", "aziende", "referenti", "opportunita", "attivita", "contratti", "tempiRegistrazione", "contenuti",
+                      "richiesteReali", "registro", "contatore", "contatoreId", "ultimoBackup"], "stato")
     t = {nome: [] for nome, *_ in TABELLE}
     for a in stato["aziende"]:
         controlla(a, ["id", "ragioneSociale", "piva", "settore", "comune", "fonte", "note", "creata", "superficie", "tipoCliente"], "azienda " + a["id"])
@@ -214,7 +223,7 @@ def da_stato(stato, utente="migrazione"):
         controlla(o, ["id", "codice", "aziendaId", "referenteId", "canale", "comune", "servizio", "ore", "valore", "margine", "capacitaSimulata",
                       "tariffa", "note", "perso", "storico", "proposte", "scadenzaOfferta", "avvio", "allocazione", "dataPrimaRisposta",
                       "dataRegistrazione", "consensoPrivacy", "campagna", "contenuto", "paginaArrivo", "firmaDaLink", "preventivo",
-                      "ricontatto", "riaperta", "motivazioneC"], "opportunità " + o["id"])
+                      "ricontatto", "riaperta", "motivazioneC", "responsabile", "scadenzaContratto"], "opportunità " + o["id"])
         perso = o.get("perso") or {}
         controlla(perso, ["data", "motivo", "nota"], "perdita di " + o["id"])
         t["opportunita"].append({"id": o["id"], "codice": o["codice"], "id_azienda": o["aziendaId"], "id_referente": o.get("referenteId"),
@@ -226,7 +235,7 @@ def da_stato(stato, utente="migrazione"):
                                  "consenso_privacy": sn(o.get("consensoPrivacy")), "campagna": o.get("campagna"), "contenuto": o.get("contenuto"),
                                  "pagina_arrivo": o.get("paginaArrivo"), "firma_da_link": sn(o.get("firmaDaLink")),
                                  "perso_il": perso.get("data"), "motivo_perdita": perso.get("motivo"), "nota_perdita": perso.get("nota"),
-                                 "aggiornato_da": utente})
+                                 "responsabile": o.get("responsabile"), "data_scadenza_contratto": o.get("scadenzaContratto"), "aggiornato_da": utente})
         for fase, data in o["storico"].items():
             t["fasi_opportunita"].append({"id_opportunita": o["id"], "fase": fase, "data": data})
         if o.get("preventivo"):
@@ -249,6 +258,15 @@ def da_stato(stato, utente="migrazione"):
         t["attivita"].append({"id": x["id"], "id_azienda": x["aziendaId"], "id_referente": x.get("referenteId"), "id_opportunita": x.get("opportunitaId"),
                               "da_fare": sn(x["daFare"]), "automatica": sn(x.get("automatica")), "tipo": x["tipo"], "data": x["data"], "ora": x.get("ora"),
                               "testo": x["testo"], "fase": x.get("fase"), "aggiornato_da": utente})
+    for c in stato.get("contratti") or []:
+        controlla(c, ["id", "aziendaId", "servizio", "valore", "ore", "firma", "scadenza", "responsabile"], "contratto " + c["id"])
+        t["contratti_in_corso"].append({"id": c["id"], "id_azienda": c["aziendaId"], "servizio": c["servizio"], "valore_annuo": c["valore"],
+                                        "ore_mese": c.get("ore"), "data_firma": c["firma"], "data_scadenza_contratto": c["scadenza"],
+                                        "responsabile": c.get("responsabile"), "aggiornato_da": utente})
+    for x in stato.get("tempiRegistrazione") or []:
+        controlla(x, ["id", "opportunitaId", "secondi", "data"], "tempo di registrazione " + x["id"])
+        t["tempi_registrazione"].append({"id": x["id"], "id_opportunita": x.get("opportunitaId"), "secondi": x["secondi"], "data": x["data"],
+                                         "aggiornato_da": utente})
     for c in stato.get("contenuti") or []:
         controlla(c, ["id", "data_pubblicazione", "canale", "tema", "settore", "formato"], "contenuto " + c["id"])
         t["contenuti"].append({**c, "aggiornato_da": utente})
@@ -351,7 +369,13 @@ def a_stato(t):
             "dataRegistrazione": o["data_registrazione"], "consensoPrivacy": booleano(o["consenso_privacy"]), "campagna": o["campagna"],
             "contenuto": o["contenuto"], "paginaArrivo": o["pagina_arrivo"], "firmaDaLink": booleano(o["firma_da_link"]),
             "preventivo": preventivi.get(o["id"]), "ricontatto": ricontatti.get(o["id"]), "riaperta": o["riaperta_il"],
-            "motivazioneC": o["motivazione_c"]}) for o in t["opportunita"]],
+            "motivazioneC": o["motivazione_c"], "responsabile": o["responsabile"], "scadenzaContratto": o["data_scadenza_contratto"]})
+            for o in t["opportunita"]],
+        "contratti": [senza_null({"id": c["id"], "aziendaId": c["id_azienda"], "servizio": c["servizio"], "valore": numero(c["valore_annuo"]),
+                                  "ore": numero(c["ore_mese"]), "firma": c["data_firma"], "scadenza": c["data_scadenza_contratto"],
+                                  "responsabile": c["responsabile"]}) for c in t["contratti_in_corso"]],
+        "tempiRegistrazione": [senza_null({"id": x["id"], "opportunitaId": x["id_opportunita"], "secondi": x["secondi"], "data": x["data"]})
+                               for x in t["tempi_registrazione"]],
         "attivita": [senza_null({"id": x["id"], "aziendaId": x["id_azienda"], "referenteId": x["id_referente"], "opportunitaId": x["id_opportunita"],
                                  "daFare": bool(x["da_fare"]), "automatica": booleano(x["automatica"]), "tipo": x["tipo"], "data": x["data"],
                                  "ora": x["ora"], "testo": x["testo"], "fase": x["fase"]}) for x in t["attivita"]],

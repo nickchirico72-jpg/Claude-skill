@@ -226,7 +226,7 @@ function opportunitaDaRichiesta(x, aziendaId, referenteId, comune) {
     ...(prev ? { preventivo: { ambiente: ambiente.nome, mq: x.mq, frequenza: frequenza.nome } } : {}),
     storico: { contatto: oggi() }, dataRegistrazione: oggi(), consensoPrivacy: !!x.consenso,
     campagna: x.campagna, contenuto: x.contenuto, paginaArrivo: x.pagina || (DIZIONARI.pagineContenuti || {})[x.contenuto] || "",
-    perso: null, allocazione: null, proposte: [], note: "",
+    perso: null, allocazione: null, proposte: [], note: "", responsabile: responsabileAttuale(),
   };
 }
 

@@ -1,0 +1,13 @@
+id_contratto,id_cliente,id_commerciale,servizio,valore_annuo,ore_mese,data_firma,data_scadenza_contratto
+9,3,2,cleaning e hospitality,28397.85,102.0,2025-11-03,2026-11-03
+2,34,3,cleaning e hospitality,26406.96,102.0,2025-11-06,2026-11-06
+5,47,3,logistica e retail,47495.23,208.0,2025-11-06,2026-11-06
+3,26,2,cleaning e hospitality,29867.24,108.0,2025-11-19,2026-11-19
+10,64,1,cleaning e hospitality,20085.22,70.0,2025-11-25,2026-11-25
+6,31,3,servizi alle strutture,14070.62,42.0,2025-12-03,2026-12-03
+8,50,3,servizi alle strutture,14349.03,38.0,2025-12-12,2026-12-12
+1,33,2,logistica e retail,55051.78,199.0,2025-12-15,2026-12-15
+12,63,1,cleaning e hospitality,5238.01,22.0,2026-01-10,2027-01-10
+4,95,2,cleaning e hospitality,17343.47,69.0,2026-01-13,2027-01-13
+7,105,3,cleaning e hospitality,40266.01,140.0,2026-01-17,2027-01-17
+11,10,3,servizi alle strutture,18942.48,48.0,2026-01-17,2027-01-17

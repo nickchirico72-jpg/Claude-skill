@@ -39,7 +39,7 @@ CREATE TABLE opportunita (
   data_contatto TEXT, data_ultima_modifica TEXT, data_chiusura TEXT, motivo_perdita TEXT,
   punteggio_coerenza INTEGER, classe_coerenza TEXT,
   data_prima_risposta TEXT, data_registrazione TEXT, consenso_privacy INTEGER,
-  campagna TEXT, contenuto TEXT, pagina_arrivo TEXT
+  campagna TEXT, contenuto TEXT, pagina_arrivo TEXT, data_scadenza_contratto TEXT
 );
 CREATE TABLE fasi (fase TEXT PRIMARY KEY, ordine INTEGER, probabilita REAL, giorni_soglia INTEGER);
 CREATE TABLE storico_fasi (
@@ -47,7 +47,15 @@ CREATE TABLE storico_fasi (
 );
 CREATE TABLE offerte (
   id_offerta INTEGER PRIMARY KEY, id_opp INTEGER REFERENCES opportunita(id_opp), versione INTEGER, data_invio TEXT,
-  importo_annuo REAL, margine_pct_previsto REAL, esito TEXT, data_esito TEXT, firma_da_link INTEGER
+  importo_annuo REAL, margine_pct_previsto REAL, esito TEXT, data_esito TEXT, firma_da_link INTEGER, pacchetto TEXT
+);
+CREATE TABLE contratti_in_corso (
+  id_contratto INTEGER PRIMARY KEY, id_cliente INTEGER REFERENCES clienti(id_cliente),
+  id_commerciale INTEGER REFERENCES commerciali(id_commerciale), servizio TEXT, valore_annuo REAL, ore_mese REAL,
+  data_firma TEXT, data_scadenza_contratto TEXT
+);
+CREATE TABLE tempi_registrazione (
+  id INTEGER PRIMARY KEY, id_opportunita INTEGER REFERENCES opportunita(id_opp), secondi INTEGER, data TEXT
 );
 CREATE TABLE attivita (
   id_attivita INTEGER PRIMARY KEY, id_opp INTEGER REFERENCES opportunita(id_opp),
@@ -236,7 +244,7 @@ def genera():
                "data_contatto": data_a_caso(da, a), "data_ultima_modifica": None, "data_chiusura": None,
                "motivo_perdita": None, "punteggio_coerenza": totale, "classe_coerenza": classe,
                "data_prima_risposta": None, "data_registrazione": None, "consenso_privacy": 0,
-               "campagna": None, "contenuto": None, "pagina_arrivo": None, "_capacita": capacita}
+               "campagna": None, "contenuto": None, "pagina_arrivo": None, "data_scadenza_contratto": None, "_capacita": capacita}
         eventi, motivo = simula_percorso(opp, cliente, opp["data_contatto"])
         opp["motivo_perdita"] = motivo
         eventi_opp[id_opp] = eventi
@@ -261,6 +269,8 @@ def genera():
         o["fase"] = eventi[-1][0]
         o["data_ultima_modifica"] = eventi[-1][1].isoformat()
         o["data_chiusura"] = eventi[-1][1].isoformat() if o["fase"] in ("contratto", "perso") else None
+        if o["fase"] == "contratto":
+            o["data_scadenza_contratto"] = piu_mesi(eventi[-1][1], P.DURATA_CONTRATTO_MESI).isoformat()
         # Prima risposta di Gate: 0-6 giorni dopo la richiesta, mai dopo il passo successivo né dopo il riferimento
         ritardo = scegli_pesato(list(range(len(P.RITARDO_PRIMA_RISPOSTA))), P.RITARDO_PRIMA_RISPOSTA)
         limite = eventi[1][1] if len(eventi) > 1 else RIF
@@ -271,6 +281,7 @@ def genera():
 
     assegna_contenuti(opportunita)
     offerte, attivita = genera_offerte_attivita(opportunita, eventi_opp)
+    contratti = genera_contratti_in_corso(clienti, ref_per_cliente)
 
     # Costi mensili per canale (gennaio-ottobre 2026)
     costi = []
@@ -285,7 +296,36 @@ def genera():
                  for i, d, c, t, st, f, _ in P.CONTENUTI]
     return {"clienti": clienti, "referenti": referenti, "commerciali": commerciali, "opportunita": opportunita,
             "fasi": fasi, "storico_fasi": storico, "offerte": offerte, "attivita": attivita, "costi_canale": costi,
-            "canali": canali, "contenuti": contenuti, "kpi_catalogo": kpi_catalogo.righe()}
+            "canali": canali, "contenuti": contenuti, "kpi_catalogo": kpi_catalogo.righe(),
+            "contratti_in_corso": contratti, "tempi_registrazione": []}
+
+
+def piu_mesi(giorno, mesi):
+    """Stessa data n mesi dopo (il 29 febbraio diventa il 28 se l'anno non è bisestile)."""
+    anno, mese = divmod(giorno.month - 1 + mesi, 12)
+    try:
+        return giorno.replace(year=giorno.year + anno, month=mese + 1)
+    except ValueError:
+        return giorno.replace(year=giorno.year + anno, month=mese + 1, day=28)
+
+
+def genera_contratti_in_corso(clienti, ref_per_cliente):
+    """Contratti già in corso dei clienti storici (firmati prima della pipeline): servono alla lista dei rinnovi.
+    Usa un generatore a parte, così le altre tabelle restano identiche a prima."""
+    r2 = random.Random(P.SEME + 4)
+    da, a = date.fromisoformat(P.CONTRATTI_FIRMATI_DAL), date.fromisoformat(P.CONTRATTI_FIRMATI_AL)
+    unici = clienti[:P.N_CLIENTI - P.N_CLIENTI_DUPLICATI]
+    scelti = r2.sample([c for c in unici if c["provincia"] == "BA"], P.N_CONTRATTI_IN_CORSO)
+    contratti = []
+    for i, c in enumerate(scelti, 1):
+        servizio = r2.choices(P.SERVIZI, weights=P.SERVIZIO_PER_SETTORE[c["settore"]], k=1)[0]
+        eco = P.SERVIZI_ECONOMIA[servizio]
+        ore = r2.randint(*eco["ore"])
+        firma = da + timedelta(days=r2.randint(0, (a - da).days))
+        contratti.append({"id_contratto": i, "id_cliente": c["id_cliente"], "id_commerciale": r2.randint(1, 3), "servizio": servizio,
+                          "valore_annuo": round(ore * 12 * eco["tariffa"] * r2.uniform(0.9, 1.1), 2), "ore_mese": float(ore),
+                          "data_firma": firma.isoformat(), "data_scadenza_contratto": piu_mesi(firma, P.DURATA_CONTRATTO_MESI).isoformat()})
+    return sorted(contratti, key=lambda x: x["data_firma"])
 
 
 def assegna_contenuti(opportunita):
@@ -342,7 +382,7 @@ def genera_offerte_attivita(opportunita, eventi_opp):
             offerte.append({"id_offerta": len(offerte) + 1, "id_opp": o["id_opp"], "versione": v,
                             "data_invio": data_invio.isoformat(), "importo_annuo": importo,
                             "margine_pct_previsto": o["margine_pct"], "esito": esito,
-                            "data_esito": data_esito.isoformat() if data_esito else None, "firma_da_link": 0})
+                            "data_esito": data_esito.isoformat() if data_esito else None, "firma_da_link": 0, "pacchetto": None})
     attivita.sort(key=lambda x: (x["data"], x["id_opp"]))
     for i, x in enumerate(attivita, 1):
         x["id_attivita"] = i
