@@ -267,6 +267,21 @@ const CONFIG = {
     "nessuna risposta": "Fissa sempre una data di sollecito dopo l'offerta",
   },
 
+  // --------------------------------------- Tempo risparmiato (PASSAGGIO 4, N3)
+  // STIME, DA SOSTITUIRE CON LA FOTOGRAFIA DI PARTENZA: minuti per volta oggi (prima) e con il CRM (dopo).
+  // volume: "richieste" e "offerte" = quante nell'ultimo mese, dai dati; un numero = volte al mese.
+  // «Annotare una richiesta», dopo: la media vera dei secondi registrati con la nota, quando ce ne sono almeno minimoTempiVeri.
+  tempoRisparmiato: {
+    attivita: [
+      { id: "richiesta", nome: "Annotare una richiesta", prima: 10, dopo: 2, volume: "richieste" },
+      { id: "offerta", nome: "Preparare un'offerta", prima: 90, dopo: 15, volume: "offerte" },
+      { id: "solleciti", nome: "Ricostruire le trattative da sollecitare", prima: 60, dopo: 5, volume: 4.33, nota: "una volta a settimana" },
+      { id: "report", nome: "Preparare il report per la direzione", prima: 180, dopo: 10, volume: 1, nota: "una volta al mese" },
+    ],
+    costoOrario: 25,        // costo di un'ora di lavoro d'ufficio (€)
+    minimoTempiVeri: 3,
+  },
+
   // --------------------------------------- Richiesta da nota (PASSAGGIO 4, N1)
   // Regole leggibili con cui l'assistente propone i campi di una nota scritta o dettata. Nessuna intelligenza artificiale:
   // solo parole chiave ed espressioni regolari. Niente si salva senza la conferma di una persona.

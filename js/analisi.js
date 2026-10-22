@@ -155,3 +155,79 @@ function schedaPrevisione(p, quante = 3) {
         : '<p class="nota-piccola">Nessuna azione urgente.</p>'}
     </article>`;
 }
+
+// ------------------------------------------------------------ Tempo risparmiato (N3)
+
+// Minuti prima e dopo di un'attività: quelli cambiati nel riquadro (interfaccia), altrimenti quelli di config.js
+function parametroTempo(a, quale) {
+  const scelti = (interfaccia.tempi || {})[a.id] || {};
+  return Number.isFinite(scelti[quale]) ? scelti[quale] : a[quale];
+}
+
+// Ore ed euro risparmiati al mese: per ogni attività (minuti prima − minuti dopo) × volte al mese ÷ 60, in euro × costo orario
+function tempoRisparmiato(opportunita = stato.opportunita) {
+  const t = CONFIG.tempoRisparmiato;
+  const inizio = aggiungiGiorni(oggi(), -29);
+  const nelMese = (fase) => opportunita.filter((o) => o.storico[fase] && o.storico[fase] >= inizio && o.storico[fase] <= oggi()).length;
+  const tempi = (stato.tempiRegistrazione || []).map((x) => x.secondi);
+  const veri = tempi.length >= t.minimoTempiVeri;
+  const costo = Number.isFinite((interfaccia.tempi || {}).costoOrario) ? interfaccia.tempi.costoOrario : t.costoOrario;
+  const righe = t.attivita.map((a) => {
+    const volume = a.volume === "richieste" ? nelMese("contatto") : a.volume === "offerte" ? nelMese("offerta") : a.volume;
+    const dopoVero = a.id === "richiesta" && veri;
+    const prima = parametroTempo(a, "prima");
+    const dopo = dopoVero ? Math.round(media(tempi) / 60 * 10) / 10 : parametroTempo(a, "dopo");
+    const ore = Math.max(0, prima - dopo) * volume / 60;
+    return { ...a, prima, dopo, dopoVero, volume, ore, euro: ore * costo };
+  });
+  const ore = righe.reduce((s, r) => s + r.ore, 0);
+  return { righe, ore, euro: ore * costo, costo, tempiVeri: tempi.length };
+}
+
+// Riquadro del tempo risparmiato: minuti modificabili, volumi dai dati, totali che si aggiornano mentre si scrive
+function riquadroTempoRisparmiato() {
+  const r = tempoRisparmiato();
+  const numero = (n, cifre = 1) => n.toLocaleString("it-IT", { maximumFractionDigits: cifre });
+  return `
+    <section class="riquadro tempo-risparmiato" id="tempo-risparmiato">
+      <h2 class="titolo-riquadro">Tempo risparmiato al mese</h2>
+      <p class="tempo-totale"><strong id="tempo-ore">${numero(r.ore)} ore</strong> · <strong id="tempo-euro">${formattaEuro(r.euro)}</strong></p>
+      <div class="tabella-scorrevole"><table class="tabella impilata">
+        <thead><tr><th>Attività</th><th class="num">Minuti prima</th><th class="num">Minuti dopo</th><th class="num">Volte al mese</th><th class="num">Ore risparmiate</th><th class="num">Euro</th></tr></thead>
+        <tbody>${r.righe.map((x) => `<tr>
+          <td data-etichetta="Attività">${esc(x.nome)}${x.nota ? `<br><span class="nota-piccola">${esc(x.nota)}</span>` : ""}</td>
+          <td class="num" data-etichetta="Minuti prima"><input class="campo-tempo" type="number" min="0" step="1" inputmode="numeric" data-tempo="${esc(x.id)}" data-quale="prima" value="${x.prima}" aria-label="Minuti prima: ${esc(x.nome)}"></td>
+          <td class="num" data-etichetta="Minuti dopo">${x.dopoVero ? `<span title="Media dei secondi registrati con la nota">${numero(x.dopo)}</span><br><span class="nota-piccola">media di ${r.tempiVeri} richieste vere</span>`
+            : `<input class="campo-tempo" type="number" min="0" step="1" inputmode="numeric" data-tempo="${esc(x.id)}" data-quale="dopo" value="${x.dopo}" aria-label="Minuti dopo: ${esc(x.nome)}">`}</td>
+          <td class="num" data-etichetta="Volte al mese">${numero(x.volume, 2)}</td>
+          <td class="num" data-etichetta="Ore risparmiate" id="tempo-ore-${esc(x.id)}">${numero(x.ore)}</td>
+          <td class="num" data-etichetta="Euro" id="tempo-euro-${esc(x.id)}">${formattaEuro(x.euro)}</td>
+        </tr>`).join("")}</tbody>
+      </table></div>
+      <label class="costo-orario">Costo di un'ora di lavoro d'ufficio (€) <input class="campo-tempo" type="number" min="0" step="1" inputmode="decimal" data-tempo="costoOrario" value="${r.costo}"></label>
+      <p class="nota-piccola">Come si calcola: per ogni attività, (minuti prima − minuti dopo) × volte al mese ÷ 60 = ore risparmiate; ore × costo orario = euro.
+        Richieste e offerte del mese vengono dai dati (ultimi 30 giorni); i minuti sono stime da sostituire con la fotografia di partenza.
+        ${r.tempiVeri >= CONFIG.tempoRisparmiato.minimoTempiVeri ? "" : `Dopo ${CONFIG.tempoRisparmiato.minimoTempiVeri} richieste registrate da nota, il «dopo» di «Annotare una richiesta» diventa la media dei tempi veri.`}</p>
+    </section>`;
+}
+
+// Un minuto o il costo cambiato nel riquadro: si ricorda nell'interfaccia e si aggiornano solo i totali (il campo non perde il cursore)
+function cambiaTempo(campo) {
+  const valore = Number(campo.value);
+  if (!Number.isFinite(valore) || valore < 0) return;
+  interfaccia.tempi = interfaccia.tempi || {};
+  if (campo.dataset.tempo === "costoOrario") interfaccia.tempi.costoOrario = valore;
+  else interfaccia.tempi[campo.dataset.tempo] = { ...(interfaccia.tempi[campo.dataset.tempo] || {}), [campo.dataset.quale]: valore };
+  const r = tempoRisparmiato();
+  const numero = (n) => n.toLocaleString("it-IT", { maximumFractionDigits: 1 });
+  document.getElementById("tempo-ore").textContent = numero(r.ore) + " ore";
+  document.getElementById("tempo-euro").textContent = formattaEuro(r.euro);
+  r.righe.forEach((x) => {
+    document.getElementById("tempo-ore-" + x.id).textContent = numero(x.ore);
+    document.getElementById("tempo-euro-" + x.id).textContent = formattaEuro(x.euro);
+  });
+}
+
+document.addEventListener("input", (evento) => {
+  if (evento.target.classList && evento.target.classList.contains("campo-tempo")) cambiaTempo(evento.target);
+});

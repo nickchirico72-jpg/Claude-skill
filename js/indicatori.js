@@ -290,6 +290,7 @@ function vistaFittizi(livello) {
       <div class="griglia previsioni">${previsioniDomani(tutte).map((p) => schedaPrevisione(p)).join("")}</div>
       <p class="nota-piccola">Previsioni semplici: proiettano in avanti i tassi di oggi. Con più mesi di dati reali diventano più affidabili.</p>
     </section>
+    <section class="sezione">${riquadroTempoRisparmiato()}</section>
     <section class="sezione">
       <h2>Ricavi attesi e portafoglio</h2>
       ${tessere(["K6", "K5", "K11"])}
@@ -522,6 +523,8 @@ function disegnaRiepilogo() {
         ${numero("Trattative buone", quota(portafoglio.buone.n, portafoglio.totale.n), "punteggio da " + CONFIG.punteggio.buona + " in su (K11)")}
         ${numero("Commesse da assegnare", daAssegnare, "contratti firmati senza squadra o partner")}
       </div>
+      <p class="riepilogo-tempo">Tempo risparmiato con il CRM, stima: <strong>${tempoRisparmiato().ore.toLocaleString("it-IT", { maximumFractionDigits: 1 })} ore</strong>
+        e <strong>${formattaEuro(tempoRisparmiato().euro)}</strong> al mese.</p>
 
       <h3>Cosa fare domani</h3>
       <table class="tabella riepilogo-azioni"><tbody>

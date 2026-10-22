@@ -339,6 +339,25 @@ const PROVE = {
     await ctx.close();
   },
 
+  // N3 (PASSAGGIO 4): tempo risparmiato. I totali si aggiornano cambiando un parametro; con 3 tempi veri il «dopo» è la loro media
+  async tempoRisparmiato() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#indicatori');
+    await clic(page, '[data-azione=livello][data-id=previsione]');
+    const prima = await page.evaluate(() => tempoRisparmiato());
+    verifica('quattro attività con volumi dai dati (richieste e offerte del mese)', prima.righe.length === 4 && prima.righe[0].volume > 0 && prima.righe[1].volume > 0,
+      prima.righe.map((r) => r.id + ' ' + r.volume).join(', '));
+    console.log(`  ..   tempo risparmiato con i parametri di partenza: ${prima.ore.toFixed(1)} ore, ${Math.round(prima.euro)} € al mese`);
+    await page.fill('[data-tempo=offerta][data-quale=prima]', '120');
+    const testo = await page.textContent('#tempo-ore');
+    verifica('cambiando un parametro il totale si aggiorna', Number(testo.replace(/[^\d,]/g, '').replace(',', '.')) > prima.ore, testo);
+    await page.evaluate(() => { stato.tempiRegistrazione = [30, 42, 48].map((s, i) => ({ id: 'tr' + i, secondi: s, data: oggi() })); disegna(); });
+    const veri = await page.evaluate(() => tempoRisparmiato().righe[0]);
+    verifica('con 3 richieste da nota il «dopo» è la media vera (40 s = 0,7 min)', veri.dopoVero && veri.dopo === 0.7, JSON.stringify(veri));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
   // Dati della versione 3 salvati nel browser: migrati senza errori, con l'avviso per passare ai dati del database
   async migrazione() {
     const vecchi = fs.readFileSync(path.join(__dirname, 'backup-v3.json'), 'utf8');
