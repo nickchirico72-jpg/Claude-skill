@@ -26,5 +26,13 @@ Ogni PASSAGGIO dal progetto di analisi (docs/passaggi/) diventa una o più user 
 | US-N7 | Come cliente di Gate voglio un report mensile chiaro, per vedere cosa è stato fatto e con quale impatto (solo se resta tempo). | 1 | [PASSAGGIO 4](passaggi/2026-10-22-piattaforma-demo.md) (US-K nel progetto di analisi) | Non fatta: opzionale, rimandata |
 | US-O | Come Alfredo, amministratore unico, voglio una schermata essenziale con i numeri che contano e le decisioni della settimana, per decidere in un minuto. | 1 | Richiesta del 22/10 | Fatta (22/10): schermata Direzione |
 | US-P | Come chi usa il CRM voglio trovare in un solo posto i report da stampare e i file da scambiare (gestionale, Excel, dati reali, backup). | 1 | Richiesta del 22/10 | Fatta (22/10): schermata Documenti, tolti i doppioni da Indicatori, Clienti e piè di pagina |
+| US-R1 | Come Nicolò voglio il prototipo diviso in index.html, stile.css e app.js per modificare una parte senza far rileggere tutto. | 1 | [PASSAGGIO 5](passaggi/2026-10-23-restyling-claude-design.md) | Già fatta: index.html, css/stile.css e 17 file in js/ |
+| US-R2 | Come commerciale voglio aprire il prototipo su «Oggi» con le cose da fare subito (3 schede d'azione, poi le trattative per fase). | 1 | PASSAGGIO 5, schermate 01, 05, 08 | Da fare |
+| US-R3 | Come commerciale voglio la scheda della richiesta con l'avanzamento in 4 passi e un solo pulsante principale. | 1 | PASSAGGIO 5, schermata 02 | Da fare |
+| US-R4 | Come commerciale voglio incollare una nota e trovare i campi già proposti (regole, nessuna IA esterna). | 1 | PASSAGGIO 5, schermate 04, 09 | In parte fatta (N1): da adeguare al riferimento |
+| US-R5 | Come commerciale voglio l'offerta dal pacchetto del settore e la firma da link, con la vista del cliente senza account. | 1 | PASSAGGIO 5, schermate 03, 10 | In parte fatta (N2): la vista del cliente è nuova |
+| US-R6 | Come direzione voglio vedere le squadre disponibili prima di firmare, con avviso se un'offerta supera la capacità. | 1 | PASSAGGIO 5, schermata 06 | In parte fatta (Allocazione): da adeguare |
+| US-R7 | Come direzione voglio un cruscotto con pochi numeri e il confronto col mese prima. | 1 | PASSAGGIO 5, schermata 07 | In parte fatta (Direzione, 22/10): da adeguare; K14 e K16 da decidere |
+| US-R8 | Come utente voglio un'interfaccia chiara: conferme, liste vuote spiegate, niente sigle, pulsanti da 44 px, contrasto 4,5:1, 390 e 1280 px. | 1 | PASSAGGIO 5 | Da verificare su ogni schermata |
 
 Nota: dal PASSAGGIO 4 le user story nuove si numerano US-N1…N7, perché le sigle US-G…US-M del progetto di analisi qui sono già usate per altre storie.

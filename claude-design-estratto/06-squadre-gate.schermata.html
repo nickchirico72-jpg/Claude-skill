@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="it"><head>
+<meta charset="utf-8">
+<title>Squadre · Gate</title>
+<!-- runtime di Claude Design rimosso; font: Sora e Manrope da Google Fonts -->
+</head>
+<body>
+<x-dc>
+<helmet>
+<style></style>
+<style>
+body{margin:0}
+a{color:hsl(195 55% 30%)}a:hover{color:hsl(195 55% 22%)}
+button{font-family:inherit;cursor:pointer}
+summary{cursor:pointer}
+:focus-visible{outline:3px solid hsl(170 55% 45%);outline-offset:2px}
+@media (max-width:760px){.voci{flex-direction:row !important;flex-wrap:wrap}.piede-menu{display:none !important}}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 1040px; background: hsl(210 30% 98%); color: hsl(210 50% 10%); font-family: Manrope, system-ui, sans-serif; font-size: 15px; line-height: 1.5">
+
+<nav aria-label="Schermate del gestionale" style="flex: 1 1 232px; max-width: 100%; box-sizing: border-box; background: hsl(210 60% 14%); color: hsl(210 20% 90%); padding: 28px 14px 24px; display: flex; flex-direction: column; gap: 28px">
+<div style="padding: 0 10px; display: flex; flex-direction: column; gap: 2px">
+<p style="margin: 0; font-family: Sora, sans-serif; font-weight: 700; font-size: 22px; color: #ffffff">Gate <span style="font-size: 11px; letter-spacing: 0.12em; color: hsl(170 55% 55%)">S.R.L.</span></p>
+<p style="margin: 0; font-size: 13px; color: hsl(210 20% 72%)">Sviluppo commerciale</p>
+</div>
+<div class="voci" style="display: flex; flex-direction: column; gap: 4px">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: hsl(210 20% 90%); text-decoration: none; font-weight: 500">
+<svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+<span style="flex: 1">Oggi</span>
+<span style="min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: hsl(170 55% 55%); color: hsl(210 50% 10%); font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center">3</span>
+</a>
+<a href="Trattative.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: hsl(210 20% 90%); text-decoration: none; font-weight: 500">
+<svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M8 7v7M12 7v4M16 7v9"></path></svg>
+<span style="flex: 1">Trattative</span>
+</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: hsl(210 20% 90%); text-decoration: none; font-weight: 500">
+<svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"></rect><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"></path></svg>
+<span style="flex: 1">Clienti</span>
+</a>
+<a href="Squadre.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; background: hsl(210 40% 22%); color: #ffffff; text-decoration: none; font-weight: 600">
+<svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="hsl(170 55% 55%)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+<span style="flex: 1">Squadre</span>
+<sc-if value="{{ mostraConteggio }}" hint-placeholder-val="{{ true }}"><span style="min-width: 22px; height: 22px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: hsl(170 55% 55%); color: hsl(210 50% 10%); font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center">{{ daAssegnare }}</span></sc-if>
+</a>
+<a href="Cruscotto.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: hsl(210 20% 90%); text-decoration: none; font-weight: 500">
+<svg width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M18 17V9M13 17V5M8 17v-3"></path></svg>
+<span style="flex: 1">Cruscotto</span>
+</a>
+</div>
+<div class="piede-menu" style="margin-top: auto; padding: 0 12px; display: flex; flex-direction: column; gap: 12px; font-size: 13px; color: hsl(210 20% 72%)">
+<a href="#" style="color: hsl(210 20% 90%)">Documenti e backup</a>
+<a href="#" style="color: hsl(210 20% 90%)">Come funziona</a>
+<p style="margin: 0">Lavori come <strong style="color: #ffffff">Ufficio commerciale</strong></p>
+</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 36px 40px 32px">
+<div style="max-width: 1160px; width: 100%; display: flex; flex-direction: column; gap: 28px">
+
+<header style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-family: Sora, sans-serif; font-size: 34px; line-height: 1.2; color: hsl(210 60% 20%)">Squadre</h1>
+<p style="margin: 0; color: hsl(210 15% 42%); font-size: 16px">Assegna i contratti firmati: prima a una squadra Gate con ore libere in zona, altrimenti a un'impresa partner.</p>
+</header>
+
+<section aria-labelledby="titolo-assegnare" style="display: flex; flex-direction: column; gap: 12px">
+<h2 id="titolo-assegnare" style="margin: 0; font-family: Sora, sans-serif; font-size: 20px; color: hsl(210 60% 20%)">Da assegnare</h2>
+<div style="background: #ffffff; border: 1px solid hsl(210 20% 88%); border-radius: 14px; display: flex; flex-direction: column">
+<sc-for list="{{ commesse }}" as="c" hint-placeholder-count="3">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 16px 20px; border-top: {{ c.bordo }}">
+<div style="flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<p style="margin: 0; font-weight: 700; color: hsl(210 60% 20%)"><span style="font-size: 12px; letter-spacing: 0.04em; color: hsl(170 60% 27%)">{{ c.codice }}</span> {{ c.nome }}</p>
+<p style="margin: 0; font-size: 13px; color: hsl(210 15% 42%)">{{ c.dove }}</p>
+</div>
+<p style="flex: 1 1 260px; margin: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: {{ c.colore }}">
+<svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+{{ c.proposta }}
+</p>
+<sc-if value="{{ c.aperta }}" hint-placeholder-val="{{ true }}">
+<button type="button" sc-camel-on-click="{{ c.fai }}" style="min-height: 44px; padding: 0 18px; border: 0; border-radius: 10px; background: hsl(195 55% 35%); color: #ffffff; font-size: 14px; font-weight: 700">{{ c.azione }}</button>
+</sc-if>
+<sc-if value="{{ c.fatta }}" hint-placeholder-val="{{ false }}">
+<p role="status" style="margin: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: hsl(152 55% 93%); color: hsl(152 60% 22%); font-size: 14px; font-weight: 600">
+<svg width="16" height="16" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M20 6 9 17l-5-5"></path></svg>
+{{ c.esito }}
+</p>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="titolo-ore" style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 id="titolo-ore" style="margin: 0; font-family: Sora, sans-serif; font-size: 20px; color: hsl(210 60% 20%)">Ore libere al mese</h2>
+<p style="margin: 0; color: hsl(210 15% 42%)">Barra scura: ore già impegnate. Barra chiara: ore libere.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<sc-for list="{{ squadre }}" as="q" hint-placeholder-count="4">
+<article style="flex: 1 1 240px; min-width: 0; background: #ffffff; border: 1px solid hsl(210 20% 88%); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<h3 style="margin: 0; font-family: Sora, sans-serif; font-size: 16px; color: hsl(210 60% 20%)">{{ q.nome }}</h3>
+<span style="padding: 2px 9px; border-radius: 999px; background: {{ q.fondoStato }}; color: {{ q.coloreStato }}; font-size: 12px; font-weight: 700">{{ q.stato }}</span>
+</div>
+<p style="margin: 0; font-size: 13px; color: hsl(210 15% 42%)">{{ q.zona }}</p>
+<div aria-hidden="true" style="height: 10px; border-radius: 999px; background: hsl(170 45% 85%); overflow: hidden; display: flex">
+<span style="width: {{ q.percento }}; background: hsl(210 30% 45%)"></span>
+</div>
+<p style="margin: 0; font-size: 14px"><strong style="font-size: 18px; font-family: Sora, sans-serif">{{ q.libere }}</strong> ore libere su {{ q.totale }}</p>
+</article>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 20px; padding: 18px 20px; border-radius: 14px; background: hsl(40 95% 93%); color: hsl(32 90% 24%)">
+<svg width="22" height="22" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none; margin-top: 2px"><path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"></path><path d="M12 9v4M12 17h.01"></path></svg>
+<div style="flex: 1 1 420px; display: flex; flex-direction: column; gap: 4px">
+<p style="margin: 0; font-weight: 700">Se firmano le offerte aperte, in Area Nord mancano circa 260 ore al mese.</p>
+<p style="margin: 0; color: hsl(32 60% 20%)">La squadra di zona è piena. Conviene preparare ora un'impresa partner, prima di vendere altro in quella zona.</p>
+</div>
+</section>
+
+<details style="background: #ffffff; border: 1px solid hsl(210 20% 88%); border-radius: 14px; padding: 16px 20px">
+<summary style="min-height: 32px; font-family: Sora, sans-serif; font-size: 17px; font-weight: 700; color: hsl(210 60% 20%)">Imprese partner · 2 proponibili su 3</summary>
+<ul style="margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 14px">
+<li style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px"><span><strong>Orione Servizi S.r.l.</strong> · Area Nord, Bari città · pulizie</span><span style="color: hsl(152 60% 26%); font-weight: 600">DURC valido</span></li>
+<li style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px"><span><strong>Vega Facility S.r.l.</strong> · Area Nord, BAT · pulizie e servizi</span><span style="color: hsl(152 60% 26%); font-weight: 600">DURC valido</span></li>
+<li style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px"><span><strong>Sirio Pulizie Soc. Coop.</strong> · Murgia, Area Sud-Est</span><span style="color: hsl(0 70% 40%); font-weight: 600">DURC scaduto il 5/10: non proponibile</span></li>
+</ul>
+<p style="margin: 12px 0 0; font-size: 13px; color: hsl(210 15% 42%)">Al partner non si scrive mai il nome del cliente: il contratto resta di Gate, che coordina e controlla la qualità.</p>
+</details>
+
+<footer style="padding-top: 16px; border-top: 1px solid hsl(210 20% 88%); font-size: 13px; color: hsl(210 15% 42%)">Dati fittizi a scopo dimostrativo · Open Challenge by Enterprise 2026, Digital Transformation (LM-77), Università LUM</footer>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1040}}">
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.state || {};
+    const fatte = s.fatte || {};
+    const elenco = [
+      { id: "theta", codice: "GT-2026-062", nome: "Centro Uffici Theta", dove: "Capurso · 38 ore al mese · pulizie · firmato il 20/10", proposta: "Squadra Sud-Est ha posto", azione: "Assegna alla Squadra Sud-Est", esito: "Assegnata · avvio lunedì 9/11", squadra: "sudest", ore: 38 },
+      { id: "beta", codice: "GT-2026-144", nome: "Negozio Beta", dove: "Noicattaro · 45 ore al mese · pulizie · firmato il 19/10", proposta: "Squadra Sud-Est ha posto", azione: "Assegna alla Squadra Sud-Est", esito: "Assegnata · avvio lunedì 9/11", squadra: "sudest", ore: 45 },
+      { id: "rho", codice: "GT-2026-196", nome: "Agenzia Rho", dove: "Barletta · 51 ore al mese · pulizie · firmato il 16/10", proposta: "Nessuna squadra in zona: partner Vega Facility", azione: "Proponi a Vega Facility su WhatsApp", esito: "Messaggio pronto in WhatsApp, senza il nome del cliente", partner: true }
+    ];
+    const commesse = elenco.map((c, i) => ({
+      ...c,
+      bordo: i === 0 ? "0" : "1px solid hsl(210 20% 90%)",
+      colore: c.partner ? "hsl(210 60% 28%)" : "hsl(152 60% 26%)",
+      aperta: !fatte[c.id],
+      fatta: !!fatte[c.id],
+      fai: () => this.setState({ fatte: { ...fatte, [c.id]: true } })
+    }));
+    const usateSudEst = elenco.filter((c) => c.squadra === "sudest" && fatte[c.id]).reduce((t, c) => t + c.ore, 0);
+    const base = [
+      { nome: "Bari Centro", zona: "Bari città · Caposquadra A.", totale: 2400, impegnate: 2150 },
+      { nome: "Area Nord", zona: "Bitonto, Modugno, Molfetta · Caposquadra B.", totale: 1600, impegnate: 1600 },
+      { nome: "Sud-Est", zona: "Capurso, Noicattaro, Triggiano · Caposquadra C.", totale: 1500, impegnate: 1300 + usateSudEst },
+      { nome: "Manutenzioni", zona: "Tutta l'area di Bari · Caposquadra D.", totale: 480, impegnate: 380 }
+    ];
+    const squadre = base.map((q) => {
+      const libere = q.totale - q.impegnate;
+      const quota = libere / q.totale;
+      const stato = libere <= 0 ? ["Piena", "hsl(0 85% 95%)", "hsl(0 70% 40%)"] : quota < 0.1 ? ["Quasi piena", "hsl(40 95% 91%)", "hsl(32 90% 28%)"] : ["Ha posto", "hsl(152 55% 93%)", "hsl(152 60% 24%)"];
+      return {
+        ...q,
+        libere: Math.max(0, libere).toLocaleString("it-IT"),
+        totale: q.totale.toLocaleString("it-IT"),
+        percento: Math.min(100, Math.round((q.impegnate / q.totale) * 100)) + "%",
+        stato: stato[0],
+        fondoStato: stato[1],
+        coloreStato: stato[2]
+      };
+    });
+    const daAssegnare = elenco.filter((c) => !fatte[c.id]).length;
+    return { commesse, squadre, daAssegnare, mostraConteggio: daAssegnare > 0 };
+  }
+}
+</script>
+
+
+</body></html>
