@@ -1,23 +1,30 @@
 /*
  * APPLICAZIONE
- * Le schermate Pipeline, Allocazione e Indicatori, le finestre di dialogo,
- * la gestione dei clic e il disegno della pagina. La schermata Clienti è in clienti.js,
+ * Le trattative per fase (sotto le schede di «Oggi», oggi.js), le schermate Allocazione e Indicatori,
+ * le finestre di dialogo, la gestione dei clic e il disegno della pagina. La schermata Clienti è in clienti.js,
  * il salvataggio dei dati in dati.js.
  */
 
 let stato = carica();
 let faseSelezionata = "contatto"; // fase mostrata su schermi stretti
 let ultimaModificata = null;      // scheda da evidenziare dopo un'azione
-let espanse = {};                 // colonne della Pipeline mostrate per intero (oltre le 20 schede)
-let elenchiAperti = { "da-fare": false, "da-seguire": false }; // «Mostra tutte» di Da fare oggi e Da seguire
+let espanse = {};                 // colonne delle trattative per fase mostrate per intero (oltre le 20 schede)
+let elenchiAperti = { "da-seguire": false }; // «Tutte le trattative da seguire (N)» di «Poi, se resta tempo»
+let modificheApplicate = 0;       // quante modifiche sono passate da applica(): l'«Annulla» nelle schede di Oggi vale solo per l'ultima
 
 // Stato dell'interfaccia, separato dai dati: sopravvive ai ridisegni.
 // filtri = ricerca e filtri dei Clienti; bozze = testo di «Registra un'attività» per azienda;
-// provenienza = schermata da cui si è arrivati (per il link «← Pipeline» della scheda cliente)
+// provenienza = schermata da cui si è arrivati (per il link «← Oggi» della scheda cliente)
+// oggi = schede e righe già in pagina in «Oggi» (precedenti, precedentiRighe), pulsanti toccati (toccate) e «Poi» aperto da telefono
 // indicatori = livello (direzione, commerciale, operativo, altri) e fonte dei dati (fittizi, partenza, test) della schermata Indicatori
 // allocazione = zona scelta nella tendina e riquadri aperti o chiusi a mano
 const interfaccia = { filtri: { testo: "", settore: "", stato: "" }, bozze: {}, provenienza: "", indicatori: { livello: ruoloUtente().vista, fonte: "fittizi" },
-  allocazione: { zona: "", aperti: {} } };
+  allocazione: { zona: "", aperti: {} }, oggi: statoOggiVuoto() };
+
+// Stato dell'interfaccia di «Oggi» all'apertura della schermata (si azzera cambiando schermata)
+function statoOggiVuoto() {
+  return { precedenti: [], precedentiRighe: [], toccate: {}, poiAperto: false, clicInAlto: false, annullaScaduto: 0 };
+}
 
 // ================================================================== ICONE
 
@@ -35,6 +42,9 @@ const ICONE = {
   matita: '<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>',
   calendario: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
   cerca: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  sole: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  documento: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8M10 9H8"/>',
+  righello: '<path d="M21.3 8.7 8.7 21.3a1 1 0 0 1-1.4 0l-4.6-4.6a1 1 0 0 1 0-1.4L15.3 2.7a1 1 0 0 1 1.4 0l4.6 4.6a1 1 0 0 1 0 1.4Z"/><path d="m14.5 12.5 2-2M11.5 9.5l2-2M8.5 15.5l2-2M17.5 6.5l2-2"/>',
 };
 
 function icona(nome) {
@@ -63,7 +73,7 @@ function badgePunteggio(p, grande = false) {
   return `<span class="badge badge-punteggio fascia-${f.nome}${grande ? " badge-grande" : ""}" title="Punteggio di coerenza: ${p.totale} su 100, ${f.nome}"><span class="solo-lettori">Punteggio di coerenza </span>${p.totale}<span class="solo-lettori">, ${f.nome}</span></span>`;
 }
 
-// Riga degli avvisi in cima alla Pipeline (vuota se non c'è nulla): ogni avviso porta dove si risolve
+// Riga degli avvisi in cima a «Oggi» (vuota se non c'è nulla): ogni avviso porta dove si risolve
 function rigaAvvisi() {
   const avvisi = avvisiScadenze();
   if (!avvisi.length) return "";
@@ -87,7 +97,7 @@ function tabellaCriteri(p) {
     </table>`;
 }
 
-// ================================================================ PIPELINE
+// ===================================================== TRATTATIVE PER FASE
 
 const LIMITE_COLONNA = 20; // schede mostrate per colonna prima di «Mostra altre N»
 
@@ -107,13 +117,10 @@ function valoreColonna(id, elenco) {
   return totale + " · ponderato " + formattaEuro(elenco.reduce((s, o) => s + ricaviAttesi(o), 0));
 }
 
-function disegnaPipeline() {
+// Le trattative per fase, sotto le schede di «Oggi»: selettore delle fasi (schermi stretti) e tabellone con le 5 fasi più «Perso»
+function sezioneFasi() {
   const tutte = stato.opportunita;
   const punteggi = new Map(tutte.map((o) => [o.id, calcolaPunteggio(o, tutte)]));
-  const aperte = tutte.filter(trattativaAperta);
-  const medio = aperte.length ? Math.round(aperte.reduce((t, o) => t + punteggi.get(o.id).totale, 0) / aperte.length) : null;
-  const previsione = previsionePonderata(tutte);
-  const daSeguire = trattativeDaSeguire().length;
 
   // Colonne: le 5 fasi più "Perso"
   const colonne = CONFIG.fasi.map((f) => ({ id: f.id, nome: f.nome, metodo: f.metodo }));
@@ -121,28 +128,6 @@ function disegnaPipeline() {
   const perColonna = (id) => ordinaColonna(id, tutte.filter((o) => faseAttuale(o) === id));
 
   return `
-    <div class="pagina-pipeline">
-    ${intestazione({
-      titolo: "Opportunità commerciali",
-      istruzione: "",
-      azione: `<button class="pulsante accento" type="button" data-azione="nuovo">${icona("piu")} Nuovo contatto</button>`,
-    })}
-
-    <section class="riepilogo riepilogo-pipeline" aria-label="Riepilogo">
-      <div><span>In trattativa</span><strong>${aperte.length}</strong><small>su ${tutte.length} opportunità</small></div>
-      <div title="Valore annuo di ogni trattativa × probabilità di chiusura della sua fase">
-        <span>Previsione ponderata</span><strong>${formattaEuro(previsione.ponderata)}</strong><small>su ${formattaEuro(previsione.pieno)} di valore annuo pieno</small></div>
-      <div><span>Coerenza</span><strong>${medio === null ? NESSUN_DATO : badgePunteggio({ totale: medio }, true)}</strong><small>punteggio medio delle trattative aperte</small></div>
-      <a href="#da-seguire" data-azione="scorri" data-id="da-seguire"><span>Da seguire</span>
-        <strong>${daSeguire ? `<span class="chip chip-attenzione">${daSeguire}</span>` : "0"}</strong><small>ferme, senza prossima azione o da ricontattare</small></a>
-    </section>
-    ${rigaAvvisi()}
-
-    <div class="pannelli-pipeline">
-      ${sezioneDaFare()}
-      ${sezioneDaSeguire()}
-    </div>
-
     <nav class="selettore-fasi" aria-label="Scegli la fase da vedere">
       ${colonne.map((c) => `
         <button class="fase-pulsante" type="button" data-azione="fase" data-id="${c.id}" aria-pressed="${c.id === faseSelezionata}">
@@ -170,12 +155,11 @@ function disegnaPipeline() {
             </header>
             <div class="colonna-corpo">
               ${elenco.length ? mostrate.map((o) => schedaOpportunita(o, punteggi.get(o.id))).join("")
-                : '<p class="vuoto">Nessuna opportunità in questa fase.</p>'}
+                : `<p class="vuoto">Nessuna trattativa in questa fase.${c.id === "contatto" ? " Le nuove richieste si registrano con «Nuova richiesta», in alto." : ""}</p>`}
             </div>
             ${altre > 0 ? `<button class="pulsante secondario piccolo mostra-altre" type="button" data-azione="mostra-tutte" data-id="${c.id}">Mostra altre ${altre}</button>` : ""}
           </section>`;
       }).join("")}
-    </div>
     </div>`;
 }
 
@@ -211,7 +195,7 @@ function schedaOpportunita(o, p) {
   const settore = settoreDi(o);
   const avvisi = [
     datiServizio(o.servizio).fuoriElenco ? '<span class="chip chip-critico">Servizio non più in elenco: usa Modifica</span>' : "",
-    settore !== CONFIG.pilota.settore ? `<span class="chip" title="Settore fuori dal pilota">Fuori pilota: ${esc(settore)}</span>` : "",
+    settore !== CONFIG.pilota.settore ? `<span class="chip" title="Settore fuori dal pilota">Fuori pilota: ${esc(CONFIG.etichetteSettori[settore] || settore)}</span>` : "",
   ].join("");
 
   let stati;
@@ -352,7 +336,7 @@ function disegnaAllocazione() {
           </select></label>` : ""}
       </div>
       ${visibili.length ? visibili.map((o) => schedaCommessa(o, visibili.length === 1)).join("")
-        : '<p class="vuoto">Nessuna commessa da assegnare. I contratti firmati nella Pipeline compaiono qui.</p>'}
+        : '<p class="vuoto">Nessuna commessa da assegnare. I contratti firmati in «Oggi» compaiono qui.</p>'}
     </section>
 
     ${sezioneCapacitaFutura()}
@@ -1194,9 +1178,9 @@ function salvaContatto(modulo) {
     stato.opportunita.push(opp);
     registraAttivita({ aziendaId: opp.aziendaId, tipo: "Pipeline", testo: opp.servizio + ": nuovo contatto (" + opp.ore + " h/mese)" });
     promemoria = cadenza(opp, CONFIG.fasi[0], opp.storico.contatto);
-    ultimaModificata = opp.id; // l'id nasce qui: la nuova scheda resta evidenziata nella Pipeline
+    ultimaModificata = opp.id; // l'id nasce qui: la nuova scheda resta evidenziata tra le trattative per fase
   }, opp
-    ? { messaggio: () => "Contatto creato: " + nome + testoPromemoria(promemoria), fase: "contatto", vai: "pipeline" }
+    ? { messaggio: () => "Contatto creato: " + nome + testoPromemoria(promemoria), fase: "contatto", vai: "oggi" }
     : { messaggio: "Contatto salvato. Prossima azione: chiamata di qualifica " + formattaGiorno(chiamata), vai: () => "cliente-" + aziendaId });
 }
 
@@ -1213,7 +1197,7 @@ function apriFissaSopralluogo(o) {
     <form class="modulo" id="modulo-sopralluogo" data-id="${esc(o.id)}" novalidate>
       <div>
         <h2>Fissa sopralluogo · ${esc(nomeCliente(o))}</h2>
-        <p class="nota-piccola">Il sopralluogo entra nell'agenda del cliente e in «Da fare oggi» il giorno stabilito. Quando è fatto, premi «Sopralluogo fatto».</p>
+        <p class="nota-piccola">Il sopralluogo entra nell'agenda del cliente e tra le schede di «Oggi» il giorno stabilito. Quando è fatto, premi «Sopralluogo fatto».</p>
       </div>
       <label>Data <input name="data" type="date" required min="${oggi()}" value="${traGiorni(1)}"></label>
       ${pulsantiRapidi([[1, "Domani"], [3, "Tra 3 giorni"], [7, "Tra una settimana"]])}
@@ -1411,8 +1395,8 @@ function salvaFase(modulo) {
     }
     promemoria = registraFase(o, fase, data, dettaglio);
   }, { messaggio: () => messaggioFase(o, fase, promemoria), evidenzia: o.id, fase: fase.id,
-    // Dopo la firma si va all'allocazione; dopo l'offerta registrata dal preventivo si torna alla Pipeline
-    vai: fase.id === "contratto" ? "allocazione" : location.hash.startsWith("#preventivo-") ? "pipeline" : null });
+    // Dopo la firma si va all'allocazione; dopo l'offerta registrata dal preventivo si torna a «Oggi»
+    vai: fase.id === "contratto" ? "allocazione" : location.hash.startsWith("#preventivo-") ? "oggi" : null });
 }
 
 // «Da ricontattare»: etichetta sulla fase attuale con la data (obbligatoria) in cui richiamare il cliente
@@ -1423,7 +1407,7 @@ function apriRicontatto(id) {
     <form class="modulo" id="modulo-ricontatto" data-id="${esc(o.id)}" novalidate>
       <div>
         <h2>Da ricontattare · ${esc(nomeCliente(o))}</h2>
-        <p class="nota-piccola">La trattativa resta in «${CONFIG.fasi[faseRaggiunta(o)].nome}». Quando la data arriva compare in «Da seguire» nella Pipeline.</p>
+        <p class="nota-piccola">La trattativa resta in «${CONFIG.fasi[faseRaggiunta(o)].nome}». Quando la data arriva compare in «Poi, se resta tempo» in «Oggi».</p>
       </div>
       <label>Data del ricontatto * <input name="data" type="date" required min="${oggi()}"></label>
       ${pulsantiRapidi([[7, "Tra una settimana"], [14, "Tra due settimane"], [30, "Tra un mese"]])}
@@ -1500,7 +1484,7 @@ function apriPerso(id) {
   apriFinestra(`
     <form class="modulo" id="modulo-perso" data-id="${esc(o.id)}" novalidate>
       <h2>Segna come perso</h2>
-      <p>${esc(nomeCliente(o))} uscirà dalla pipeline attiva, ma resterà nei conteggi degli indicatori. Se serve, potrai riaprirla dal dettaglio.</p>
+      <p>${esc(nomeCliente(o))} uscirà dalle trattative aperte, ma resterà nei conteggi degli indicatori. Se serve, potrai riaprirla dal dettaglio.</p>
       <label>Motivo
         <select name="motivo" required>
           <option value="">— Scegli il motivo —</option>
@@ -1562,11 +1546,12 @@ function applica(cambia, { messaggio = "", evidenzia = null, fase = null, vai = 
   const testo = typeof messaggio === "function" ? messaggio() : messaggio;
   registraModifica(testo, modifiche);
   salva(modifiche);
+  modificheApplicate += 1;
   if (finestra.open) chiudiFinestra();
   if (fase) faseSelezionata = fase;
   if (evidenzia) ultimaModificata = evidenzia;
   if (typeof vai === "function") vai = vai(); // la schermata può dipendere dalla modifica (es. la scheda di un'azienda nuova)
-  if (vai && vai !== (location.hash.slice(1) || "pipeline")) location.hash = vai;
+  if (vai && vai !== normalizzaSchermata(location.hash.slice(1))) location.hash = vai;
   else disegna();
   mostraAvviso(testo, annullabile ? copia : null);
   return true;
@@ -1731,8 +1716,8 @@ const AZIONI = {
     faseSelezionata = el.dataset.id;
     disegna();
   },
-  // Avvisi della Pipeline: portano dove si risolvono
-  "vai-domani": () => {
+  // Avvisi di «Oggi» e consigli: portano dove si risolvono
+  "vai-domani": () => {   // dai consigli di Direzione e Indicatori
     interfaccia.indicatori.livello = "previsione";
     interfaccia.indicatori.fonte = "fittizi";
     location.hash = "#indicatori";
@@ -1744,21 +1729,26 @@ const AZIONI = {
     interfaccia.allocazione.aperti["squadre-partner"] = true;
     location.hash = "#allocazione";
   },
-  // «Mostra altre N» in fondo a una colonna della Pipeline
+  // «Mostra altre N» in fondo a una colonna delle trattative per fase
   "mostra-tutte": (el) => {
     espanse[el.dataset.id] = true;
     disegna();
   },
-  // «Mostra tutte (N)» / «Mostra meno» in Da fare oggi e Da seguire
+  // «Tutte le trattative da seguire (N)» / «Mostra meno» in «Poi, se resta tempo»
   "mostra-tutto": (el) => {
     elenchiAperti[el.dataset.id] = !elenchiAperti[el.dataset.id];
     disegna();
     const pulsante = document.querySelector(`[data-azione="mostra-tutto"][data-id="${el.dataset.id}"]`);
     if (pulsante) pulsante.focus({ preventScroll: true });
   },
-  // Collegamento a una sezione della stessa schermata (es. il riquadro «Da seguire»)
+  // Collegamento a una sezione della stessa schermata (es. «Poi, se resta tempo» dalla giornata libera);
+  // data-apri="poi": da telefono la sezione «Poi» è chiusa e va aperta prima di scorrerci
   scorri: (el, evento) => {
     evento.preventDefault();
+    if (el.dataset.apri === "poi" && !interfaccia.oggi.poiAperto) {
+      interfaccia.oggi.poiAperto = true;
+      disegna();
+    }
     const meta = document.getElementById(el.dataset.id);
     if (meta) {
       meta.scrollIntoView({ block: "start", behavior: comeScorrere() });
@@ -1807,6 +1797,7 @@ const AZIONI = {
   "torna-indietro": (el) => tornaIndietro(el.dataset.id),
   riapri: (el) => riapri(el.dataset.id),
   ...AZIONI_CLIENTI,
+  ...AZIONI_OGGI,
   "conferma-ripristino": () => applica(() => {
     stato = datiIniziali();
   }, { messaggio: "Dati di esempio ripristinati", fase: "contatto" }),
@@ -1823,7 +1814,7 @@ const AZIONI = {
     registraModifica("Annullata l'ultima modifica", modifiche);
     salva(modifiche);
     if (finestra.open) chiudiFinestra();
-    // Si torna alla schermata in cui era partita l'azione (es. dall'Allocazione alla Pipeline)
+    // Si torna alla schermata in cui era partita l'azione (es. dall'Allocazione a «Oggi»)
     if (copia.schermata !== location.hash) location.hash = copia.schermata;
     else disegna();
     mostraAvviso("Azione annullata");
@@ -1831,7 +1822,7 @@ const AZIONI = {
 };
 
 // Azioni che modificano i dati: un secondo clic ravvicinato viene ignorato
-const MODIFICANO_DATI = new Set(['importa-contatti', "avanza", "fatto", "fatto-fase", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
+const MODIFICANO_DATI = new Set(['importa-contatti', "avanza", "fatto", "fatto-fase", "chiamata-fatta", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
   "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "conferma-firma", "ricontattato", "registra-offerta", "annulla"]);
 let ultimoClicModifica = 0;
 let ultimoInvio = 0; // quando è stato inviato l'ultimo modulo (ms)
@@ -1972,10 +1963,16 @@ function mostraAvviso(testo, copia = null) {
   timerAvviso = setTimeout(nascondiAvviso, copia ? 8000 : 4000);
 }
 
-// Nasconde l'avviso; da quel momento l'ultima modifica non si può più annullare
-function nascondiAvviso() {
+// Nasconde l'avviso; da quel momento l'ultima modifica non si può più annullare.
+// In «Oggi» l'«Annulla» dentro la scheda chiusa vale quanto quello dell'avviso: sparisce con lui (ridisegno)
+function nascondiAvviso(ridisegna = true) {
   document.getElementById("avviso").classList.remove("visibile");
+  const avevaCopia = !!copiaPerAnnulla;
   copiaPerAnnulla = null;
+  if (avevaCopia && ridisegna && document.querySelector(".pagina-oggi [data-azione=annulla-oggi]")) {
+    interfaccia.oggi.annullaScaduto = modificheApplicate;
+    disegna();
+  }
 }
 
 // Avviso che resta in cima alla pagina finché non lo si chiude (dati non letti o non salvati)
@@ -2012,8 +2009,8 @@ function aggiornaStatoBackup() {
 }
 
 const SCHERMATE = {
+  oggi: disegnaOggi,             // schermata di apertura: le cose da fare oggi e le trattative per fase (oggi.js)
   direzione: disegnaDirezione,   // quattro numeri e le decisioni della settimana, per l'amministratore
-  pipeline: disegnaPipeline,
   clienti: disegnaClienti,
   cliente: disegnaSchedaCliente, // scheda di un'azienda: #cliente-<id>
   preventivo: disegnaPreventivo, // preventivo di un'opportunità: #preventivo-<id>
@@ -2026,23 +2023,32 @@ const SCHERMATE = {
 };
 
 // Nome della schermata nel titolo della scheda del browser, es. "Clienti · Gate"
-const TITOLI = { direzione: "Direzione", pipeline: "Pipeline", clienti: "Clienti", allocazione: "Allocazione", indicatori: "Indicatori", documenti: "Documenti" };
+const TITOLI = { oggi: "Oggi", direzione: "Direzione", clienti: "Clienti", allocazione: "Allocazione", indicatori: "Indicatori", documenti: "Documenti" };
+
+// Indirizzi vecchi che restano validi: #pipeline è la schermata «Oggi»
+const ALIAS_SCHERMATE = { pipeline: "oggi" };
+
+// Nome della schermata da un hash: alias risolti, vuoto o sconosciuto = «Oggi» (la schermata di apertura)
+function normalizzaSchermata(hash) {
+  // hasOwn: un indirizzo come #constructor non deve trovare le proprietà nascoste degli oggetti
+  return (Object.hasOwn(ALIAS_SCHERMATE, hash) ? ALIAS_SCHERMATE[hash] : hash) || "oggi";
+}
 
 // Scorrimento morbido, oppure immediato per chi ha chiesto meno animazioni al sistema
 function comeScorrere() {
   return matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
 }
 
-// Legge la schermata dall'indirizzo: #pipeline, #clienti, #cliente-az3 ...
+// Legge la schermata dall'indirizzo: #oggi (o #pipeline), #clienti, #cliente-az3 ...
 function schermataAttuale() {
-  const hash = location.hash.slice(1);
+  const hash = normalizzaSchermata(location.hash.slice(1));
   if (hash.startsWith("cliente-") && trovaAzienda(hash.slice(8))) return { nome: "cliente", parametro: hash.slice(8), menu: "clienti" };
-  if (hash.startsWith("preventivo-") && trova(hash.slice(11))) return { nome: "preventivo", parametro: hash.slice(11), menu: "pipeline" };
+  if (hash.startsWith("preventivo-") && trova(hash.slice(11))) return { nome: "preventivo", parametro: hash.slice(11), menu: "oggi" };
   if (hash === "riepilogo") return { nome: "riepilogo", menu: "documenti" };
   if (hash === "lunedi") return { nome: "lunedi", menu: "documenti" };
   if (hash === "come-funziona") return { nome: "come-funziona", menu: "" };
   // hasOwn: un indirizzo come #constructor non deve trovare le proprietà nascoste degli oggetti
-  return Object.hasOwn(TITOLI, hash) ? { nome: hash, menu: hash } : { nome: "pipeline", menu: "pipeline" };
+  return Object.hasOwn(TITOLI, hash) ? { nome: hash, menu: hash } : { nome: "oggi", menu: "oggi" };
 }
 
 // Contatore del menu: il numero si vede, il lettore di schermo legge la frase intera (es. ", 4 attività da fare entro oggi")
@@ -2076,9 +2082,9 @@ function disegna() {
     else a.removeAttribute("aria-current");
   });
 
-  // Numero di attività da fare entro oggi accanto alla voce "Pipeline", dove c'è l'elenco "Da fare oggi"
-  const scadute = attivitaDaFare().filter((x) => x.data <= oggi()).length;
-  aggiornaContatore("conteggio-pipeline", scadute, "attività da fare entro oggi");
+  // Schede d'azione ancora aperte (0-3) accanto alla voce "Oggi"
+  const restano = restanoOggi();
+  aggiornaContatore("conteggio-oggi", restano, restano === 1 ? "cosa da fare oggi" : "cose da fare oggi");
 
   // Numero di commesse da assegnare accanto alla voce "Allocazione"
   const daAssegnare = stato.opportunita.filter((o) => o.storico.contratto && !o.perso && !o.allocazione).length;
@@ -2087,10 +2093,12 @@ function disegna() {
   aggiornaStatoBackup();
   aggiornaRigaUtente();
 
-  // Porta in vista la scheda appena modificata
+  // Porta in vista la scheda appena modificata; in «Oggi» no, se il clic è partito da una scheda d'azione o da una riga in alto (oggi.js)
+  const inAlto = interfaccia.oggi.clicInAlto;
+  interfaccia.oggi.clicInAlto = false;
   if (ultimaModificata) {
     const el = document.getElementById("scheda-" + ultimaModificata) || document.getElementById("commessa-" + ultimaModificata);
-    if (el) {
+    if (el && !inAlto) {
       el.scrollIntoView({ block: "center", behavior: comeScorrere() });
       // Il focus resta sulla scheda modificata (utile da tastiera e con lettore di schermo)
       const comando = el.querySelector("button, a");
@@ -2105,10 +2113,11 @@ function disegna() {
 }
 
 window.addEventListener("hashchange", (evento) => {
-  // Schermata di provenienza (es. "pipeline"): la scheda cliente offre «← Pipeline» per tornarci
-  interfaccia.provenienza = (evento.oldURL.split("#")[1] || "pipeline").split("-")[0];
+  // Schermata di provenienza (es. "oggi"): la scheda cliente offre «← Oggi» per tornarci
+  interfaccia.provenienza = normalizzaSchermata((evento.oldURL.split("#")[1] || "").split("-")[0]);
+  interfaccia.oggi = statoOggiVuoto(); // le schede chiuse in «Oggi» si ricordano solo finché si resta lì
   // L'avviso appena comparso (es. "Contatto creato" salvato da Clienti) resta visibile sulla nuova schermata
-  if (Date.now() - avvisoMostratoIl > 1000) nascondiAvviso();
+  if (Date.now() - avvisoMostratoIl > 1000) nascondiAvviso(false);   // disegna() arriva subito sotto
   window.scrollTo(0, 0);
   // Il focus va al titolo della nuova schermata (il lettore di schermo la annuncia), salvo una scheda appena modificata
   if (!disegna() && !finestra.open) {

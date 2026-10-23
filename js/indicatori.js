@@ -3,7 +3,7 @@
  * Marketing (da dove arrivano i clienti) → Fino all'offerta → Dall'offerta al contratto → Cosa fare domani (previsioni e azioni).
  * Ogni KPI viene dal catalogo (tabella kpi_catalogo, 14 KPI: K14, K16 e K17 tolti il 21/10): codice, spiegazione in parole,
  * formula, livello della piramide di Anthony, APQC e soglia. Le liste di lavoro (ferme, ricontatti, prossimi passi)
- * stanno solo nella Pipeline, per non ripeterle.
+ * stanno solo in «Oggi», per non ripeterle.
  * La fonte si sceglie in alto: dati fittizi (database di prova) oppure dati reali (fotografia di partenza, test),
  * anche importati qui da un CSV a 7 colonne; non si mescolano mai. Senza dati si scrive «nessun dato», mai zero.
  */
@@ -251,7 +251,7 @@ function vistaFittizi(livello) {
       <section class="sezione">
         <h2>Velocità e passaggi</h2>
         ${tessere(["K12", "K1", "K2", "K13", "K9"])}
-        <p class="nota-piccola">Le trattative da riprendere (ferme, da ricontattare, senza prossima azione) sono in <a class="link" href="#pipeline">Pipeline → Da seguire</a>.</p>
+        <p class="nota-piccola">Le trattative da riprendere (ferme, da ricontattare, senza prossima azione) sono in <a class="link" href="#oggi">Oggi → Poi, se resta tempo</a>.</p>
       </section>
       <section class="sezione">
         <h2>Funnel <span class="sottotitolo">opportunità che hanno raggiunto ogni fase, perse comprese</span></h2>
@@ -406,7 +406,7 @@ function apriImportaCsvReali() {
       <div>
         <h2>Importa il CSV dei dati reali</h2>
         <p class="nota-piccola">7 colonne: ${COLONNE_CSV.join(", ")}. Date AAAA-MM-GG o GG/MM/AAAA; il canale può essere un canale o un gruppo
-          (${esc(gruppiCanali().join(", "))}). Le righe restano in un elenco a parte: non entrano nella Pipeline e non si mescolano con i dati fittizi.</p>
+          (${esc(gruppiCanali().join(", "))}). Le righe restano in un elenco a parte: non entrano tra le trattative e non si mescolano con i dati fittizi.</p>
       </div>
       <div class="riga-doppia">
         <label>Fonte delle righe <select name="fonte">${opzioni(["partenza", "test"], "partenza")}</select></label>

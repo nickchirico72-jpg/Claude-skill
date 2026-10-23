@@ -315,9 +315,9 @@ const LIVELLI_PIATTAFORMA = [
     ["Privacy: base giuridica e consenso di ogni referente", "persona", "#clienti", "Clienti"],
     ["Scambio con il gestionale in CSV, con i controlli prima di sostituire i dati", "propone", "#documenti", "Documenti"]] },
   { titolo: "Strumenti di lavoro", sotto: "dalla richiesta alla commessa", passi: [
-    ["Preventivo indicativo e punteggio di coerenza", "automatico", "#pipeline", "Pipeline"],
-    ["Offerta da pacchetto: prezzo e margine calcolati, la persona sceglie e invia", "propone", "#pipeline", "Pipeline"],
-    ["Firma da link: contratto, data di chiusura e scadenza registrati", "automatico", "#pipeline", "Pipeline"],
+    ["Preventivo indicativo e punteggio di coerenza", "automatico", "#oggi", "Oggi"],
+    ["Offerta da pacchetto: prezzo e margine calcolati, la persona sceglie e invia", "propone", "#oggi", "Oggi"],
+    ["Firma da link: contratto, data di chiusura e scadenza registrati", "automatico", "#oggi", "Oggi"],
     ["Chi esegue: la squadra con ore libere è proposta, il partner risponde su WhatsApp", "propone", "#allocazione", "Allocazione"],
     ["Promemoria, avvisi e lista del lunedì", "automatico", "#lunedi", "Lista del lunedì"]] },
   { titolo: "Cruscotto", sotto: "per decidere", passi: [
@@ -334,7 +334,7 @@ const ETICHETTE_PASSI = {
 
 // Passi della demo guidata (sotto i 90 secondi)
 const DEMO_GUIDATA = [
-  ["Nota della telefonata", "Nuovo contatto → «Da una nota» → esempio 1 → «Conferma e registra»"],
+  ["Nota della telefonata", "Oggi → «Nuova richiesta» → esempio 1 → «Conferma e registra»"],
   ["Preventivo e punteggio", "si apre da solo dopo la conferma"],
   ["Offerta da pacchetto", "pacchetto Plus → «Segna l'offerta come inviata» → Salva"],
   ["Firma da link", "dalla scheda in Offerta → «Firma da link» → «Il cliente ha firmato»"],

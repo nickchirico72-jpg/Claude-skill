@@ -337,21 +337,6 @@ textarea {
   }
 }
 
-/* Testo lungo su schermi larghi, testo breve su telefono */
-.testo-corto {
-  display: none;
-}
-
-@media (max-width: 639px) {
-  .testo-lungo {
-    display: none;
-  }
-
-  .testo-corto {
-    display: inline;
-  }
-}
-
 /* ---------------------------------------------- Intestazione di pagina */
 .intestazione {
   display: flex;
@@ -549,21 +534,28 @@ textarea {
 }
 
 .avviso-chip {
-  min-height: 32px;
+  min-height: 44px;
   border: 0;
   font: inherit;
   font-size: 12.5px;
   font-weight: 600;
+  text-align: left;
   cursor: pointer;
+}
+
+/* Il testo in parole (es. «regolarità contributiva (DURC) scaduta il …») va a capo su telefono (.chip più sotto è nowrap) */
+.chip.avviso-chip {
+  white-space: normal;
 }
 
 .avviso-chip:hover {
   text-decoration: underline;
 }
 
-@media (max-width: 899px) {
-  .avviso-chip {
-    min-height: 44px;
+/* Su telefono l'icona resterebbe sola su una riga: i chip bastano (hanno già il colore del tono) */
+@media (max-width: 479px) {
+  .riga-avvisi > .icona {
+    display: none;
   }
 }
 
@@ -662,33 +654,498 @@ textarea {
   white-space: nowrap;
 }
 
-/* Telefoni stretti: la spiegazione sotto i numeri della Pipeline va a capo invece di tagliarsi */
-@media (max-width: 399px) {
-  .riepilogo-pipeline small {
-    white-space: normal;
-  }
-}
-
-/* Pipeline: su telefono prima le cose da fare, poi riepilogo e schede */
-.pagina-pipeline {
+/* Oggi: intestazione, avvisi, schede d'azione, «Poi, se resta tempo», trattative per fase (nell'ordine del DOM) */
+.pagina-oggi {
   display: flex;
   flex-direction: column;
+  gap: 20px;
 }
 
-.pagina-pipeline > * {
+.pagina-oggi > * {
   min-width: 0;
 }
 
-.pagina-pipeline > .intestazione { order: 1; }
-.pagina-pipeline > .riga-avvisi { order: 1; }   /* gli avvisi subito sotto il titolo */
-.pagina-pipeline > .pannelli-pipeline { order: 2; }
-.pagina-pipeline > .riepilogo { order: 3; }
-.pagina-pipeline > .selettore-fasi { order: 4; }
-.pagina-pipeline > .tabellone { order: 5; }
+.pagina-oggi > .intestazione,
+.pagina-oggi > .riga-avvisi,
+.pagina-oggi > .selettore-fasi {
+  margin-bottom: 0;
+}
 
-@media (min-width: 900px) {
-  .pagina-pipeline > .riepilogo { order: 2; }
-  .pagina-pipeline > .pannelli-pipeline { order: 3; }
+.pagina-oggi > .riga-avvisi + .schede-oggi,
+.pagina-oggi > .riga-avvisi + .giornata-libera {
+  margin-top: -8px;
+}
+
+.pagina-oggi .intestazione h1 {
+  font-size: 34px;
+}
+
+/* La data per esteso: 13 px, spaziatura più stretta dell'occhiello delle altre schermate */
+.pagina-oggi .occhiello {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.pagina-oggi .intestazione .istruzione {
+  font-size: 16px;
+}
+
+/* «Nuova richiesta» e i pulsanti delle schede: più alti e più tondi */
+.pulsante.largo {
+  min-height: 48px;
+  padding: 0 22px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pulsante.accento.largo {
+  box-shadow: none;
+}
+
+/* Le tre schede d'azione: una accanto all'altra da 700 px, una sotto l'altra su telefono.
+   Griglia con righe condivise (subgrid): etichetta, nome, descrizione, meta e pulsante stanno alla stessa altezza
+   in tutte le schede, anche se in una l'etichetta e il chip vanno su due righe */
+.schede-oggi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+  gap: 20px;
+}
+
+.scheda-oggi {
+  display: grid;
+  grid-row: span 5;
+  grid-template-rows: subgrid;
+  gap: 14px;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.scheda-oggi-alto {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.scheda-oggi-etichetta {
+  color: var(--accent-testo);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scheda-oggi .chip {
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: normal;
+}
+
+.scheda-oggi .chip .icona {
+  width: 14px;
+  height: 14px;
+}
+
+.scheda-oggi-titolo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scheda-oggi h2 {
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+/* Il nome apre il dettaglio: un pulsante che sembra testo, con la sottolineatura puntinata delle schede;
+   area da toccare di 44 px (padding e margini negativi) senza allungare la scheda */
+.scheda-oggi-nome {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+  min-height: 44px;
+  padding: 9.5px 0;
+  margin-block: -9.5px;
+  border: 0;
+  background: none;
+  color: var(--secondary);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.scheda-oggi-nome:hover {
+  color: var(--primary);
+}
+
+.scheda-oggi-sottoriga,
+.scheda-oggi-meta {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+
+/* Il numero del referente si tocca su 44 px, senza allargare la riga */
+.scheda-oggi-sottoriga .link {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+  padding: 11.5px 0;
+  margin-block: -11.5px;
+}
+
+/* La riga compatta (referente e sintesi della richiesta) è solo per il telefono */
+.scheda-oggi-compatta {
+  display: none;
+  font-size: 14px;
+}
+
+.scheda-oggi-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.scheda-oggi-descrizione {
+  font-size: 15px;
+}
+
+.scheda-oggi-azioni {
+  display: flex;
+  flex-direction: column;
+  align-self: end;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.scheda-oggi-azioni .pulsante.largo {
+  width: 100%;
+}
+
+.scheda-oggi-azioni .pulsante.largo .icona {
+  width: 18px;
+  height: 18px;
+}
+
+/* Stato «fatto» nella scheda: riquadro verde con l'esito (annunciato dal lettore di schermo) */
+.stato-fatto {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ok-sfondo);
+  color: var(--ok);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stato-fatto .icona {
+  margin-top: 1px;
+}
+
+.scheda-oggi-azioni .pulsante-testo {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: 14px;
+}
+
+/* Giornata libera: niente di urgente */
+.giornata-libera {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 640px;
+  padding: 40px 32px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+.giornata-libera h2 {
+  font-size: 22px;
+}
+
+.giornata-libera p {
+  color: var(--muted-foreground);
+}
+
+.giornata-libera .pulsante {
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.cerchio-ok {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: var(--ok-sfondo);
+  color: var(--ok);
+}
+
+.cerchio-ok .icona {
+  width: 24px;
+  height: 24px;
+}
+
+/* Poi, se resta tempo */
+.poi {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  outline: none;
+}
+
+.apri-poi {
+  display: none;
+}
+
+.poi-testa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.poi-testa h2 {
+  font-size: 20px;
+}
+
+.poi-sotto {
+  color: var(--muted-foreground);
+  font-size: 15px;
+}
+
+.tutte-poi {
+  min-height: 44px;
+  padding: 0;
+  font-size: 14px;
+}
+
+.poi-elenco {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  list-style: none;
+}
+
+.poi-riga {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 14px 20px;
+  border-top: 1px solid hsl(210 20% 90%);
+}
+
+.poi-riga:first-child {
+  border-top: 0;
+}
+
+.poi-nome {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.poi-nome .link {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+  padding: 11px 0;
+  margin-block: -11px;
+  color: var(--secondary);
+  font-weight: 700;
+}
+
+.poi-nome .chip {
+  margin-left: 6px;
+  font-weight: 600;
+  color: hsl(210 50% 18%);
+}
+
+.poi-luogo {
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+
+.poi-motivo,
+.poi-esito {
+  display: flex;
+  flex: 1 1 240px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--attenzione);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.poi-esito {
+  color: var(--ok);
+}
+
+.poi-motivo .icona,
+.poi-esito .icona {
+  width: 16px;
+  height: 16px;
+}
+
+.poi-azione .pulsante.secondario {
+  min-height: 44px;
+  padding: 0 16px;
+  border-color: var(--input);
+  border-radius: 10px;
+  color: var(--secondary);
+}
+
+.poi .vuoto {
+  padding: 14px 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+}
+
+/* Titolo delle trattative per fase, sotto le schede */
+.titolo-fasi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+}
+
+.titolo-fasi .conteggio {
+  background: var(--muted);
+}
+
+/* Telefono: schede compatte (niente descrizione né riga meta), «Poi» ridotto a un link che apre la sezione */
+@media (max-width: 639px) {
+  .pagina-oggi {
+    gap: 14px;
+  }
+
+  .pagina-oggi .intestazione h1 {
+    font-size: 26px;
+  }
+
+  .pagina-oggi .intestazione .istruzione {
+    font-size: 14px;
+  }
+
+  .pagina-oggi .occhiello {
+    font-size: 12px;
+  }
+
+  .schede-oggi {
+    gap: 14px;
+  }
+
+  /* Una scheda sotto l'altra: niente righe condivise (le righe nascoste lascerebbero spazi vuoti) */
+  .scheda-oggi {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+  }
+
+  .scheda-oggi-etichetta {
+    font-size: 11px;
+  }
+
+  .scheda-oggi h2 {
+    font-size: 17px;
+  }
+
+  .scheda-oggi-nome {
+    padding: 11.5px 0;
+    margin-block: -11.5px;
+  }
+
+  .scheda-oggi .chip {
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  /* Da telefono resta una riga sola, nel colore del testo: referente e sintesi della richiesta */
+  .scheda-oggi-descrizione,
+  .scheda-oggi-meta,
+  .scheda-oggi-sottoriga {
+    display: none;
+  }
+
+  .scheda-oggi-compatta {
+    display: block;
+  }
+
+  /* Nella colonna flex «end» sposterebbe il pulsante a destra: resta a tutta larghezza */
+  .scheda-oggi-azioni {
+    align-self: stretch;
+  }
+
+  .scheda-oggi-azioni .pulsante.largo {
+    min-height: 46px;
+    border-radius: 11px;
+  }
+
+  .stato-fatto {
+    padding: 10px 12px;
+    border-radius: 11px;
+  }
+
+  .apri-poi {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    min-height: 44px;
+    padding: 0 8px;
+    font-size: 14px;
+  }
+
+  .poi:not(.aperta) .poi-testa,
+  .poi:not(.aperta) .poi-elenco,
+  .poi:not(.aperta) .vuoto {
+    display: none;
+  }
+
+  .poi-riga {
+    padding: 12px 14px;
+  }
+
+  .poi-azione {
+    flex: 1 1 100%;
+  }
+
+  .poi-azione .pulsante {
+    width: 100%;
+  }
+
+  .giornata-libera {
+    padding: 24px 16px;
+  }
 }
 
 /* Selettore delle fasi: visibile su schermi stretti */
@@ -1717,11 +2174,23 @@ dialog .azioni-finestra {
   background: var(--card);
 }
 
-/* X di chiusura in alto a destra; il titolo le lascia spazio */
-.chiudi-finestra {
+/* Bersagli di tocco da 44 px anche nelle finestre (Conferma, Salva, Annulla) */
+dialog .azioni-finestra .pulsante {
+  min-height: 44px;
+}
+
+/* X di chiusura in alto a destra, 44 px da toccare (vince sui 36 px di .pulsante-icona); il titolo le lascia spazio */
+.pulsante-icona.chiudi-finestra {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+}
+
+/* Nelle finestre anche i pulsanti piccoli (scelta rapida della data) sono alti 44 px */
+dialog .pulsante.piccolo {
+  min-height: 44px;
 }
 
 #finestra-titolo,
@@ -2592,43 +3061,12 @@ dialog .azioni-finestra {
   }
 }
 
-/* Da fare oggi e Da seguire: affiancati sugli schermi larghi */
-.pannelli-pipeline {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0 24px;
-}
-
-@media (min-width: 1100px) {
-  .pannelli-pipeline {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* Da fare */
-.da-fare-riquadro {
-  margin-bottom: 12px;
-  padding: 10px 16px;
-}
-
 .titolo-riquadro {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 2px;
   font-size: 15px;
-}
-
-/* «Mostra tutte (N)» e «Nei prossimi giorni» in fondo al riquadro */
-.piede-riquadro {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 16px;
-  padding-top: 2px;
-  border-top: 1px solid var(--border);
-  color: var(--muted-foreground);
-  font-size: 12.5px;
 }
 
 .titolo-riquadro .conteggio {
@@ -2669,10 +3107,6 @@ dialog .azioni-finestra {
   line-height: 18px;
   vertical-align: top;
   margin-top: 1px;
-}
-
-.piede-riquadro .pulsante-testo {
-  padding: 2px 0;
 }
 
 .da-fare-testo p {
@@ -3285,35 +3719,6 @@ h1[tabindex="-1"]:focus {
   font-size: 14px;
 }
 
-/* Consigli (negli Indicatori) */
-.pannelli-pipeline .consigli {
-  margin-bottom: 0;
-}
-
-
-
-/* Nella Pipeline i consigli stanno su una riga ciascuno (testo intero al passaggio del mouse) */
-.pannelli-pipeline .elenco-consigli li {
-  min-width: 0;
-}
-
-.pannelli-pipeline .elenco-consigli .link-titolo,
-.pannelli-pipeline .consiglio-perche {
-  display: block;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 13.5px;
-}
-
-.pannelli-pipeline .consiglio-perche {
-  font-size: 12.5px;
-}
-
-.pannelli-pipeline .elenco-consigli {
-  gap: 6px;
-}
-
 /* Collegamento con sito e social */
 .elenco-link {
   display: flex;
@@ -3696,7 +4101,7 @@ h1[tabindex="-1"]:focus {
   }
 
   /* Le parti nascoste non devono occupare spazio (altrimenti si stampa una pagina bianca in più) */
-  .barra-laterale, .pie, .avviso-fisso, .link-indietro, .intestazione, .avviso-stima,
+  .barra-laterale, .pie, .avviso-fisso, .link-indietro, .intestazione, .avviso-stima, .schede-oggi, .poi, .giornata-libera, .riga-avvisi, .titolo-fasi,
   .preventivo-griglia > form, #risultato-preventivo > :not(.stampa-preventivo) {
     display: none !important;
   }
@@ -3996,13 +4401,6 @@ h1[tabindex="-1"]:focus {
 
 .tabella tr.in-evidenza td {
   background: var(--attenzione-sfondo);
-}
-
-.link-lunedi {
-  margin-left: auto;
-  font-family: Manrope, system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
 }
 
 #testo-lunedi {

@@ -83,7 +83,7 @@ function disegnaPreventivo(id) {
   const v = preventivoDalModulo(o, null);
   const inOfferta = !!o.storico.offerta;
   return `
-    <a class="link-indietro" href="#pipeline">${icona("indietro")} Pipeline</a>
+    <a class="link-indietro" href="#oggi">${icona("indietro")} Oggi</a>
     ${intestazione({
       occhiello: "Preventivo · rif. " + esc(o.codice),
       titolo: esc(nomeCliente(o)),

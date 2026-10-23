@@ -50,6 +50,8 @@ const CONFIG = {
     settore: DIZIONARI.settorePilota,   // "uffici e commercio": uffici e studi professionali, agenzie, negozi
     territorio: "Bari e provincia",
   },
+  // Settori del dizionario scritti in parole nell'interfaccia (il dizionario usa la sigla)
+  etichetteSettori: { GDO: "grande distribuzione" },
 
   // Chi firma i messaggi WhatsApp ai partner
   mittente: "l'Ufficio commerciale di Gate S.R.L.",
@@ -253,10 +255,10 @@ const CONFIG = {
     giorniScadenzaEvidenza: 60,    // ...in evidenza quelli entro 60
   },
 
-  // Avvisi in cima alla Pipeline: compaiono solo quando c'è qualcosa da fare
+  // Avvisi in cima a «Oggi» (commesse, partner, DURC): compaiono solo quando c'è qualcosa da fare
   avvisi: {
     giorniDurc: 30,              // DURC di un partner scaduto o in scadenza entro 30 giorni
-    giorniOfferta: 3,            // offerte aperte scadute o in scadenza entro 3 giorni
+    giorniOfferta: 3,            // soglia della scheda «Sollecita» di Oggi: offerte aperte scadute o in scadenza entro 3 giorni
     giorniCommessa: 5,           // contratti firmati da oltre 5 giorni ancora senza squadra né partner
     giorniRispostaPartner: 2,    // proposte ai partner senza risposta da oltre 2 giorni
   },

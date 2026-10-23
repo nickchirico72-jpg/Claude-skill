@@ -220,6 +220,7 @@ function apriNota() {
           </select>
         </label>
         <button class="pulsante secondario" type="button" data-azione="leggi-nota">Leggi la nota</button>
+        <button class="pulsante-testo positivo" type="button" data-azione="nuovo">Preferisci il modulo completo? Nuovo contatto</button>
       </div>
       <div id="campi-nota" aria-live="polite"></div>
       <div class="azioni-finestra">

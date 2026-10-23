@@ -49,69 +49,12 @@ function rigaDaFare(x, conAzienda) {
     </li>`;
 }
 
-// Elenco limitato a 3 righe, con «Mostra tutte (N)» / «Mostra meno» (lo stato è in elenchiAperti, app.js)
-function elencoLimitato(id, righe) {
-  const aperto = elenchiAperti[id];
-  return {
-    righe: aperto ? righe : righe.slice(0, 3),
-    pulsante: righe.length > 3
-      ? `<button class="pulsante-testo positivo" type="button" data-azione="mostra-tutto" data-id="${id}" aria-expanded="${aperto}">${aperto ? "Mostra meno" : "Mostra tutte (" + righe.length + ")"}</button>`
-      : "",
-  };
-}
-
-// Riquadro "Da fare oggi" in cima alla Pipeline: attività scadute e di oggi
-function sezioneDaFare() {
-  const tutte = attivitaDaFare();
-  const entroOggi = tutte.filter((x) => x.data <= oggi());
-  const prossime = tutte.length - entroOggi.length;
-  const elenco = elencoLimitato("da-fare", entroOggi);
-  const piede = elenco.pulsante + (prossime ? `<span>Nei prossimi giorni: ${prossime} attività. Le trovi nelle schede dei clienti.</span>` : "");
-  return `
-    <section class="riquadro da-fare-riquadro" id="da-fare" aria-label="Da fare oggi">
-      <h2 class="titolo-riquadro">${icona("calendario")} Da fare oggi <span class="conteggio">${entroOggi.length}</span></h2>
-      ${entroOggi.length ? `<ul class="elenco-da-fare">${elenco.righe.map((x) => rigaDaFare(x, true)).join("")}</ul>`
-        : '<p class="nota-piccola">Nessuna attività in scadenza oggi.</p>'}
-      ${piede ? `<p class="piede-riquadro">${piede}</p>` : ""}
-    </section>`;
-}
-
 // Trattative aperte da seguire: da ricontattare con la data scaduta, senza prossima azione o ferme da troppo tempo
 // I ricontatti scaduti vanno in cima
 function trattativeDaSeguire() {
   return stato.opportunita.filter(trattativaAperta).map((o) => ({ o, s: statoTrattativa(o), r: ricontattoScaduto(o) }))
     .filter(({ s, r }) => r || !s.prossima || s.ferma)
     .sort((a, b) => b.r - a.r || b.s.giorniInFase - a.s.giorniInFase);
-}
-
-// Riquadro "Da seguire" accanto a "Da fare oggi"
-function sezioneDaSeguire() {
-  const tutte = trattativeDaSeguire();
-  const elenco = elencoLimitato("da-seguire", tutte);
-  return `
-    <section class="riquadro da-fare-riquadro" id="da-seguire" tabindex="-1" aria-label="Da seguire">
-      <h2 class="titolo-riquadro">${icona("attenzione")} Da seguire <span class="conteggio">${tutte.length}</span>
-        <a class="link link-lunedi" href="#lunedi">Lista del lunedì</a></h2>
-      ${tutte.length ? `<ul class="elenco-da-fare">${elenco.righe.map(({ o, s }) => `
-        <li class="da-fare">
-          <div class="da-fare-testo">
-            <p><a class="link" href="#cliente-${esc(o.aziendaId)}">${esc(nomeCliente(o))}</a>
-              <span class="nota-piccola">· ${CONFIG.fasi[faseRaggiunta(o)].nome}${s.ferma ? "" : " da " + giorni(s.giorniInFase)} · ${formattaEuro(valoreAnnuo(o))}/anno</span></p>
-            <p class="nota-piccola">
-              ${o.ricontatto && o.ricontatto.data <= oggi() ? `<span class="chip chip-critico">Ricontattare: scaduto il ${formattaData(o.ricontatto.data)}</span>` : ""}
-              ${s.ferma ? `<span class="chip chip-critico">Ferma da ${giorni(s.giorniInFase)}</span>` : ""}
-              ${s.prossima ? `${scadenza(s.prossima.data)} <span>Prossima: ${esc(s.prossima.testo)}</span>`
-                : '<span class="chip chip-attenzione">Nessuna prossima azione</span>'}
-            </p>
-          </div>
-          <div class="da-fare-azioni">
-            <button class="pulsante secondario piccolo" type="button" data-azione="prossima-azione" data-id="${esc(o.aziendaId)}">${icona("calendario")}
-              <span class="testo-lungo">Fissa la prossima azione</span><span class="testo-corto">Fissala</span></button>
-          </div>
-        </li>`).join("")}</ul>`
-        : '<p class="nota-piccola">Ogni trattativa aperta ha una prossima azione e nessuna è ferma.</p>'}
-      ${elenco.pulsante ? `<p class="piede-riquadro">${elenco.pulsante}</p>` : ""}
-    </section>`;
 }
 
 // Serve una prossima azione: l'azienda ha trattative aperte e nessuna attività da fare
@@ -168,6 +111,17 @@ function pulsantiContatto(r, compatti) {
     return preferito ? preferito.html : "";
   }
   return canali.map((c) => c.html).join("");
+}
+
+// Messaggio WhatsApp al referente per confermare il sopralluogo di oggi (l'invio resta alla persona)
+function testoWhatsAppSopralluogo(ref, x) {
+  const nome = String(ref.nome || "").trim().split(/\s+/)[0];
+  return "Buongiorno " + nome + ", confermo il sopralluogo di oggi" + (x.ora ? " alle " + x.ora : "") + ". Gate S.R.L.";
+}
+
+// Link wa.me del referente con il testo già scritto
+function linkWhatsAppReferente(ref, testo) {
+  return "https://wa.me/" + numeroInternazionale(ref.telefono) + "?text=" + encodeURIComponent(testo);
 }
 
 // ============================================================== ELENCO CLIENTI
@@ -312,8 +266,8 @@ function disegnaSchedaCliente(id) {
   const opp = opportunitaDi(id);
   const daFare = attivitaDaFare().filter((x) => x.aziendaId === id);
   const cronologia = attivitaDi(id).filter((x) => !x.daFare).sort((x, y) => y.data.localeCompare(x.data) || y.id.localeCompare(x.id, "it", { numeric: true }));
-  // Ritorno: alla Pipeline o all'Allocazione se si arriva da lì, altrimenti all'elenco (con i filtri di prima)
-  const ritorno = { pipeline: "Pipeline", allocazione: "Allocazione" }[interfaccia.provenienza];
+  // Ritorno: a «Oggi» o all'Allocazione se si arriva da lì, altrimenti all'elenco (con i filtri di prima)
+  const ritorno = { oggi: "Oggi", allocazione: "Allocazione" }[interfaccia.provenienza];
 
   return `
     ${ritorno ? `<a class="link-indietro" href="#${interfaccia.provenienza}">${icona("indietro")} ${ritorno}</a>`

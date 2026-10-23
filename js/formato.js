@@ -70,3 +70,29 @@ function giorniTra(da, a) {
 function esc(testo) {
   return String(testo ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
+
+// "2026-10-23" -> "Venerdì 23 ottobre": la data per esteso, per l'occhiello di «Oggi»
+function formattaGiornoEsteso(iso) {
+  if (!formattaData(iso)) return "";
+  const [a, m, g] = iso.split("-").map(Number);
+  const testo = new Date(a, m - 1, g).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+  return testo.charAt(0).toUpperCase() + testo.slice(1);
+}
+
+// "2026-10-26" -> "lunedì": solo il nome del giorno
+function nomeGiorno(iso) {
+  if (!formattaData(iso)) return "";
+  const [a, m, g] = iso.split("-").map(Number);
+  return new Date(a, m - 1, g).toLocaleDateString("it-IT", { weekday: "long" });
+}
+
+// Ora di adesso in formato HH:MM (quello che le attività salvano, es. "09:05")
+function oraAdesso() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+// "09:05" -> "9:05": l'ora senza lo zero davanti, per i testi
+function oraBreve(hhmm) {
+  return String(hhmm || "").replace(/^0/, "");
+}

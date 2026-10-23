@@ -54,13 +54,23 @@ const PROVE = {
     for (const dispositivo of ['desktop', 'telefono']) {
       const { ctx, page, errori } = await apri(dispositivo);
       const sigla = dispositivo === 'desktop' ? 'desktop' : 'mobile';
-      for (const [nome, indirizzo] of [['pipeline', 'index.html#pipeline'], ['clienti', 'index.html#clienti'], ['scheda-cliente', 'index.html#cliente-c1'],
+      for (const [nome, indirizzo] of [['oggi', 'index.html#oggi'], ['clienti', 'index.html#clienti'], ['scheda-cliente', 'index.html#cliente-c1'],
         ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['riepilogo', 'index.html#riepilogo'], ['lunedi', 'index.html#lunedi'], ['come-funziona', 'index.html#come-funziona'], ['direzione', 'index.html#direzione'], ['documenti', 'index.html#documenti'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
         await page.goto(BASE + indirizzo);
         await page.waitForTimeout(400);
         verifica(`${dispositivo} ${nome}: nessuno scorrimento orizzontale`, !(await scorreOrizzontale(page)));
         if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, `${nome}-${sigla}.png`) });
       }
+      // #pipeline resta un indirizzo valido (alias di Oggi) e l'indirizzo vuoto apre Oggi
+      await page.goto(BASE + 'index.html#pipeline');
+      await page.waitForTimeout(300);
+      verifica(`${dispositivo}: #pipeline apre Oggi senza riscrivere l'indirizzo`, await page.isVisible('.pagina-oggi') && !!(await page.$('[data-vai=oggi][aria-current=page]')) && await page.evaluate(() => location.hash) === '#pipeline');
+      await page.goto(BASE + 'index.html');
+      await page.waitForTimeout(300);
+      verifica(`${dispositivo}: senza indirizzo si apre Oggi`, (await page.textContent('#schermata h1')).trim() === 'Oggi');
+      await page.goto(BASE + 'index.html#constructor');   // una proprietà nascosta degli oggetti non è una schermata
+      await page.waitForTimeout(300);
+      verifica(`${dispositivo}: #constructor apre Oggi senza errori`, (await page.textContent('#schermata h1')).trim() === 'Oggi' && errori.length === 0, errori.join(' | '));
       await page.goto(BASE + 'index.html#indicatori');
       for (const livello of ['marketing', 'offerta', 'contratto', 'previsione']) {
         await clic(page, `[data-azione=livello][data-id=${livello}]`);
@@ -124,7 +134,7 @@ const PROVE = {
     const id = await page.evaluate(() => stato.opportunita[stato.opportunita.length - 1].id);
     const nuova = await page.evaluate((i) => { const o = trova(i); return { canale: o.canale, contenuto: o.contenuto, reg: o.dataRegistrazione, prev: !!o.preventivo, fase: faseAttuale(o), classe: calcolaPunteggio(o, stato.opportunita).classe }; }, id);
     verifica('import: opportunità in Contatto con canale, contenuto, registrazione di oggi e preventivo', nuova.fase === 'contatto' && nuova.canale === 'LinkedIn' && nuova.contenuto === 'prova-03' && nuova.reg && nuova.prev, JSON.stringify(nuova));
-    verifica('import: la scheda è in Pipeline con la classe', await page.isVisible(`#scheda-${id} .badge`));
+    verifica('import: la scheda è in Oggi, tra le trattative per fase, con il punteggio', await page.isVisible(`#scheda-${id} .badge`));
 
     await clic(page, `#scheda-${id} [data-azione=avanza]`);                       // È qualificato
     await clic(page, `#scheda-${id} [data-azione=fissa-sopralluogo]`);
@@ -171,7 +181,7 @@ const PROVE = {
     await page.selectOption('#modulo-csv-reali [name=fonte]', 'test');
     await clic(page, '#modulo-csv-reali [type=submit]');
     await clic(page, '#pulsante-csv-reali');
-    await page.goto(BASE + 'index.html#pipeline');
+    await page.goto(BASE + 'index.html#oggi');
     const daRicontattare = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && !trattativaFerma(o)).id);
     await page.evaluate((i) => apriDettaglio(i), daRicontattare);
     await clic(page, '[data-azione=da-ricontattare]');
@@ -191,8 +201,8 @@ const PROVE = {
   // E2: preventivo indicativo e avviso sotto il margine minimo
   async preventivo() {
     const { ctx, page, errori } = await apri();
-    await page.goto(BASE + 'index.html#pipeline');
-    await clic(page, '[data-azione=nuovo]');
+    await page.goto(BASE + 'index.html#clienti');
+    await clic(page, '.pagina-clienti [data-azione=nuovo]');
     await page.fill('[name=ragioneSociale]', 'Ambulatorio Prova Preventivo');
     await page.selectOption('#modulo-contatto [name=canale]', 'telefono');
     await page.selectOption('[name=ambiente]', 'Ambulatori e studi medici');
@@ -259,7 +269,7 @@ const PROVE = {
     await ctx.close();
   },
 
-  // Migliorie del 21/10: Clienti a righe con «Mostra le altre», riepilogo del mese, avvisi in Pipeline
+  // Migliorie del 21/10: Clienti a righe con «Mostra le altre», riepilogo del mese, avvisi in Oggi
   async migliorie() {
     const { ctx, page, errori } = await apri();
     await page.goto(BASE + 'index.html#clienti');
@@ -276,9 +286,10 @@ const PROVE = {
     verifica('riepilogo: in stampa si vede solo il foglio', await page.$eval('.barra-laterale', (el) => getComputedStyle(el).visibility) === 'hidden'
       && await page.$eval('#foglio-riepilogo', (el) => getComputedStyle(el).visibility) === 'visible');
     await page.emulateMedia({ media: 'screen' });
-    await page.goto(BASE + 'index.html#pipeline');
+    await page.goto(BASE + 'index.html#oggi');
     const avvisi = await page.$$eval('.riga-avvisi .avviso-chip', (el) => el.map((e) => e.dataset.azione));
-    verifica('avvisi: offerte, commesse da assegnare e DURC', ['vai-domani', 'vai-allocazione', 'vai-partner'].every((x) => avvisi.includes(x)), avvisi.join(','));
+    verifica('avvisi: commesse da assegnare e DURC (le offerte scadute sono una scheda «Sollecita»)', ['vai-allocazione', 'vai-partner'].every((x) => avvisi.includes(x)) && !avvisi.includes('vai-domani'), avvisi.join(','));
+    verifica('offerta scaduta: scheda o riga «Sollecita» in Oggi', /Sollecita/.test(await page.textContent('.pagina-oggi')));
     await clic(page, '.riga-avvisi [data-azione=vai-partner]');
     await page.waitForSelector('#riquadro-squadre-partner[open]');
     verifica('avviso DURC: apre Allocazione con squadre e partner in vista', page.url().endsWith('#allocazione'));
@@ -289,12 +300,11 @@ const PROVE = {
   // N1 (PASSAGGIO 4): richiesta da nota. Le 5 note di prova: almeno 7 campi su 9 per nota; poi il flusso dalla nota alla conferma
   async nota() {
     const { ctx, page, errori } = await apri('telefono');
-    await page.goto(BASE + 'index.html#pipeline');
+    await page.goto(BASE + 'index.html#oggi');
     const esiti = await page.evaluate(() => CONFIG.assistente.noteDiProva.map((n) => controllaNota(n)));
     esiti.forEach((e, i) => verifica(`nota di prova ${i + 1}: ${e.corretti}/9 campi corretti`, e.corretti >= 7, e.errori.join('; ')));
     const prima = await page.evaluate(() => stato.opportunita.length);
-    await clic(page, '[data-azione=nuovo]');
-    await clic(page, '[data-azione=nota]');
+    await clic(page, '.pagina-oggi [data-azione=nota]');   // «Nuova richiesta» apre direttamente la nota
     await page.selectOption('#modulo-nota [name=esempio]', '0');
     await page.waitForSelector('.campo-nota');
     const stati = await page.$$eval('.campo-nota[data-stato]', (el) => el.map((e) => e.dataset.stato));
@@ -329,7 +339,7 @@ const PROVE = {
     const inviata = await page.evaluate((i) => { const o = trova(i); return { fase: faseAttuale(o), offerta: o.storico.offerta, scadenza: o.scadenzaOfferta, pacchetto: o.preventivo.pacchetto,
       sopralluogo: stato.attivita.some((x) => x.opportunitaId === i || x.aziendaId === o.aziendaId && /sopralluogo non necessario/.test(x.testo)) }; }, r.id);
     verifica('«Segna l\'offerta come inviata»: data di invio, validità, pacchetto; fasi saltate dichiarate', inviata.fase === 'offerta' && inviata.offerta && inviata.scadenza && inviata.pacchetto === 'Plus' && inviata.sopralluogo, JSON.stringify(inviata));
-    verifica('dopo l\'offerta si torna alla Pipeline con la scheda in vista', await page.evaluate(() => location.hash) === '#pipeline' && await page.isVisible(`#scheda-${r.id}`));
+    verifica('dopo l\'offerta si torna a Oggi con la scheda in vista tra le fasi', await page.evaluate(() => location.hash) === '#oggi' && await page.isVisible(`#scheda-${r.id}`));
     await clic(page, `#scheda-${r.id} [data-azione=firma-link]`);
     await clic(page, '[data-azione=conferma-firma]');
     const firmata = await page.evaluate((i) => { const o = trova(i); return { fase: faseAttuale(o), link: o.firmaDaLink, chiusura: o.storico.contratto, scadenza: o.scadenzaContratto, oggi: oggi() }; }, r.id);
@@ -337,6 +347,227 @@ const PROVE = {
       && firmata.scadenza === firmata.oggi.replace(/^\d{4}/, (a) => String(Number(a) + 1)), JSON.stringify(firmata));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
+  },
+
+  // US-R2 (PASSAGGIO 5): schermata Oggi. Al massimo 3 schede d'azione con un solo pulsante, poi «Poi, se resta tempo», poi le fasi
+  async oggi() {
+    for (const dispositivo of ['desktop', 'telefono']) {
+      const { ctx, page, errori } = await apri(dispositivo);
+      await page.goto(BASE + 'index.html#oggi');
+      await page.waitForTimeout(400);
+      // Giornata libera: niente richieste senza risposta, sopralluoghi, offerte da preparare o scadute, promemoria scaduti
+      const svuotaUrgenze = async () => {
+        await page.evaluate(() => {
+          stato.attivita.forEach((x) => { if (x.daFare && x.data <= oggi()) { x.daFare = false; } });
+          stato.opportunita.filter(trattativaAperta).forEach((o) => {
+            if (!o.dataPrimaRisposta) o.dataPrimaRisposta = oggi();
+            if (faseAttuale(o) === 'sopralluogo') { o.storico.offerta = oggi(); o.scadenzaOfferta = traGiorni(30); }
+            if (o.scadenzaOfferta && o.scadenzaOfferta < traGiorni(7)) o.scadenzaOfferta = traGiorni(30);
+          });
+          salva(); location.hash = '#documenti';
+        });
+        await page.waitForTimeout(300);
+        await page.goto(BASE + 'index.html#oggi');
+        await page.waitForTimeout(400);
+        const libera = await page.evaluate(() => ({ riquadro: !!document.querySelector('.giornata-libera'), badge: document.getElementById('conteggio-oggi').hidden,
+          istruzione: document.querySelector('.istruzione').textContent.trim(), testo: document.querySelector('.giornata-libera').textContent }));
+        verifica(`${dispositivo} giornata libera: «Niente di urgente oggi», pallino nascosto, riga del titolo`, libera.riquadro && libera.badge && libera.istruzione === 'Oggi non ci sono cose urgenti.' && /Niente di urgente oggi/.test(libera.testo), JSON.stringify(libera));
+        if (await page.$('.giornata-libera [data-azione=scorri]')) {
+          await clic(page, '.giornata-libera [data-azione=scorri]');
+          verifica(`${dispositivo} «Apri le trattative da seguire»: focus su «Poi, se resta tempo» e righe visibili`, await page.evaluate(() => document.activeElement && document.activeElement.id === 'da-seguire')
+            && await page.isVisible('#da-seguire .poi-testa') && await page.isVisible('#da-seguire .poi-riga'));
+        }
+      };
+      const info = await page.evaluate(() => ({
+        titolo: document.title, occhiello: document.querySelector('.pagina-oggi .occhiello').textContent.trim(),
+        schede: [...document.querySelectorAll('.scheda-oggi')].map((s) => ({ etichetta: s.querySelector('.scheda-oggi-etichetta').textContent.trim(),
+          pulsanti: [...s.querySelectorAll('.scheda-oggi-azioni .pulsante')].filter((b) => b.getBoundingClientRect().height > 0).map((b) => ({ azione: b.dataset.azione || b.getAttribute('href'), alto: b.getBoundingClientRect().height })),
+          idScheda: s.id, descrizione: getComputedStyle(s.querySelector('.scheda-oggi-descrizione')).display })),
+        badge: document.getElementById('conteggio-oggi').hidden ? null : document.getElementById('conteggio-oggi').textContent,
+        istruzione: document.querySelector('.istruzione').textContent.trim(), fasi: document.querySelectorAll('.tabellone .colonna').length,
+        titoloFasi: document.querySelector('.titolo-fasi .conteggio').textContent.trim(),
+        righe: [...document.querySelectorAll('#da-seguire .poi-riga')].map((r) => ({ motivo: !!r.querySelector('.poi-motivo'), pulsanti: r.querySelectorAll('.poi-azione .pulsante').length })),
+        tutte: (document.querySelector('#da-seguire .tutte-poi') || {}).textContent || '',
+        poiElenco: getComputedStyle(document.querySelector('#da-seguire .poi-elenco')).display, apriPoi: getComputedStyle(document.querySelector('.apri-poi')).display,
+        nota: !!document.querySelector('.pagina-oggi [data-azione=nota]'),
+      }));
+      verifica(`${dispositivo} oggi: titolo, data per esteso e pulsante «Nuova richiesta»`, info.titolo === 'Oggi · Gate' && /^[A-ZÀ-Ü][a-zì]+ \d{1,2} [a-z]+$/.test(info.occhiello) && info.nota, info.occhiello);
+      verifica(`${dispositivo} oggi: da 1 a 3 schede numerate in ordine, ognuna con un solo pulsante alto almeno 44 px`, info.schede.length >= 1 && info.schede.length <= 3
+        && info.schede.every((s, i) => s.etichetta.startsWith((i + 1) + ' ·') && s.pulsanti.length === 1 && s.pulsanti[0].alto >= 44 && !s.idScheda), JSON.stringify(info.schede));
+      // Ogni etichetta ha il suo pulsante: non basta che l'azione sia una di quelle note
+      const ATTESE = { Rispondi: /^chiamata-fatta$/, Sollecita: /^chiamata-fatta$/, 'Sopralluogo di oggi': /^(whatsapp-sopralluogo|fatto-fase)$/, 'Sopralluogo da registrare': /^fatto-fase$/,
+        'Offerta da inviare': /^#preventivo-/, 'Sopralluogo da fissare': /^fissa-sopralluogo$/, Chiama: /^chiamata-fatta$/, 'Da fare': /^fatto$/ };
+      const coerente = (s) => { const nome = s.etichetta.replace(/^\d · /, ''); return !!ATTESE[nome] && ATTESE[nome].test(s.pulsanti[0].azione); };
+      verifica(`${dispositivo} oggi: ogni pulsante porta dove deve (Rispondi e Sollecita → chiamata, Sopralluogo → WhatsApp o misure, Offerta → preventivo, promemoria)`,
+        info.schede.every(coerente), JSON.stringify(info.schede.map((s) => [s.etichetta, s.pulsanti[0].azione])));
+      verifica(`${dispositivo} oggi: pallino del menu = schede aperte, riga sotto il titolo`, info.badge && info.badge.startsWith(String(info.schede.length)) && /Tre cose da fare|Due cose da fare|Una cosa da fare/.test(info.istruzione), info.badge + ' / ' + info.istruzione);
+      verifica(`${dispositivo} oggi: «Poi, se resta tempo» con al massimo 3 righe, motivo e un solo pulsante per riga; «Tutte le trattative da seguire (N)»`,
+        info.righe.length >= 1 && info.righe.length <= 3 && info.righe.every((r) => r.motivo && r.pulsanti === 1) && /Tutte le trattative da seguire \(\d+\)/.test(info.tutte), JSON.stringify(info.righe) + ' ' + info.tutte);
+      verifica(`${dispositivo} oggi: sotto, le trattative per fase (6 colonne, conteggio delle aperte)`, info.fasi === 6 && /\d+ aperte/.test(info.titoloFasi), info.titoloFasi);
+      if (dispositivo === 'telefono') {
+        const compatte = await page.evaluate(() => [...document.querySelectorAll('.scheda-oggi')].map((s) => ({ compatta: getComputedStyle(s.querySelector('.scheda-oggi-compatta')).display, testo: s.querySelector('.scheda-oggi-compatta').textContent.trim(),
+          colore: getComputedStyle(s.querySelector('.scheda-oggi-compatta')).color, sottoriga: getComputedStyle(s.querySelector('.scheda-oggi-sottoriga')).display, nome: Math.round(s.querySelector('.scheda-oggi-nome').getBoundingClientRect().height) })));
+        verifica('telefono oggi: schede compatte, «Poi» ridotto al link che apre la sezione', info.schede.every((s) => s.descrizione === 'none') && info.poiElenco === 'none' && info.apriPoi !== 'none'
+          && /Poi: \d+ trattativ/.test(await page.textContent('.apri-poi')));
+        verifica('telefono oggi: una riga nel colore del testo con referente e sintesi della richiesta al posto della sottoriga; nome alto 44 px',
+          compatte.every((c) => c.compatta === 'block' && c.testo.length > 3 && c.colore === 'rgb(13, 26, 38)' && c.sottoriga === 'none' && c.nome >= 44), JSON.stringify(compatte));
+        await clic(page, '.apri-poi');
+        verifica('telefono oggi: il link apre le righe', await page.isVisible('.poi.aperta .poi-riga'));
+        verifica('telefono oggi: nessuno scorrimento orizzontale', !(await scorreOrizzontale(page)));   // lo screenshot da telefono lo fa la prova «schermate»
+        await svuotaUrgenze();
+      } else {
+        // Bersagli da 44 px nelle parti nuove (nomi delle schede e delle righe, chip degli avvisi, numero del referente) e nella finestra
+        const alti = await page.evaluate(() => {
+          const h = (el) => Math.round(el.getBoundingClientRect().height);
+          return { nomi: [...document.querySelectorAll('.scheda-oggi-nome, #da-seguire .poi-nome .link, .scheda-oggi-sottoriga .link, .avviso-chip')].map(h) };
+        });
+        await page.evaluate(() => apriProssimaAzione(stato.opportunita.filter(trattativaAperta)[0].aziendaId));
+        await page.waitForTimeout(PAUSA);
+        alti.finestra = await page.evaluate(() => [...document.querySelectorAll('dialog .pulsante.piccolo, dialog .chiudi-finestra')].map((el) => Math.round(el.getBoundingClientRect().height)));
+        await clic(page, 'dialog [data-azione=chiudi]');
+        verifica('desktop oggi: nomi, chip degli avvisi, numeri e pulsanti della finestra alti almeno 44 px', alti.nomi.length > 0 && alti.nomi.every((n) => n >= 44) && alti.finestra.length >= 5 && alti.finestra.every((n) => n >= 44), JSON.stringify(alti));
+
+        // Scenario «sollecito e misure»: un'offerta scaduta con il promemoria del sollecito aperto, una seconda offerta scaduta (va in «Poi»),
+        // un sopralluogo di ieri da registrare e una sola offerta da preparare
+        const sc = await page.evaluate(() => {
+          stato.attivita.forEach((x) => { if (x.daFare && x.data <= oggi()) x.daFare = false; });
+          stato.opportunita.filter(trattativaAperta).forEach((o) => { if (!o.dataPrimaRisposta) o.dataPrimaRisposta = oggi(); });
+          const conTelefono = (o) => referentiDi(o.aziendaId).some((r) => r.telefono);
+          const [daPreparare, ...altreDaPreparare] = stato.opportunita.filter((o) => trattativaAperta(o) && faseAttuale(o) === 'sopralluogo');
+          altreDaPreparare.forEach((o) => { o.storico.offerta = oggi(); o.scadenzaOfferta = traGiorni(30); });
+          const offerte = stato.opportunita.filter((o) => trattativaAperta(o) && faseAttuale(o) === 'offerta' && conTelefono(o) && o.aziendaId !== daPreparare.aziendaId);
+          offerte.forEach((o) => { o.scadenzaOfferta = traGiorni(30); });
+          const [scaduta, seconda] = offerte;
+          scaduta.scadenzaOfferta = traGiorni(-2); seconda.scadenzaOfferta = traGiorni(-1);
+          registraAttivita({ aziendaId: scaduta.aziendaId, referenteId: referentiDi(scaduta.aziendaId).find((r) => r.telefono).id, opportunitaId: scaduta.id, tipo: 'Email', testo: 'Sollecitare l\'offerta', data: traGiorni(-1), daFare: true });
+          const visita = stato.opportunita.find((o) => trattativaAperta(o) && faseAttuale(o) === 'qualificato' && !sopralluogoFissato(o) && ![scaduta.aziendaId, seconda.aziendaId, daPreparare.aziendaId].includes(o.aziendaId));
+          registraAttivita({ aziendaId: visita.aziendaId, opportunitaId: visita.id, fase: 'sopralluogo', tipo: 'Visita', testo: 'Sopralluogo', data: traGiorni(-1), ora: '10:00', daFare: true });
+          salva(); location.hash = '#clienti';
+          return { scaduta: scaduta.id, aziendaScaduta: scaduta.aziendaId, seconda: seconda.aziendaId, visita: visita.id, daPreparare: daPreparare.id, attivitaPrima: stato.attivita.filter((x) => x.aziendaId === scaduta.aziendaId).length };
+        });
+        await page.waitForTimeout(300);
+        await page.goto(BASE + 'index.html#oggi');
+        await page.waitForTimeout(400);
+        const schedeB = await page.evaluate(() => [...document.querySelectorAll('.scheda-oggi')].map((s) => ({ etichetta: s.querySelector('.scheda-oggi-etichetta').textContent.trim(), chip: s.querySelector('.scheda-oggi-alto .chip').textContent.trim(),
+          pulsanti: [...s.querySelectorAll('.scheda-oggi-azioni .pulsante')].map((b) => ({ azione: b.dataset.azione || b.getAttribute('href'), testo: b.textContent.trim() })), azienda: s.dataset.azienda })));
+        const perNome = (nome) => schedeB.find((s) => s.etichetta.endsWith(nome));
+        verifica('scenario sollecito: «Sopralluogo da registrare» (Registra le misure), «Offerta da inviare» (Prepara l\'offerta) e «Sollecita» (Chiama …), ognuna con il pulsante giusto',
+          schedeB.length === 3 && schedeB.every(coerente) && perNome('Sopralluogo da registrare') && /Registra le misure/.test(perNome('Sopralluogo da registrare').pulsanti[0].testo)
+          && perNome('Offerta da inviare') && perNome('Sollecita') && /^Chiama /.test(perNome('Sollecita').pulsanti[0].testo) && /Offerta scaduta il/.test(perNome('Sollecita').chip), JSON.stringify(schedeB));
+        // La seconda offerta scaduta sta tra le prime 3 righe di «Poi» con «Sollecita», senza aprire tutto
+        const poiB = await page.evaluate((sc) => { const r = document.querySelector(`#da-seguire .poi-riga[data-azienda="${sc.seconda}"]`);
+          return { aperto: document.querySelector('#da-seguire [data-azione=mostra-tutto]').getAttribute('aria-expanded'), righe: document.querySelectorAll('#da-seguire .poi-riga').length,
+            motivo: r ? r.querySelector('.poi-motivo').textContent.trim() : '', pulsante: r ? r.querySelector('.poi-azione .pulsante').textContent.trim() : '' }; }, sc);
+        verifica('«Poi»: la seconda offerta scaduta è tra le prime 3 righe con «Offerta scaduta il …» e «Sollecita»', poiB.aperto !== 'true' && poiB.righe <= 3 && /Offerta scaduta il \d\d\/\d\d, nessuna risposta/.test(poiB.motivo) && poiB.pulsante === 'Sollecita', JSON.stringify(poiB));
+        // «Registra le misure» apre la finestra della fase Sopralluogo con la data di ieri
+        const indiceVisita = schedeB.findIndex((s) => s.etichetta.endsWith('Sopralluogo da registrare')) + 1;
+        await clic(page, `.scheda-oggi:nth-child(${indiceVisita}) [data-azione=fatto-fase]`);
+        verifica('«Registra le misure» apre la finestra della fase Sopralluogo con la data del sopralluogo', await page.isVisible('#modulo-fase[data-fase=sopralluogo]') && await page.inputValue('#modulo-fase [name=data]') === await page.evaluate(() => traGiorni(-1)));
+        await clic(page, 'dialog [data-azione=chiudi]');
+        // «Chiama …» del sollecito: una sola riga di cronologia (il promemoria chiuso con l'ora), prima risposta, Annulla nella scheda
+        const indiceSollecita = schedeB.findIndex((s) => s.etichetta.endsWith('Sollecita')) + 1;
+        await clic(page, `.scheda-oggi:nth-child(${indiceSollecita}) [data-azione=chiamata-fatta]`);
+        if (await page.isVisible('#modulo-prossima')) await clic(page, '#modulo-prossima [data-azione=chiudi]');
+        const sollecito = await page.evaluate((sc) => {
+          const oggiFatte = stato.attivita.filter((x) => x.aziendaId === sc.aziendaScaduta && !x.daFare && x.data === oggi() && x.tipo === 'Chiamata');
+          return { chiamate: oggiFatte.map((x) => x.testo + ' ' + (x.ora || '')), totale: stato.attivita.filter((x) => x.aziendaId === sc.aziendaScaduta).length, prima: sc.attivitaPrima,
+            stato: (document.querySelector(`.scheda-oggi[data-azienda="${sc.aziendaScaduta}"] .stato-fatto`) || {}).textContent || '', annulla: !!document.querySelector('.scheda-oggi [data-azione=annulla-oggi]'),
+            badge: document.getElementById('conteggio-oggi').textContent, istruzione: document.querySelector('.istruzione').textContent };
+        }, sc);
+        verifica('Sollecita → «Chiama …»: il promemoria si chiude con l\'ora, nessuna seconda attività, riquadro verde con l\'ora, pallino a 2, Annulla nella scheda',
+          sollecito.chiamate.length === 1 && /^Sollecitare .* \d{2}:\d{2}$/.test(sollecito.chiamate[0]) && sollecito.totale === sollecito.prima && /Chiamata registrata alle \d{1,2}:\d{2}/.test(sollecito.stato)
+          && sollecito.annulla && sollecito.badge.startsWith('2') && /Restano due cose/.test(sollecito.istruzione), JSON.stringify(sollecito));
+        // Quando l'avviso in basso sparisce (qui subito, come dopo gli 8 secondi) sparisce anche l'Annulla della scheda; l'esito verde resta
+        await page.evaluate(() => nascondiAvviso());
+        await page.waitForTimeout(300);
+        const dopoAvviso = await page.evaluate(() => ({ annulla: !!document.querySelector('.scheda-oggi [data-azione=annulla-oggi]'), fatta: !!document.querySelector('.scheda-oggi.fatta .stato-fatto'), avviso: document.getElementById('avviso').classList.contains('visibile') }));
+        verifica('sparito l\'avviso in basso, sparisce anche l\'Annulla nella scheda e l\'esito verde resta', !dopoAvviso.annulla && dopoAvviso.fatta && !dopoAvviso.avviso, JSON.stringify(dopoAvviso));
+        // Dal tabellone «È qualificato»: la scheda passa in Qualificato, scorre in vista e prende il focus (il clic non è partito dall'alto)
+        const idContatto = await page.evaluate(() => { const o = stato.opportunita.find((x) => trattativaAperta(x) && faseAttuale(x) === 'contatto' && document.getElementById('scheda-' + x.id)); document.getElementById('scheda-' + o.id).scrollIntoView(); return o.id; });
+        await clic(page, `#scheda-${idContatto} [data-azione=avanza]`);
+        const qualificata = await page.evaluate((id) => { const el = document.getElementById('scheda-' + id); const r = el.getBoundingClientRect(); return { fase: faseAttuale(trova(id)), inVista: r.top >= 0 && r.bottom <= innerHeight, focus: el.contains(document.activeElement) }; }, idContatto);
+        verifica('cambio di fase dal tabellone: la scheda modificata scorre in vista con il focus', qualificata.fase === 'qualificato' && qualificata.inVista && qualificata.focus, JSON.stringify(qualificata));
+        // Riga di «Poi»: dopo la finestra l'esito verde resta in riga e il pallino non cambia
+        await page.goto(BASE + 'index.html#oggi');
+        await page.waitForTimeout(400);
+        const badgePrima = await page.textContent('#conteggio-oggi');
+        const riga = await page.$('#da-seguire .poi-riga [data-azione=prossima-azione], #da-seguire .poi-riga [data-azione=fissa-sopralluogo]');
+        verifica('riga di «Poi» con «Fissa la prossima azione» o «Fissa il sopralluogo» tra le prime 3', !!riga);
+        const azione = await riga.getAttribute('data-azione');
+        await riga.click();
+        await page.waitForTimeout(PAUSA);
+        await clic(page, azione === 'prossima-azione' ? '#modulo-prossima [type=submit]' : '#modulo-sopralluogo [type=submit]');
+        verifica('riga di «Poi»: esito verde in riga, pallino invariato, pagina ferma in alto', /Fissat/.test(await page.textContent('#da-seguire .poi-esito[role=status]')) && (await page.textContent('#conteggio-oggi')) === badgePrima && (await page.evaluate(() => scrollY)) < 400);
+        await clic(page, '#da-seguire [data-azione=mostra-tutto]');
+        const n = Number((await page.textContent('#da-seguire .tutte-poi')).match(/\((\d+)\)/) ? info.tutte.match(/\((\d+)\)/)[1] : 0);
+        verifica('«Tutte le trattative da seguire (N)» apre tutte le righe', (await page.$$('#da-seguire .poi-riga')).length >= 3 && await page.getAttribute('#da-seguire [data-azione=mostra-tutto]', 'aria-expanded') === 'true', String(n));
+        // «Prepara l'offerta» porta alla schermata Preventivo della trattativa
+        await page.goto(BASE + 'index.html#oggi');
+        await page.waitForTimeout(400);
+        await clic(page, '.scheda-oggi a[href^="#preventivo-"]');
+        verifica('«Prepara l\'offerta» apre la schermata Preventivo della trattativa', (await page.evaluate(() => location.hash)) === '#preventivo-' + sc.daPreparare && await page.isVisible('#schermata h1'), await page.evaluate(() => location.hash));
+        await page.goto(BASE + 'index.html#oggi');
+        await page.waitForTimeout(400);
+        verifica('desktop oggi: nessuno scorrimento orizzontale', !(await scorreOrizzontale(page)));
+
+        // Le tre schede del riferimento: due richieste senza risposta da 5 giorni (almeno 3 lavorativi, qualunque sia il giorno della prova)
+        // e un sopralluogo fissato per oggi alle 15:00; più un promemoria di oggi per un'azienda senza trattative aperte
+        const ids = await page.evaluate(() => {
+          stato.attivita.forEach((x) => { if (x.daFare && x.fase === 'sopralluogo' && x.data < oggi()) x.daFare = false; });   // il sopralluogo di ieri dello scenario precedente
+          const sola = (o) => opportunitaDi(o.aziendaId).filter(trattativaAperta).length === 1;   // una candidata per azienda: niente altre trattative
+          const [richiesta, seconda] = stato.opportunita.filter((o) => trattativaAperta(o) && faseAttuale(o) === 'contatto' && sola(o));
+          richiesta.dataPrimaRisposta = null; richiesta.storico.contatto = traGiorni(-5);
+          seconda.dataPrimaRisposta = null; seconda.storico.contatto = traGiorni(-5);
+          const visita = stato.opportunita.find((o) => trattativaAperta(o) && faseAttuale(o) === 'qualificato' && !sopralluogoFissato(o) && referentiDi(o.aziendaId).some((r) => r.telefono) && ![richiesta.aziendaId, seconda.aziendaId].includes(o.aziendaId));
+          registraAttivita({ aziendaId: visita.aziendaId, referenteId: referentiDi(visita.aziendaId).find((r) => r.telefono).id, opportunitaId: visita.id, fase: 'sopralluogo', tipo: 'Visita', testo: 'Sopralluogo', data: oggi(), ora: '15:00', daFare: true });
+          const chiusa = stato.aziende.find((a) => opportunitaDi(a.id).length && !opportunitaDi(a.id).some(trattativaAperta));
+          registraAttivita({ aziendaId: chiusa.id, tipo: 'Chiamata', testo: 'Chiamare per il rinnovo del contratto', data: oggi(), daFare: true });
+          salva(); location.hash = '#clienti';
+          return { richiesta: richiesta.id, seconda: seconda.aziendaId, chiusa: chiusa.id };
+        });
+        await page.waitForTimeout(300);
+        await page.goto(BASE + 'index.html#oggi');
+        await page.waitForTimeout(400);
+        if (await page.getAttribute('#da-seguire [data-azione=mostra-tutto]', 'aria-expanded') === 'true') await clic(page, '#da-seguire [data-azione=mostra-tutto]');   // «Mostra meno»
+        const schedeA = await page.evaluate(() => [...document.querySelectorAll('.scheda-oggi')].map((s) => ({ etichetta: s.querySelector('.scheda-oggi-etichetta').textContent.trim(), pulsanti: [...s.querySelectorAll('.scheda-oggi-azioni .pulsante')].map((b) => ({ azione: b.dataset.azione || b.getAttribute('href') })) })));
+        const etichette = schedeA.map((s) => s.etichetta);
+        verifica('richiesta senza risposta e sopralluogo di oggi: «1 · Rispondi», «2 · Sopralluogo di oggi», poi la terza con il suo pulsante', etichette[0] === '1 · Rispondi' && etichette[1] === '2 · Sopralluogo di oggi' && etichette.length === 3 && schedeA.every(coerente), etichette.join(' | '));
+        // La seconda richiesta senza risposta e il promemoria di oggi stanno tra le prime 3 righe di «Poi», senza aprire tutto
+        const poi = await page.evaluate((ids) => ({
+          aperto: document.querySelector('#da-seguire [data-azione=mostra-tutto]').getAttribute('aria-expanded'), righe: document.querySelectorAll('#da-seguire .poi-riga').length,
+          seconda: (document.querySelector(`#da-seguire .poi-riga[data-azienda="${ids.seconda}"] .poi-motivo`) || {}).textContent || '',
+          secondaPulsante: !!document.querySelector(`#da-seguire .poi-riga[data-azienda="${ids.seconda}"] [data-azione=chiamata-fatta]`),
+          chiusa: (document.querySelector(`#da-seguire .poi-riga[data-azienda="${ids.chiusa}"]`) || {}).textContent || '',
+          chiusaFase: !!document.querySelector(`#da-seguire .poi-riga[data-azienda="${ids.chiusa}"] .poi-nome .chip`),
+        }), ids);
+        verifica('la seconda richiesta senza risposta sta tra le prime 3 righe di «Poi» con il motivo e «Chiama»', poi.aperto !== 'true' && poi.righe <= 3 && /Senza risposta da \d+ giorni lavorativi/.test(poi.seconda) && poi.secondaPulsante, JSON.stringify(poi));
+        // Il promemoria di oggi viene dopo le cose già scadute (offerte scadute, promemoria in ritardo): si aprono tutte le righe
+        await clic(page, '#da-seguire [data-azione=mostra-tutto]');
+        const chiusa = await page.evaluate((ids) => ({ testo: (document.querySelector(`#da-seguire .poi-riga[data-azienda="${ids.chiusa}"]`) || {}).textContent || '', fase: !!document.querySelector(`#da-seguire .poi-riga[data-azienda="${ids.chiusa}"] .poi-nome .chip`),
+          posizione: [...document.querySelectorAll('#da-seguire .poi-riga')].findIndex((r) => r.dataset.azienda === ids.chiusa) + 1, scadute: [...document.querySelectorAll('#da-seguire .poi-motivo')].filter((m) => /scadut|ritardo|Senza risposta/i.test(m.textContent)).length }), ids);
+        verifica('promemoria di un\'azienda senza trattative aperte: riga di «Poi» con il nome, senza fase né valore, subito dopo le cose scadute, nessun errore', /rinnovo del contratto/.test(chiusa.testo) && !chiusa.fase && chiusa.posizione > 0 && chiusa.posizione <= chiusa.scadute + 1 && errori.length === 0, JSON.stringify(chiusa) + ' | ' + errori.join(' | '));
+        await clic(page, '#da-seguire [data-azione=mostra-tutto]');   // «Mostra meno»
+        verifica('chip in parole: «In ritardo di N giorni» e «Ore 15:00»', /In ritardo di \d+ giorn/.test(await page.textContent('.scheda-oggi:nth-child(1) .chip')) && /Ore 15:00/.test(await page.textContent('.scheda-oggi:nth-child(2) .chip')));
+        const wa = await page.getAttribute('.scheda-oggi a[data-azione=whatsapp-sopralluogo]', 'href');
+        verifica('«Conferma l\'arrivo su WhatsApp»: link wa.me con il messaggio già scritto', /^https:\/\/wa\.me\/\d+\?text=Buongiorno/.test(wa) && /sopralluogo%20di%20oggi%20alle%2015%3A00/.test(wa), wa);
+        await clic(page, '.scheda-oggi a[data-azione=whatsapp-sopralluogo]');
+        verifica('WhatsApp: riquadro «Lo invii tu», niente salvato, pallino sceso a 2', /Lo invii tu/.test(await page.textContent('.scheda-oggi:nth-child(2) .stato-fatto')) && (await page.textContent('#conteggio-oggi')).startsWith('2'));
+        await clic(page, '.scheda-oggi:nth-child(2) [data-azione=annulla-oggi]');
+        verifica('Annulla toglie il segno di WhatsApp', !!(await page.$('.scheda-oggi a[data-azione=whatsapp-sopralluogo]')) && (await page.textContent('#conteggio-oggi')).startsWith('3'));
+        await clic(page, '.scheda-oggi:nth-child(1) [data-azione=chiamata-fatta]');
+        if (await page.isVisible('#modulo-prossima')) await clic(page, '#modulo-prossima [data-azione=chiudi]');   // «Nessuna»: la chiamata resta registrata
+        const rispondi = await page.evaluate((ids) => ({ stato: (document.querySelector('.scheda-oggi:nth-child(1) .stato-fatto') || {}).textContent || '', annulla: !!document.querySelector('.scheda-oggi:nth-child(1) [data-azione=annulla-oggi]'),
+          risposta: !!trova(ids.richiesta).dataPrimaRisposta, istruzione: document.querySelector('.istruzione').textContent,
+          chiamate: stato.attivita.filter((x) => x.aziendaId === trova(ids.richiesta).aziendaId && !x.daFare && x.data === oggi() && x.tipo === 'Chiamata' && x.ora).length }), ids);
+        verifica('Rispondi: chiamata registrata con l\'ora, una sola (prima risposta, K12), riquadro verde con «Annulla» nella scheda', /Chiamata registrata alle/.test(rispondi.stato) && rispondi.annulla && rispondi.risposta && rispondi.chiamate === 1 && /Restano due cose/.test(rispondi.istruzione), JSON.stringify(rispondi));
+        await clic(page, '.scheda-oggi:nth-child(1) [data-azione=annulla-oggi]');
+        verifica('Annulla nella scheda: la chiamata è annullata e il pulsante torna', !!(await page.$('.scheda-oggi:nth-child(1) [data-azione=chiamata-fatta]')) && !(await page.evaluate((ids) => trova(ids.richiesta).dataPrimaRisposta, ids)));
+        if (process.env.FOTO) { await page.reload(); await page.waitForTimeout(600); await page.screenshot({ path: path.join(SHOT, 'oggi-desktop.png') }); }
+        await svuotaUrgenze();
+      }
+      verifica(`${dispositivo} oggi: zero errori`, errori.length === 0, errori.join(' | '));
+      await ctx.close();
+    }
   },
 
   // N3 (PASSAGGIO 4): tempo risparmiato. I totali si aggiornano cambiando un parametro; con 3 tempi veri il «dopo» è la loro media
@@ -361,18 +592,27 @@ const PROVE = {
   // N4 (PASSAGGIO 4): lista del lunedì, uguale al database (controlla_dati.py) a oggi e al 13/10 del database
   async lunedi() {
     const { ctx, page, errori } = await apri();
-    await page.goto(BASE + 'index.html#pipeline');
-    await clic(page, '#da-seguire .link-lunedi');
+    await page.goto(BASE + 'index.html#lunedi');   // dalla schermata Documenti (e da Come funziona)
+    await page.waitForTimeout(300);
     const conta = (rif) => page.evaluate((r) => Object.fromEntries(listaLunedi(r).map((s) => [s.id, s.righe.length]).concat([['evidenza', listaLunedi(r)[3].righe.filter((x) => x.evidenza).length]])), rif);
     const oggiApp = await conta(await page.evaluate(() => oggi()));
     verifica('al 19/10 del database: risposta 0, ferme 6, offerte 11, rinnovi 12 (8 entro 60 giorni)', JSON.stringify(oggiApp) === JSON.stringify({ risposta: 0, ferme: 6, offerte: 11, rinnovi: 12, evidenza: 8 }), JSON.stringify(oggiApp));
-    const r13 = await page.evaluate(() => aggiungiGiorni(oggi(), -6));
-    await page.fill('#data-lunedi', r13);
+    // Al 13/10 vero del database: con i dati non spostati a oggi, così i giorni lavorativi non dipendono dal giorno in cui gira la prova
+    const al13 = await page.evaluate(() => {
+      const attuale = stato;
+      const tabelle = Object.fromEntries(['clienti', 'referenti', 'commerciali', 'opportunita', 'storico_fasi', 'offerte', 'attivita', 'contratti_in_corso'].map((n) => [n, righeDb(n)]));
+      stato = statoDaTabelle(tabelle, DATI_DB.dataRiferimento, 0);
+      const r = Object.fromEntries(listaLunedi('2026-10-13').map((s) => [s.id, s.righe.length]));
+      stato = attuale;
+      return r;
+    });
+    verifica('al 13/10 del database: risposta 6, ferme 20, offerte 12, rinnovi 9', al13.risposta === 6 && al13.ferme === 20 && al13.offerte === 12 && al13.rinnovi === 9, JSON.stringify(al13));
+    const r6 = await page.evaluate(() => aggiungiGiorni(oggi(), -6));
+    await page.fill('#data-lunedi', r6);
     await page.dispatchEvent('#data-lunedi', 'change');
     await page.waitForTimeout(200);
-    const al13 = await conta(r13);
-    verifica('al 13/10 del database: risposta 6, ferme 20, offerte 12, rinnovi 9; la pagina segue la data scelta', al13.risposta === 6 && al13.ferme === 20 && al13.offerte === 12 && al13.rinnovi === 9
-      && (await page.$$('#lunedi-risposta tbody tr')).length === 6, JSON.stringify(al13));
+    const a6 = await conta(r6);
+    verifica('la pagina segue la data scelta (sei giorni fa)', a6.ferme === 20 && (await page.$$('#lunedi-risposta tbody tr')).length === a6.risposta, JSON.stringify(a6));
     const righe = await page.$$eval('#lunedi-ferme tbody tr', (tr) => tr.map((r) => r.textContent));
     verifica('ogni riga: cliente, punteggio, valore, giorni, responsabile e azione suggerita', righe.length > 0 && /Riprendere: ferma da/.test(righe[0]) && /Commerciale|Intermediario|da assegnare/.test(righe[0]));
     const testo = await page.evaluate(() => testoLunedi());
@@ -439,7 +679,7 @@ const PROVE = {
     await page.evaluate(() => { stato.opportunita[0].note = 'modifica da non perdere: finisce nel backup'; salva(); });
     const [backup] = await Promise.all([page.waitForEvent('download'), clic(page, '#pulsante-ponte')]);
     const dopo = await page.evaluate(() => ({ opp: stato.opportunita.length, az: stato.aziende.length, hash: location.hash, valido: strutturaValida(stato) }));
-    verifica('sostituzione: prima il backup dei dati attuali, poi i dati del gestionale', /backup/.test(backup.suggestedFilename()) && dopo.opp === 300 && dopo.az === 120 && dopo.valido && dopo.hash === '#pipeline', JSON.stringify(dopo));
+    verifica('sostituzione: prima il backup dei dati attuali, poi i dati del gestionale', /backup/.test(backup.suggestedFilename()) && dopo.opp === 300 && dopo.az === 120 && dopo.valido && dopo.hash === '#oggi', JSON.stringify(dopo));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },
@@ -447,7 +687,7 @@ const PROVE = {
   // N6 (PASSAGGIO 4): Come funziona e demo guidata, cronometrata: nota → conferma → preventivo e punteggio → pacchetto → offerta → firma → chi esegue → indicatori → tempo risparmiato
   async demoGuidata() {
     const { ctx, page, errori } = await apri();
-    await page.goto(BASE + 'index.html#pipeline');
+    await page.goto(BASE + 'index.html#oggi');
     await clic(page, '.pie a[href="#come-funziona"]');
     const livelli = await page.$$eval('.livello-piattaforma', (el) => el.map((l) => ({ passi: l.querySelectorAll('.passi-piattaforma li').length, link: l.querySelectorAll('a, button').length })));
     const etichette = await page.$$eval('.passi-piattaforma .chip', (el) => [...new Set(el.map((e) => e.textContent))]);
@@ -491,7 +731,7 @@ const PROVE = {
   async migrazione() {
     const vecchi = fs.readFileSync(path.join(__dirname, 'backup-v3.json'), 'utf8');
     const { ctx, page, errori } = await apri('desktop', { initScript: `if (!sessionStorage.getItem('fatto')) { localStorage.setItem('gate-sviluppo-commerciale-v2', ${JSON.stringify(vecchi)}); sessionStorage.setItem('fatto', '1'); }` });
-    await page.goto(BASE + 'index.html#pipeline');
+    await page.goto(BASE + 'index.html#oggi');
     const prima = await page.evaluate(() => ({ n: stato.opportunita.length, servizio: stato.opportunita[0].servizio, canale: stato.opportunita[0].canale, versione: stato.versione }));
     verifica('migrazione v3 → v4: dizionari tradotti e canale per opportunità', prima.versione === 4 && prima.servizio === 'cleaning e hospitality' && prima.canale, JSON.stringify(prima));
     verifica('migrazione: avviso «Usa i nuovi dati»', await page.isVisible('#avviso-fisso [data-azione=ripristina]'));
@@ -505,9 +745,9 @@ const PROVE = {
   // Modifica 1: canale e data della richiesta obbligatori, date di annotazione e prima risposta
   async canale() {
     const { ctx, page, errori } = await apri();
-    await page.goto(BASE + 'index.html#pipeline');
+    await page.goto(BASE + 'index.html#clienti');
     const prima = await page.evaluate(() => stato.opportunita.length);
-    await clic(page, '[data-azione=nuovo]');
+    await clic(page, '.pagina-clienti [data-azione=nuovo]');
     await page.fill('[name=ragioneSociale]', 'Studio Prova Canale');
     await page.fill('[name=ore]', '20');
     await clic(page, '#modulo-contatto [type=submit]');
@@ -543,7 +783,7 @@ const PROVE = {
     verifica('le 12 righe sono nell\'elenco delle richieste', (await page.$$('#elenco-reali tbody tr')).length === 12);
     verifica('K12 ricalcolato dal CSV: 1 giorno', /^1 giorno$/.test((await page.textContent('#kpi-K12 .kpi-valore')).trim()));
     verifica('K13 senza date di offerta: «nessun dato», non zero', (await page.textContent('#kpi-K13 .kpi-valore')).trim() === 'nessun dato');
-    verifica('pipeline invariata: le righe reali non entrano tra le opportunità', (await page.evaluate(() => stato.opportunita.length)) === 300);
+    verifica('trattative invariate: le righe reali non entrano tra le opportunità', (await page.evaluate(() => stato.opportunita.length)) === 300);
     verifica('dopo l\'import si apre la schermata Indicatori', await page.evaluate(() => location.hash === '#indicatori'));
     await page.goto(BASE + 'index.html#documenti');
     const [download] = await Promise.all([page.waitForEvent('download'), page.click('[data-azione=esporta-csv-richieste]')]);
@@ -556,8 +796,9 @@ const PROVE = {
   // Modifica 3: «Da ricontattare» bloccato senza data, promemoria quando la data è scaduta; stima su 200 mq x 3 volte
   async ricontatto() {
     const { ctx, page, errori } = await apri();
-    await page.goto(BASE + 'index.html#pipeline');
-    const id = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && !trattativaFerma(o)).id);
+    await page.goto(BASE + 'index.html#oggi');
+    // Una trattativa la cui azienda non ha una scheda d'azione in alto (le righe di «Poi» le escludono)
+    const id = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && !trattativaFerma(o) && !document.querySelector('.scheda-oggi[data-azienda="' + o.aziendaId + '"]')).id);
     await page.evaluate((i) => apriDettaglio(i), id);
     await clic(page, '[data-azione=da-ricontattare]');
     await clic(page, '#modulo-ricontatto [type=submit]');
@@ -567,10 +808,12 @@ const PROVE = {
     verifica('con la data diventa «Da ricontattare»', await page.evaluate((i) => !!trova(i).ricontatto, id));
     // La data arriva: si simula spostando indietro il ricontatto
     await page.evaluate((i) => { trova(i).ricontatto.data = traGiorni(-1); salva(); disegna(); }, id);
-    verifica('ricontatto scaduto in «Da seguire» e sulla scheda', /Ricontattare: scaduto/.test(await page.textContent('#da-seguire')) && /scaduto/.test(await page.textContent('#scheda-' + id)));
+    if (await page.getAttribute('#da-seguire [data-azione=mostra-tutto]', 'aria-expanded') !== 'true') await clic(page, '#da-seguire [data-azione=mostra-tutto]');   // dopo le cose di oggi
+    verifica('ricontatto scaduto in «Poi, se resta tempo» e sulla scheda', /Ricontattare: scaduto/.test(await page.textContent('#da-seguire')) && /scaduto/.test(await page.textContent('#scheda-' + id)));
     await clic(page, `#scheda-${id} [data-azione=ricontattato]`);
     verifica('«Ricontattato» toglie l\'etichetta', !(await page.evaluate((i) => !!trova(i).ricontatto, id)));
-    await clic(page, '[data-azione=nuovo]');
+    await page.goto(BASE + 'index.html#clienti');
+    await clic(page, '.pagina-clienti [data-azione=nuovo]');
     await page.selectOption('[name=ambiente]', 'Uffici e studi');
     await page.fill('[name=mq]', '200');
     await page.selectOption('[name=frequenza]', '3 volte a settimana');
@@ -606,7 +849,7 @@ const PROVE = {
   // Archivio: record cambiati a ogni salvataggio, utente e ruolo, registro delle modifiche, Annulla
   async archivio() {
     const { ctx, page, errori } = await apri();
-    await page.goto(BASE + 'index.html#pipeline');
+    await page.goto(BASE + 'index.html#oggi');
     // Si intercetta la scrittura dell'archivio per vedere quali record arrivano
     await page.evaluate(() => { const s = ARCHIVI.locale.scrivi; window.ultime = null; ARCHIVI.locale.scrivi = (d, m) => { window.ultime = m; s(d, m); }; });
     await clic(page, '#riga-utente [data-azione=utente]');
@@ -618,7 +861,7 @@ const PROVE = {
     verifica('il ruolo commerciale apre la vista «Fino all\'offerta»', /Fino all'offerta/.test(await page.textContent('h1')));
     await page.evaluate(() => { const s = ARCHIVI.locale.scrivi; ARCHIVI.locale.scrivi = (d, m) => { window.ultime = m; s(d, m); }; });
     const id = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && faseRaggiunta(o) === 0).id);
-    await page.goto(BASE + 'index.html#pipeline');
+    await page.goto(BASE + 'index.html#oggi');
     await page.evaluate(() => { const s = ARCHIVI.locale.scrivi; ARCHIVI.locale.scrivi = (d, m) => { window.ultime = m; s(d, m); }; });
     await clic(page, `#scheda-${id} [data-azione=avanza]`);
     const m = await page.evaluate(() => window.ultime);
@@ -637,7 +880,7 @@ const PROVE = {
   // Supporto al preventivo: misure del sopralluogo, conti, prezzi di riferimento, salvataggio, offerta
   async preventivoSchermata() {
     const { ctx, page, errori } = await apri();
-    await page.goto(BASE + 'index.html#pipeline');
+    await page.goto(BASE + 'index.html#oggi');
     const id = await page.evaluate(() => stato.opportunita.find((o) => faseAttuale(o) === 'qualificato' && o.servizio === 'cleaning e hospitality').id);
     // Sopralluogo fatto: le misure ricalcolano le ore
     await page.evaluate((i) => apriFase(trova(i), CONFIG.fasi.find((f) => f.id === 'sopralluogo')), id);

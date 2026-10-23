@@ -75,13 +75,11 @@ function requisitiPartner(partner, data = oggi()) {
   return { idoneo: true, testo: "DURC regolare fino al " + formattaData(partner.durcScadenza) };
 }
 
-// Avvisi su scadenze e partner (soglie in CONFIG.avvisi): ognuno con il numero, il testo e dove si risolve
+// Avvisi su commesse e partner (soglie in CONFIG.avvisi): ognuno con il numero, il testo e dove si risolve.
+// Le offerte scadute o in scadenza non sono qui: in «Oggi» sono una scheda «Sollecita» o una riga di «Poi, se resta tempo»
 function avvisiScadenze(opportunita = stato.opportunita) {
   const a = CONFIG.avvisi;
   const elenco = [];
-  const offerte = opportunita.filter((o) => trattativaAperta(o) && o.scadenzaOfferta && giorniTra(oggi(), o.scadenzaOfferta) <= a.giorniOfferta);
-  if (offerte.length) elenco.push({ n: offerte.length, tono: "critico", azione: "vai-domani",
-    testo: offerte.length === 1 ? "offerta scaduta o in scadenza" : "offerte scadute o in scadenza" });
   const commesse = opportunita.filter((o) => o.storico.contratto && !o.perso && !o.allocazione && !propostaInAttesa(o)
     && giorniTra(o.storico.contratto, oggi()) > a.giorniCommessa);
   if (commesse.length) elenco.push({ n: commesse.length, tono: "attenzione", azione: "vai-allocazione",
@@ -92,7 +90,7 @@ function avvisiScadenze(opportunita = stato.opportunita) {
       testo: (attese.length === 1 ? "partner non ha" : "partner non hanno") + " risposto da oltre " + giorni(a.giorniRispostaPartner) });
     const durc = CONFIG.partner.filter((p) => p.tipo === "impresa" && giorniTra(oggi(), p.durcScadenza) <= a.giorniDurc);
     durc.forEach((p) => elenco.push({ n: null, tono: p.durcScadenza < oggi() ? "critico" : "attenzione", azione: "vai-partner",
-      testo: p.nome + ": DURC " + (p.durcScadenza < oggi() ? "scaduto il " : "in scadenza il ") + formattaData(p.durcScadenza) }));
+      testo: p.nome + ": regolarità contributiva (DURC) " + (p.durcScadenza < oggi() ? "scaduta il " : "in scadenza il ") + formattaData(p.durcScadenza) }));
   }
   return elenco;
 }

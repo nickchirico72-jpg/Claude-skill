@@ -94,7 +94,7 @@ function scadenzaContratto(o) {
   return o.scadenzaContratto || aggiungiMesi(o.storico.contratto, CONFIG.durataContrattoMesi);
 }
 
-// Trattativa «Da ricontattare» con la data già arrivata: promemoria in Pipeline e nella vista Commerciale
+// Trattativa «Da ricontattare» con la data già arrivata: riga di «Poi, se resta tempo» in Oggi e nella vista Commerciale
 function ricontattoScaduto(o) {
   return trattativaAperta(o) && !!o.ricontatto && o.ricontatto.data <= oggi();
 }

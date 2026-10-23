@@ -42,7 +42,7 @@ function disegnaDocumenti() {
           <p>${tabelle.map((n) => `<button class="pulsante-testo positivo" type="button" data-azione="esporta-ponte" data-id="${n}">${n}</button>`).join(" ")}</p></details>`),
       rigaDocumento("clienti", "Clienti e referenti", "Un elenco da aprire in Excel, un referente per riga.",
         '<button class="pulsante secondario piccolo" type="button" data-azione="esporta-csv">Scarica</button>'),
-      rigaDocumento("richieste", "Richieste per gli Indicatori", "CSV a 7 colonne: scarica le richieste mostrate negli Indicatori o carica quelle vere di Gate, che restano separate dalla Pipeline.",
+      rigaDocumento("richieste", "Richieste per gli Indicatori", "CSV a 7 colonne: scarica le richieste mostrate negli Indicatori o carica quelle vere di Gate, che restano separate dalle trattative.",
         `<button class="pulsante secondario piccolo" type="button" data-azione="esporta-csv-richieste">Scarica</button>
          <button class="pulsante secondario piccolo" type="button" data-azione="importa-csv-reali">Carica dati reali</button>`),
     ])}

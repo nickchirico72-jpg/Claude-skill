@@ -144,7 +144,7 @@ function statoDaTabelle(t, riferimento, spostamento = 0) {
   let n = 0;
   opportunita.filter((o) => !o.perso && !o.storico.contratto).forEach((o, i) => {
     const fase = CONFIG.fasi[faseRaggiunta(o)];
-    if (giorniTra(o.storico[fase.id], oggi()) > fase.giorniFerma) return; // le ferme restano senza prossima azione: finiscono in «Da seguire»
+    if (giorniTra(o.storico[fase.id], oggi()) > fase.giorniFerma) return; // le ferme restano senza prossima azione: finiscono in «Poi, se resta tempo»
     let quando = aggiungiGiorni(o.storico[fase.id], fase.followUp.giorni);
     if (quando < oggi() && i % 6 !== 0) quando = traGiorni(1 + (i % 6)); // pochi promemoria restano in ritardo, gli altri nei prossimi giorni
     attivita.push({ id: "pr" + (++n), aziendaId: o.aziendaId, referenteId: o.referenteId, opportunitaId: o.id, daFare: true,
@@ -461,9 +461,13 @@ function controllaAzienda({ ragioneSociale, piva }, escludiAziendaId = null) {
 function registraAttivita(dati) {
   const x = { id: nuovoId("at"), referenteId: null, daFare: false, data: oggi(), ...dati };
   stato.attivita.push(x);
-  if (!x.daFare && ["Chiamata", "Email", "WhatsApp", "Visita"].includes(x.tipo)) {
-    opportunitaDi(x.aziendaId).filter((o) => !o.dataPrimaRisposta && x.data >= o.storico.contatto).forEach((o) => (o.dataPrimaRisposta = x.data));
-  }
+  segnaPrimaRisposta(x);
+}
+
+// Un contatto svolto (chiamata, email, WhatsApp, visita) è la prima risposta delle richieste dell'azienda ancora senza (K12)
+function segnaPrimaRisposta(x) {
+  if (x.daFare || !["Chiamata", "Email", "WhatsApp", "Visita"].includes(x.tipo)) return;
+  opportunitaDi(x.aziendaId).filter((o) => !o.dataPrimaRisposta && x.data >= o.storico.contatto).forEach((o) => (o.dataPrimaRisposta = x.data));
 }
 
 // ------------------------------------------------------ Contatto con un clic

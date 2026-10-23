@@ -264,8 +264,8 @@ function importaContatti() {
     });
   }, {
     messaggio: () => nuovi.length + (nuovi.length === 1 ? " richiesta importata" : " richieste importate") +
-      (opportunita ? ": " + opportunita + " in Pipeline (Contatto) con preventivo e punteggio" : ": le trovi in Clienti come «Da qualificare»"),
-    vai: () => (opportunita ? "pipeline" : "clienti"), fase: "contatto",
+      (opportunita ? ": " + opportunita + " in «Oggi», fase Contatto, con preventivo e punteggio" : ": le trovi in Clienti come «Da qualificare»"),
+    vai: () => (opportunita ? "oggi" : "clienti"), fase: "contatto",
   });
 }
 
