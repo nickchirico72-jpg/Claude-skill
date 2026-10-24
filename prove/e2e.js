@@ -186,7 +186,7 @@ const PROVE = {
     await clic(page, '#pulsante-csv-reali');
     await page.goto(BASE + 'index.html#oggi');
     const daRicontattare = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && !trattativaFerma(o)).id);
-    await page.evaluate((i) => apriDettaglio(i), daRicontattare);
+    await page.goto(BASE + 'index.html#trattativa-' + daRicontattare);
     await clic(page, '[data-azione=da-ricontattare]');
     await clic(page, '#modulo-ricontatto [data-giorni="7"]');
     await clic(page, '#modulo-ricontatto [type=submit]');
@@ -806,13 +806,14 @@ const PROVE = {
     await page.goto(BASE + 'index.html#oggi');
     // Una trattativa la cui azienda non ha una scheda d'azione in alto (le righe di «Poi» le escludono)
     const id = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && !trattativaFerma(o) && !document.querySelector('.scheda-oggi[data-azienda="' + o.aziendaId + '"]')).id);
-    await page.evaluate((i) => apriDettaglio(i), id);
+    await page.goto(BASE + 'index.html#trattativa-' + id);
     await clic(page, '[data-azione=da-ricontattare]');
     await clic(page, '#modulo-ricontatto [type=submit]');
     verifica('senza data non diventa «Da ricontattare»', !(await page.evaluate((i) => !!trova(i).ricontatto, id)) && await page.isVisible('#modulo-ricontatto'));
     await clic(page, '#modulo-ricontatto [data-giorni="7"]');
     await clic(page, '#modulo-ricontatto [type=submit]');
-    verifica('con la data diventa «Da ricontattare»', await page.evaluate((i) => !!trova(i).ricontatto, id));
+    verifica('con la data diventa «Da ricontattare»', await page.evaluate((i) => !!trova(i).ricontatto, id) && await page.evaluate(() => location.hash.startsWith('#trattativa-')));
+    await page.goto(BASE + 'index.html#oggi');
     // La data arriva: si simula spostando indietro il ricontatto
     await page.evaluate((i) => { trova(i).ricontatto.data = traGiorni(-1); salva(); disegna(); }, id);
     if (await page.getAttribute('#da-seguire [data-azione=mostra-tutto]', 'aria-expanded') !== 'true') await clic(page, '#da-seguire [data-azione=mostra-tutto]');   // dopo le cose di oggi
@@ -885,6 +886,53 @@ const PROVE = {
   },
 
   // Supporto al preventivo: misure del sopralluogo, conti, prezzi di riferimento, salvataggio, offerta
+  // Scheda della trattativa (pagina intera al posto della finestra di dettaglio, 24/10)
+  async trattativa() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#oggi');
+    await clic(page, '.scheda .scheda-nome >> nth=0');
+    verifica('dal nome nelle trattative per fase si apre la pagina della trattativa', await page.evaluate(() => location.hash.startsWith('#trattativa-')) && await page.isVisible('.avanzamento'));
+    const attesi = { contatto: "È qualificato", qualificato: "Fissa il sopralluogo", sopralluogo: "Prepara l'offerta", offerta: "Contratto firmato", contratto: "" };
+    for (const [fase, testo] of Object.entries(attesi)) {
+      const id = await page.evaluate((f) => stato.opportunita.find((o) => faseAttuale(o) === f && !sopralluogoFissato(o) && !o.allocazione).id, fase);
+      await page.goto(BASE + 'index.html#trattativa-' + id);
+      const primari = await page.$$eval('.prossimo-passo .pulsante.primario', (b) => b.map((x) => x.textContent.trim()));
+      const adesso = await page.$$eval('.avanzamento [aria-current=step]', (el) => el.length);
+      verifica(`fase ${fase}: un solo pulsante principale «${testo || "Assegna / Vai all'allocazione"}» e il passo attuale segnato`, primari.length === 1 && (testo ? primari[0].includes(testo) : /Assegna a|allocazione/.test(primari[0])) && adesso === (fase === 'contratto' ? 0 : 1), primari.join(' | '));
+    }
+    const id = await page.evaluate(() => stato.opportunita.find((o) => faseAttuale(o) === 'offerta' && !o.allocazione).id);
+    await page.goto(BASE + 'index.html#trattativa-' + id);
+    await clic(page, '.prossimo-passo [data-azione=perso]');
+    await clic(page, '#modulo-perso [type=submit]');
+    verifica('«Segna come persa» chiede il motivo', await page.isVisible('#modulo-perso') && !(await page.evaluate((i) => !!trova(i).perso, id)));
+    await page.selectOption('#modulo-perso [name=motivo]', 'prezzo');
+    await clic(page, '#modulo-perso [type=submit]');
+    verifica('persa: la pagina resta, con motivo e rimedio', await page.evaluate((i) => location.hash === '#trattativa-' + i && !!trova(i).perso, id) && /Rimedio/.test(await page.textContent('.prossimo-passo')));
+    await clic(page, '#avviso [data-azione=annulla]');
+    verifica('Annulla riporta la trattativa in Offerta', await page.evaluate((i) => faseAttuale(trova(i)) === 'offerta', id));
+    await clic(page, '.prossimo-passo [data-azione=perso]');
+    await page.selectOption('#modulo-perso [name=motivo]', 'prezzo');
+    await clic(page, '#modulo-perso [type=submit]');
+    await clic(page, '.prossimo-passo [data-azione=riapri]');
+    verifica('«Riapri» torna alla fase di prima', await page.evaluate((i) => faseAttuale(trova(i)) === 'offerta', id));
+    await clic(page, '.correzioni [data-azione=torna-indietro]');
+    if (await page.isVisible('#finestra [data-azione=conferma-torna], #finestra [type=submit]')) await clic(page, '#finestra [data-azione=conferma-torna], #finestra [type=submit]');
+    verifica('«Torna a Sopralluogo» funziona dalla pagina', await page.evaluate((i) => faseAttuale(trova(i)) === 'sopralluogo', id));
+    verifica('desktop senza scorrimento orizzontale', !(await scorreOrizzontale(page)));
+    if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, 'trattativa-desktop.png'), fullPage: true });
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+    const tel = await apri('telefono');
+    await tel.page.goto(BASE + 'index.html#oggi');
+    const idt = await tel.page.evaluate(() => stato.opportunita.find((o) => faseAttuale(o) === 'offerta').id);
+    await tel.page.goto(BASE + 'index.html#trattativa-' + idt);
+    const alti = await tel.page.$$eval('.prossimo-passo .pulsante, .correzioni .pulsante', (b) => b.every((x) => x.getBoundingClientRect().height >= 44));
+    verifica('telefono: nessuno scorrimento orizzontale, pulsanti alti almeno 44 px', !(await scorreOrizzontale(tel.page)) && alti);
+    if (process.env.FOTO) await tel.page.screenshot({ path: path.join(SHOT, 'trattativa-mobile.png'), fullPage: true });
+    verifica('telefono: zero errori', tel.errori.length === 0, tel.errori.join(' | '));
+    await tel.ctx.close();
+  },
+
   async preventivoSchermata() {
     const { ctx, page, errori } = await apri();
     await page.goto(BASE + 'index.html#oggi');

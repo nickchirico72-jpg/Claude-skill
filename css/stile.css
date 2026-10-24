@@ -4762,3 +4762,100 @@ h1[tabindex="-1"]:focus {
   border-radius: 8px;
   background: var(--muted);
 }
+
+/* Scheda della trattativa (24/10): avanzamento in 4 passi e riquadro del prossimo passo */
+.avanzamento {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.passo {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.passo .nota-piccola {
+  grid-column: 2;
+}
+
+.passo-segno {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  grid-row: span 2;
+}
+
+.passo-segno .icona {
+  width: 14px;
+  height: 14px;
+}
+
+.passo-nome {
+  font-weight: 700;
+}
+
+.passo-fatto .passo-segno {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: #fff;
+}
+
+.passo-adesso {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.passo-adesso .passo-segno {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.passo-da-fare {
+  color: var(--muted-foreground);
+}
+
+.prossimo-passo {
+  margin-bottom: 16px;
+  border: 2px solid var(--primary);
+}
+
+.prossimo-passo.perso {
+  border-color: var(--critico);
+}
+
+.prossimo-passo .titolo-riquadro {
+  margin-bottom: 4px;
+}
+
+.prossimo-riga {
+  margin-bottom: 12px;
+}
+
+.prossimo-passo .pulsante,
+.pagina-trattativa .correzioni .pulsante {
+  min-height: 44px;
+}
+
+.pagina-trattativa .colonna-scheda > .riquadro,
+.pagina-trattativa .colonna-scheda > .sezione {
+  margin-bottom: 16px;
+}
+
+@media (max-width: 639px) {
+  .avanzamento {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

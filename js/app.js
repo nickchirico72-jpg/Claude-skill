@@ -613,42 +613,184 @@ function puoTornareIndietro(o) {
   return !!o && !o.perso && faseRaggiunta(o) > 0 && !o.allocazione && !propostaInAttesa(o);
 }
 
-// Dettaglio di un'opportunità, come scheda di lavoro: dati, referente, punteggio, storico e correzioni
-function apriDettaglio(id) {
+// ======================================================== SCHEDA DELLA TRATTATIVA (#trattativa-<id>, 24/10)
+
+// I 4 passi dell'avanzamento (nel database restano 5 fasi: Richiesta = contatto + qualificato), ognuno fatto, adesso o da fare
+function passiTrattativa(o) {
+  const r = faseRaggiunta(o);
+  const fissato = sopralluogoFissato(o);
+  const attuale = o.perso ? -1 : r === 0 ? 0 : Math.min(r, 4);   // 0 Richiesta, 1 Sopralluogo, 2 Offerta, 3 Firmato, 4 tutti fatti
+  const passi = [
+    { nome: "Richiesta", data: o.storico.contatto, nota: o.storico.qualificato ? "qualificata il " + formattaData(o.storico.qualificato).slice(0, 5) : "" },
+    { nome: "Sopralluogo", data: o.storico.sopralluogo || (fissato ? fissato.data : ""), nota: !o.storico.sopralluogo && fissato ? "fissato" + (fissato.ora ? " alle " + fissato.ora : "") : "" },
+    { nome: "Offerta", data: o.storico.offerta, nota: o.storico.offerta && o.scadenzaOfferta && !o.storico.contratto ? "valida fino al " + formattaData(o.scadenzaOfferta).slice(0, 5) : "" },
+    { nome: "Firmato", data: o.storico.contratto, nota: o.storico.contratto ? "avvio " + formattaData(dataAvvio(o)).slice(0, 5) : "" },
+  ];
+  const fatti = [o.storico.contatto, o.storico.sopralluogo, o.storico.offerta, o.storico.contratto];
+  return passi.map((x, i) => ({ ...x, stato: o.perso ? (fatti[i] ? "fatto" : "da fare") : i < attuale ? "fatto" : i === attuale ? "adesso" : "da fare" }));
+}
+
+// Il riquadro «Prossimo passo»: titolo, una riga e un solo pulsante principale, che cambia con la fase
+function prossimoPasso(o) {
+  const fase = faseAttuale(o);
+  const id = esc(o.id);
+  if (fase === "perso") {
+    return `<section class="riquadro prossimo-passo perso" aria-label="Trattativa persa">
+      <h2 class="titolo-riquadro">Persa il ${formattaData(o.perso.data)}: ${esc(o.perso.motivo)}</h2>
+      ${o.perso.nota ? `<p>${esc(o.perso.nota)}</p>` : ""}
+      ${(CONFIG.rimediPerdita || {})[o.perso.motivo] ? `<p class="rimedio">Rimedio: ${esc(CONFIG.rimediPerdita[o.perso.motivo])}</p>` : ""}
+      <button class="pulsante primario" type="button" data-azione="riapri" data-id="${id}">Riapri la trattativa</button>
+    </section>`;
+  }
+  const fissato = fase === "qualificato" ? sopralluogoFissato(o) : null;
+  let titolo, riga, pulsante, sotto = "";
+  if (fase === "contatto") {
+    titolo = "Qualificare la richiesta";
+    riga = "Chiama il referente e verifica servizio, sede di lavoro e metri quadri.";
+    pulsante = `<button class="pulsante primario" type="button" data-azione="avanza" data-id="${id}">${icona("spunta")} ${CONFIG.fasi[0].azione}</button>`;
+  } else if (fase === "qualificato" && !fissato) {
+    titolo = "Fissare il sopralluogo";
+    riga = "Proponi giorno e ora già in questa telefonata.";
+    pulsante = `<button class="pulsante primario" type="button" data-azione="fissa-sopralluogo" data-id="${id}">${icona("calendario")} Fissa il sopralluogo</button>`;
+  } else if (fase === "qualificato") {
+    titolo = "Sopralluogo " + formattaGiorno(fissato.data) + (fissato.ora ? " alle " + esc(fissato.ora) : "");
+    riga = "Dopo il sopralluogo registra le misure: il preventivo parte da lì.";
+    pulsante = `<button class="pulsante primario" type="button" data-azione="avanza" data-id="${id}">${icona("spunta")} ${CONFIG.fasi[1].azione}</button>`;
+  } else if (fase === "sopralluogo") {
+    titolo = "Preparare l'offerta";
+    riga = "Scegli il pacchetto e la tariffa: margine e punteggio si vedono subito.";
+    pulsante = `<a class="pulsante primario" href="#preventivo-${id}">${icona("documento")} Prepara l'offerta</a>`;
+  } else if (fase === "offerta") {
+    titolo = "Ottenere la firma";
+    riga = o.scadenzaOfferta ? (o.scadenzaOfferta < oggi() ? "Offerta scaduta il " : "Offerta valida fino al ") + formattaData(o.scadenzaOfferta) + "." : "Offerta inviata.";
+    pulsante = `<button class="pulsante primario" type="button" data-azione="avanza" data-id="${id}">${icona("spunta")} ${CONFIG.fasi[3].azione}</button>
+      <button class="pulsante secondario" type="button" data-azione="firma-link" data-id="${id}">Firma da link</button>`;
+    sotto = '<p class="nota-piccola">Se il cliente firma dal link, il contratto si segna da solo.</p>';
+  } else {
+    const squadra = !o.allocazione && squadraDisponibile(o, stato.opportunita);
+    titolo = o.allocazione ? "Commessa assegnata" : "Assegnare la commessa";
+    riga = o.allocazione ? statoCommessa(o) + `<p class="nota-piccola">Avvio del servizio: ${formattaData(dataAvvio(o))}.</p>`
+      : squadra ? "C'è una squadra interna con ore libere nella zona." : "Nessuna squadra interna ha ore libere: scegli un partner.";
+    pulsante = o.allocazione ? "" : squadra
+      ? `<button class="pulsante primario" type="button" data-azione="assegna-squadra" data-id="${id}">Assegna a ${esc(squadra.nome)}</button>`
+      : `<a class="pulsante primario" href="#allocazione">Vai all'allocazione ${icona("freccia")}</a>`;
+  }
+  const stati = fase === "contratto" ? "" : rigaRicontatto(o) + rigaStatoTrattativa(o, fissato);
+  return `<section class="riquadro prossimo-passo" aria-label="Prossimo passo">
+      <h2 class="titolo-riquadro">Prossimo passo: ${titolo}</h2>
+      <div class="prossimo-riga">${riga}</div>
+      ${pulsante ? `<div class="azioni-intestazione">${pulsante}</div>` : ""}
+      ${sotto}
+      ${stati ? `<div class="scheda-stati">${stati}</div>` : ""}
+      ${trattativaAperta(o) ? `<button class="pulsante-testo" type="button" data-azione="perso" data-id="${id}">Segna come persa</button>` : ""}
+    </section>`;
+}
+
+// Pagina della trattativa: avanzamento, prossimo passo, servizio, cronologia, referente, richiesta, coerenza, esecutore, correzioni
+function disegnaTrattativa(id) {
   const o = trova(id);
-  if (!o) return;
+  const a = aziendaDi(o);
   const p = calcolaPunteggio(o, stato.opportunita);
   const ref = trovaReferente(o.referenteId);
-  const passi = CONFIG.fasi.filter((f) => o.storico[f.id]).map((f) => `<li>${f.nome}: ${formattaData(o.storico[f.id])}</li>` +
-    (f.id === "offerta" && o.scadenzaOfferta ? `<li>Offerta valida fino al ${formattaData(o.scadenzaOfferta)}</li>` : "") +
-    (f.id === "contratto" && o.avvio ? `<li>Avvio del servizio: ${formattaData(o.avvio)}</li>` : "")).join("");
+  const zona = infoComune(o.comune);
+  const margine = marginePercentuale(o, stato.opportunita);
+  const soglie = CONFIG.punteggio.margine;
+  const tonoMargine = margine >= soglie.obiettivo ? "chip-ok" : margine >= soglie.minimo ? "chip-attenzione" : "chip-critico";
+  const cronologia = attivitaDi(o.aziendaId).filter((x) => !x.daFare).sort((x, y) => y.data.localeCompare(x.data) || y.id.localeCompare(x.id, "it", { numeric: true }));
+  const risposta = o.dataPrimaRisposta ? giorniTra(o.storico.contatto, o.dataPrimaRisposta) : null;
   const precedente = puoTornareIndietro(o) ? CONFIG.fasi[faseRaggiunta(o) - 1] : null;
-  apriFinestra(`
-    <div class="finestra-testa"><h2>${esc(nomeCliente(o))}</h2>${badgePunteggio(p)}</div>
-    <p class="nota-piccola">${esc(o.servizio)} · ${Number(o.ore)} h/mese · ${o.valore != null ? "valore " + formattaEuro(valoreAnnuo(o)) + "/anno" : "tariffa " + formattaEuro(tariffaOraria(o)) + "/ora"} · sede di lavoro: ${esc(o.comune)} · rif. ${esc(o.codice)}</p>
-    <p class="riga-chip">${o.canale ? `<span class="chip">Canale: ${esc(o.canale)}</span>` : ""}
-      ${o.contenuto ? `<span class="chip chip-info">Contenuto: ${esc(o.contenuto)}${o.campagna ? " · campagna " + esc(o.campagna) : ""}</span>` : ""}
-      ${o.firmaDaLink ? '<span class="chip chip-ok">Firmata da link</span>' : ""}
-      ${o.preventivo ? `<span class="chip">Preventivo: ${Number(o.preventivo.mq)} mq · ${esc(o.preventivo.ambiente)} · ${esc(o.preventivo.frequenza)}</span>` : ""}</p>
-    <div class="dettaglio-referente">
-      ${ref ? `<p><strong>Referente:</strong> ${esc(ref.nome)}${ref.ruolo ? " (" + esc(ref.ruolo) + ")" : ""}${ref.telefono ? " · " + esc(telefonoLeggibile(ref.telefono)) : ""}</p>
-        <div class="contatti">${pulsantiContatto(ref)}</div>` : "<p><strong>Referente:</strong> non indicato</p>"}
+  // Ritorno alla schermata di provenienza (come la scheda cliente); senza provenienza a «Oggi», o a Clienti per chi non ha Oggi
+  const casa = schermataDelRuolo("oggi") ? "oggi" : "clienti";
+  const da = ["oggi", "clienti", "allocazione", "cliente"].includes(interfaccia.provenienza) ? interfaccia.provenienza : casa;
+  const ritorno = { oggi: "Oggi", clienti: "Clienti", allocazione: "Allocazione", cliente: "Scheda cliente" }[da];
+  const indietro = da === "cliente" ? "#cliente-" + esc(o.aziendaId) : "#" + da;
+  // Chi la eseguirebbe: squadra con ore libere contro le ore della trattativa, oppure un partner
+  const squadra = CONFIG.squadre.filter((sq) => squadraCopre(sq, o)).map((sq) => ({ sq, ore: oreLibereSquadra(sq, stato.opportunita, o.id) })).sort((x, y) => y.ore - x.ore)[0];
+  const esecutore = esecutorePrevisto(o, stato.opportunita);
+  const passi = passiTrattativa(o);
+  return `
+    <div class="pagina-trattativa">
+    <a class="link-indietro" href="${indietro}">${icona("indietro")} ${ritorno}</a>
+    ${intestazione({ occhiello: esc(CONFIG.etichetteSettori[settoreDi(o)] || settoreDi(o)) + " · " + esc(o.comune) + " · rif. " + esc(o.codice),
+      titolo: esc(nomeCliente(o)) + " " + badgePunteggio(p, true),
+      istruzione: "Un passo alla volta: il pulsante blu indica sempre il prossimo." })}
+    ${o.perso ? `<p class="riga-chip"><span class="chip chip-critico">Persa · ${esc(o.perso.motivo)}</span></p>` : ""}
+
+    <ol class="avanzamento" aria-label="Avanzamento della trattativa">
+      ${passi.map((x) => `<li class="passo passo-${x.stato.replace(" ", "-")}" ${x.stato === "adesso" ? 'aria-current="step"' : ""}>
+        <span class="passo-segno" aria-hidden="true">${x.stato === "fatto" ? icona("spunta") : ""}</span>
+        <span class="passo-nome">${x.nome}</span>
+        <span class="nota-piccola">${x.stato === "da fare" && !x.data ? "da fare" : x.data ? formattaData(x.data).slice(0, 5) : x.stato}${x.nota ? " · " + esc(x.nota) : ""}</span></li>`).join("")}
+    </ol>
+
+    ${prossimoPasso(o)}
+
+    <div class="scheda-cliente">
+      <div class="colonna-scheda">
+        <section class="sezione riquadro">
+          <h2>Il servizio</h2>
+          <p><strong>${esc(maiuscola(o.servizio))}</strong> · ${Number(o.ore)} ore al mese</p>
+          <p class="riga-chip"><span class="chip">${formattaEuro(valoreAnnuo(o))} all'anno</span>
+            <span class="chip ${tonoMargine}">margine stimato ${formattaPercentuale(margine)}</span></p>
+          ${o.preventivo ? `<p class="nota-piccola">Preventivo: ${o.preventivo.pacchetto ? "pacchetto " + esc(o.preventivo.pacchetto) + " · " : ""}${Number(o.preventivo.mq)} mq · ${esc(o.preventivo.ambiente)} · ${esc(o.preventivo.frequenza)}</p>`
+            : faseRaggiunta(o) < 3 ? '<p class="nota-piccola">Il preventivo si prepara dopo il sopralluogo.</p>' : ""}
+          ${o.note ? `<h3>Note</h3><p class="nota-trattativa">${esc(o.note)}</p>` : ""}
+          ${o.motivazioneC ? `<p class="nota-c">Offerta inviata con punteggio sotto 50. Motivazione: ${esc(o.motivazioneC)}</p>` : ""}
+        </section>
+        <section class="sezione">
+          <h2>Cronologia <span class="conteggio">${cronologia.length}</span></h2>
+          ${cronologia.length ? `<ol class="cronologia">${cronologia.slice(0, 8).map((x) => {
+            const r = trovaReferente(x.referenteId);
+            return `<li class="${x.tipo === "Pipeline" ? "automatica" : ""}">
+              <p class="cronologia-testa"><span class="chip">${esc(x.tipo === "Pipeline" ? "Aggiornamento" : x.tipo)}</span> ${formattaData(x.data)}${r ? " · " + esc(r.nome) : ""}</p>
+              <p>${esc(x.testo)}</p></li>`;
+          }).join("")}</ol>
+          ${cronologia.length > 8 ? `<a class="link" href="#cliente-${esc(o.aziendaId)}">Tutta la cronologia (${cronologia.length})</a>` : ""}`
+          : '<p class="vuoto">Ancora nessuna attività registrata: registrala dalla scheda del cliente.</p>'}
+        </section>
+      </div>
+      <div class="colonna-scheda">
+        <section class="sezione riquadro">
+          <h2>Referente</h2>
+          ${ref && !ref.cancellato ? `<p><strong>${esc(ref.nome)}</strong>${ref.ruolo ? " · " + esc(ref.ruolo) : ""}</p>
+            <div class="contatti">${pulsantiContatto(ref)}</div>
+            <p class="riga-chip">${chipPrivacy(ref)}</p>
+            <button class="pulsante-testo" type="button" data-azione="cancella-dati" data-id="${esc(ref.id)}">Cancella i dati personali del referente</button>`
+            : `<p>${ref ? esc(ref.nome) : "Referente non indicato"}.</p><a class="link" href="#cliente-${esc(o.aziendaId)}">Aggiungilo dalla scheda del cliente</a>`}
+        </section>
+        <section class="sezione riquadro">
+          <h2>La richiesta</h2>
+          <ul class="elenco-semplice">
+            <li>Canale: ${esc(o.canale || "non indicato")}${o.contenuto ? " · contenuto " + esc(o.contenuto) : ""}${o.campagna ? " · campagna " + esc(o.campagna) : ""}</li>
+            <li>Sede di lavoro: ${esc(o.comune)}${zona && zona.zona ? " · " + esc(zona.zona) : ""}</li>
+            <li>Richiesta del ${formattaData(o.storico.contatto)}${o.dataRegistrazione ? " · annotata il " + formattaData(o.dataRegistrazione) : ""}</li>
+            <li>Prima risposta: ${risposta === null ? "non ancora" : `<span class="chip ${risposta <= CONFIG.obiettivi.primaRispostaGiorni ? "chip-ok" : "chip-attenzione"}">${formattaData(o.dataPrimaRisposta)}, dopo ${giorni(risposta)}</span>`}</li>
+            <li>Firmata da link: ${o.firmaDaLink ? "sì" : "no"}</li>
+          </ul>
+        </section>
+        <details class="riquadro approfondimento">
+          <summary><span class="titolo-richiudibile">Perché la coerenza è ${p.totale}</span> <span class="riassunto">${fasciaPunteggio(p.totale).nome}</span></summary>
+          ${tabellaCriteri(p)}
+        </details>
+        <section class="sezione riquadro">
+          <h2>Chi la eseguirebbe</h2>
+          <p>${o.allocazione ? statoCommessa(o) : esecutore === "squadra"
+            ? `${icona("spunta")} C'è posto: ${esc(squadra.sq.nome)} ha ${squadra.ore} ore libere al mese, la trattativa ne chiede ${Number(o.ore)}.`
+            : `${icona("attenzione")} Non basta: ${squadra ? `${esc(squadra.sq.nome)} ha ${Math.max(0, squadra.ore)} ore libere al mese, la trattativa ne chiede ${Number(o.ore)}` : "nessuna squadra interna copre servizio e zona"}; ${esecutore === "partner" ? "serve un partner." : "nessun partner idoneo in elenco."}`}</p>
+        </section>
+        <section class="sezione correzioni" aria-label="Correzioni">
+          <h2>Correzioni</h2>
+          <div class="azioni-intestazione">
+            <button class="pulsante secondario piccolo" type="button" data-azione="modifica-opportunita" data-id="${esc(o.id)}">${icona("matita")} Modifica</button>
+            ${precedente ? `<button class="pulsante secondario piccolo" type="button" data-azione="torna-indietro" data-id="${esc(o.id)}">Torna a «${precedente.nome}»</button>` : ""}
+            ${trattativaAperta(o) && !o.ricontatto ? `<button class="pulsante secondario piccolo" type="button" data-azione="da-ricontattare" data-id="${esc(o.id)}">Da ricontattare</button>` : ""}
+            ${!o.perso && faseRaggiunta(o) >= 2 ? `<a class="pulsante secondario piccolo" href="#preventivo-${esc(o.id)}">Preventivo</a>` : ""}
+            <a class="pulsante secondario piccolo" href="#cliente-${esc(o.aziendaId)}">Apri la scheda cliente</a>
+          </div>
+        </section>
+      </div>
     </div>
-    ${o.note ? `<h3>Note sulla trattativa</h3><p class="nota-trattativa">${esc(o.note)}</p>` : ""}
-    <h3>Punteggio di coerenza: ${p.totale} su 100 (${fasciaPunteggio(p.totale).nome})</h3>
-    ${tabellaCriteri(p)}
-    <h3>Storico</h3>
-    <ol class="storico">${passi}${o.perso ? `<li>Perso: ${formattaData(o.perso.data)} · ${esc(o.perso.motivo)}${o.perso.nota ? " · " + esc(o.perso.nota) : ""}</li>` : ""}</ol>
-    ${o.motivazioneC ? `<p class="nota-c">Offerta inviata nonostante il punteggio C. Motivazione: ${esc(o.motivazioneC)}</p>` : ""}
-    <div class="azioni-finestra">
-      ${precedente ? `<button class="pulsante-testo a-sinistra" type="button" data-azione="torna-indietro" data-id="${esc(o.id)}">Torna a «${precedente.nome}»</button>` : ""}
-      ${o.perso ? `<button class="pulsante secondario" type="button" data-azione="riapri" data-id="${esc(o.id)}">Riapri la trattativa</button>` : ""}
-      ${trattativaAperta(o) && !o.ricontatto ? `<button class="pulsante secondario" type="button" data-azione="da-ricontattare" data-id="${esc(o.id)}">Da ricontattare</button>` : ""}
-      <button class="pulsante secondario" type="button" data-azione="modifica-opportunita" data-id="${esc(o.id)}">${icona("matita")} Modifica</button>
-      ${!o.perso ? `<a class="pulsante secondario" href="#preventivo-${esc(o.id)}" data-azione="chiudi">Preventivo</a>` : ""}
-      <a class="pulsante secondario" href="#cliente-${esc(o.aziendaId)}" data-azione="chiudi">Apri la scheda cliente</a>
-      <button class="pulsante primario" type="button" data-azione="chiudi">Chiudi</button>
-    </div>`);
+    </div>`;
 }
 
 // Modulo largo: i campi a sinistra, l'anteprima del punteggio a destra (sotto i 900 px l'anteprima va in fondo)
@@ -1715,7 +1857,7 @@ function rispostaPartner(id, esito) {
 // Elenco delle azioni attivate dai pulsanti con data-azione
 const AZIONI = {
   nuovo: () => apriNuovoContatto(),
-  dettaglio: (el) => apriDettaglio(el.dataset.id),
+  dettaglio: (el) => { location.hash = "trattativa-" + el.dataset.id; },   // la scheda della trattativa è una pagina intera
   avanza: (el) => avanza(el.dataset.id),
   perso: (el) => apriPerso(el.dataset.id),
   fase: (el) => {
@@ -2023,7 +2165,8 @@ const SCHERMATE = {
   allocazione: disegnaAllocazione,
   indicatori: disegnaIndicatori,
   documenti: disegnaDocumenti,
-  cruscotto: disegnaCruscotto,   // quattro numeri, decisioni, dove e perché si perdono i clienti, canali, controllo del processo
+  cruscotto: disegnaCruscotto,
+  trattativa: disegnaTrattativa,   // scheda di una trattativa: #trattativa-<id>   // quattro numeri, decisioni, dove e perché si perdono i clienti, canali, controllo del processo
   accesso: disegnaAccesso,       // chi sta lavorando: nome e ruolo (al primo uso in questo browser)   // report da stampare, gestionale, Excel, CSV dei dati reali, backup
   riepilogo: disegnaRiepilogo,   // riepilogo del mese da stampare: #riepilogo
   lunedi: disegnaLunedi,         // lista del lunedì da stampare o copiare: #lunedi
@@ -2063,6 +2206,8 @@ function schermataIndirizzo() {
   if (hash === "indicatori") return { nome: "indicatori", menu: "cruscotto" };
   if (hash.startsWith("cliente-") && trovaAzienda(hash.slice(8))) return { nome: "cliente", parametro: hash.slice(8), menu: "clienti" };
   if (hash.startsWith("preventivo-") && trova(hash.slice(11))) return { nome: "preventivo", parametro: hash.slice(11), menu: "oggi" };
+  // Scheda della trattativa: sotto «Oggi», o sotto Clienti per i ruoli che non hanno Oggi (consultazione)
+  if (hash.startsWith("trattativa-") && trova(hash.slice(11))) return { nome: "trattativa", parametro: hash.slice(11), menu: schermataDelRuolo("oggi") ? "oggi" : "clienti" };
   if (hash === "riepilogo") return { nome: "riepilogo", menu: "documenti" };
   if (hash === "lunedi") return { nome: "lunedi", menu: "documenti" };
   if (hash === "come-funziona") return { nome: "come-funziona", menu: "" };
@@ -2083,7 +2228,7 @@ function disegna() {
   const { nome, parametro, menu } = schermataAttuale();
   // Portato all'apertura del ruolo (indirizzo fuori dal ruolo): l'indirizzo si allinea senza aggiungere un passo alla cronologia
   if (nome === ruoloUtente().casa && location.hash.slice(1) && normalizzaSchermata(location.hash.slice(1)) !== nome) history.replaceState(null, "", "#" + nome);
-  const titolo = nome === "cliente" ? trovaAzienda(parametro).ragioneSociale : nome === "preventivo" ? "Preventivo " + nomeCliente(trova(parametro))
+  const titolo = nome === "trattativa" ? nomeCliente(trova(parametro)) : nome === "cliente" ? trovaAzienda(parametro).ragioneSociale : nome === "preventivo" ? "Preventivo " + nomeCliente(trova(parametro))
     : nome === "riepilogo" ? "Riepilogo del mese" : nome === "lunedi" ? "Lista del lunedì" : nome === "come-funziona" ? "Come funziona" : TITOLI[nome];
   document.title = titolo + " · Gate";
   let focusSulla = false;
