@@ -1865,10 +1865,10 @@ const AZIONI = {
     disegna();
   },
   // Avvisi di «Oggi» e consigli: portano dove si risolvono
-  "vai-domani": () => {   // dai consigli di Direzione e Indicatori
+  "vai-domani": () => {   // dai consigli e da «Come funziona»: gli Indicatori per chi li ha, altrimenti il Cruscotto
     interfaccia.indicatori.livello = "previsione";
     interfaccia.indicatori.fonte = "fittizi";
-    location.hash = "#indicatori";
+    location.hash = puo("approfondimenti") ? "#indicatori" : "#cruscotto";
   },
   "vai-allocazione": () => {
     location.hash = "#allocazione";
@@ -1971,6 +1971,12 @@ const AZIONI = {
 };
 
 // Azioni che modificano i dati: un secondo clic ravvicinato viene ignorato
+// Azioni che modificano i dati o aprono una finestra per modificarli: nascoste ai ruoli in sola consultazione
+const SOLO_CON_MODIFICA = new Set(["nuovo", "nota", "nuova-opportunita", "modifica-azienda", "modifica-opportunita", "modifica-referente", "nuovo-referente",
+  "fissa-sopralluogo", "registra-sopralluogo", "perso", "firma-link", "da-ricontattare", "prossima-azione", "registra-offerta", "usa-tariffa", "chiedi-cancella-dati",
+  "chiedi-elimina-azienda", "fase", "scorri", "avanza", "fatto", "fatto-fase", "chiamata-fatta", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
+  "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "ricontattato", "whatsapp-sopralluogo", "importa-contatti"]);
+
 const MODIFICANO_DATI = new Set(['importa-contatti', "avanza", "fatto", "fatto-fase", "chiamata-fatta", "assegna-squadra", "proponi", "risposta-si", "risposta-no",
   "cancella-dati", "elimina-azienda", "torna-indietro", "riapri", "conferma-ripristino", "conferma-importa", "conferma-firma", "ricontattato", "registra-offerta", "annulla"]);
 let ultimoClicModifica = 0;
@@ -2243,6 +2249,11 @@ function disegna() {
   document.getElementById("schermata").innerHTML = html;
 
   // Voce di menu attiva
+  // Ruolo in sola consultazione: niente pulsanti di modifica né il modulo «Registra un'attività»
+  if (!puo("modifica")) {
+    document.querySelectorAll("#schermata [data-azione]").forEach((el) => { if (SOLO_CON_MODIFICA.has(el.dataset.azione)) el.hidden = true; });
+    document.querySelectorAll("#schermata #modulo-attivita, #schermata #titolo-attivita").forEach((el) => { el.hidden = true; });
+  }
   // Voci del ruolo, nel suo ordine (le altre si nascondono); nella schermata di accesso il menu non serve
   const voci = nome === "accesso" ? [] : ruoloUtente().schermate;
   document.querySelectorAll("[data-vai]").forEach((a) => {

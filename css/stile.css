@@ -4859,3 +4859,13 @@ h1[tabindex="-1"]:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Preventivo da telefono: i conti vanno a capo invece di sforare */
+.conti-preventivo .criteri {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.conti-preventivo .criteri td {
+  overflow-wrap: anywhere;
+}

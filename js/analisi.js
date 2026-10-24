@@ -64,7 +64,7 @@ function consigli(opportunita = stato.opportunita) {
   // 4. Motivo di perdita prevalente
   const motivo = motiviPerdita(opportunita)[0];
   if (motivo && motivo.numero >= c.minimoPerditeStessoMotivo) {
-    elenco.push({ priorita: 40, link: "#indicatori", blocco: "rischio",
+    elenco.push({ priorita: 40, link: puo("approfondimenti") ? "#indicatori" : "#cruscotto", blocco: "rischio",
       testo: (CONFIG.rimediPerdita || {})[motivo.motivo] || "Analizza le perdite per «" + motivo.motivo + "»",
       perche: motivo.numero + " trattative perse per «" + motivo.motivo + "» (" + formattaEuro(motivo.valore) + "/anno)" });
   }
@@ -75,7 +75,7 @@ function consigli(opportunita = stato.opportunita) {
     canali.sort((a, b) => a.costoAcquisizione - b.costoAcquisizione);
     const migliore = canali[0], peggiore = canali[canali.length - 1];
     if (peggiore.costoAcquisizione > migliore.costoAcquisizione * c.rapportoCanaleCaro) {
-      elenco.push({ priorita: 30, link: "#indicatori", blocco: "contatti",
+      elenco.push({ priorita: 30, link: puo("approfondimenti") ? "#indicatori" : "#cruscotto", blocco: "contatti",
         testo: "Sposta budget da «" + peggiore.fonte + "» a «" + migliore.fonte + "»",
         perche: "costo per contratto " + formattaEuro(peggiore.costoAcquisizione) + " contro " + formattaEuro(migliore.costoAcquisizione) });
     }

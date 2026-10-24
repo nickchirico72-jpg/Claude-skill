@@ -48,7 +48,7 @@ Le sezioni degli Indicatori seguono il percorso del cliente (riorganizzate il 21
 
 **Canali.** I 15 canali del database (12 attivi) sono raggruppati nei 7 gruppi usati da filtri, dashboard e CSV: sito, LinkedIn, telefono, email, passaparola, portale/gara, altro. Elenco e gruppi stanno in un solo punto: `CANALI_DIZIONARIO` e `GRUPPI_CANALI` in `generatore/parametri.py`.
 
-![Indicatori, vista Direzione](docs/screenshot/indicatori-desktop.png)
+![Cruscotto](docs/screenshot/cruscotto-desktop.png)
 
 <p>
   <img src="docs/screenshot/sopralluogo-mobile.png" alt="Modulo Richiedi un sopralluogo da telefono" width="200">
@@ -150,7 +150,7 @@ python3 generatore/importa_richieste.py data/esempi/richieste-test-esempio.csv -
 | H5 i nuovi contatti crescono di mese in mese | `CRESCITA_CONTATTI` | da 2 a marzo a 72 a settembre (ottobre parziale) |
 | H6 nella GDO il portale gare converte meno ma con margine più alto | **non inserita: test cieco** | il portale gare usa la media degli altri canali in tutti i settori |
 
-Pipeline aperta: 83 opportunità aperte su 300 (96% contattate da agosto), chiusura 13,4% sulle chiuse, 12% delle aperte ferme.
+Trattative aperte: 83 opportunità aperte su 300 (96% contattate da agosto), chiusura 13,4% sulle chiuse, 12% delle aperte ferme.
 
 ## Come avviarlo
 
@@ -190,7 +190,7 @@ Per il pilota sì, da una persona alla volta: registra clienti, trattative e att
 ## Struttura dei file
 
 ```
-index.html              il CRM: Oggi, Direzione, Clienti, Allocazione, Indicatori, Documenti
+index.html              il CRM: Oggi, Clienti, Allocazione, Cruscotto, Documenti (Indicatori dal Cruscotto); accesso per ruolo
 sopralluogo.html        modulo pubblico "Richiedi un sopralluogo" (utm_source, utm_campaign, utm_content)
 modulo.html             modulo pubblico "Richiedi un preventivo"
 css/stile.css           palette e font del sito Gate (variabili in cima al file)
@@ -209,7 +209,7 @@ js/oggi.js              schermata Oggi: regola delle 3 schede d'azione, «Poi, s
 js/canali.js            sito e social: link tracciati, piano dei contenuti, import delle richieste
 js/assistente.js        richiesta da nota: regole di estrazione e scheda da confermare
 js/ponte.js             ponte con il gestionale: CSV del dizionario, controlli, import
-js/indicatori.js        Indicatori, Direzione, Riepilogo del mese, Lista del lunedì
+js/indicatori.js        Indicatori, Cruscotto, Riepilogo del mese, Lista del lunedì
 js/preventivi.js        schermata Preventivo: conti, prezzi di riferimento, riepilogo da stampare
 js/documenti.js         schermata Documenti: report da stampare, gestionale, Excel, CSV dei dati reali, backup
 js/app.js               trattative per fase, Allocazione, finestre, firma da link, applica() con Annulla, eventi
