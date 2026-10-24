@@ -285,7 +285,7 @@ function confermaPonte() {
   applica(() => {
     stato = statoDaPonte(tabelle);
   }, { messaggio: "Dati del gestionale importati: " + tabelle.clienti.length + " clienti, " + tabelle.opportunita.length + " opportunità (backup dei dati precedenti scaricato)",
-    vai: "oggi", fase: "contatto" });
+    vai: "oggi", fase: "contatto", permesso: "delicate" });
   ponteInAttesa = null;
 }
 

@@ -28,12 +28,39 @@ const CONFIG = {
   // (docs/archivio-condiviso.md). righeRegistro = quante modifiche ricorda il registro (chi, quando, cosa)
   archivio: { tipo: "locale", righeRegistro: 300 },
 
-  // Ruoli di chi usa il CRM; vista = livello degli Indicatori che si apre per primo
+  // Ruoli di chi usa il CRM (decisione del 24/10): schermate del menu, schermata di apertura (casa), vista degli
+  // approfondimenti e permessi. modifica = trattative, clienti, attività; delicate = sostituire tutti i dati (gestionale,
+  // backup, dati di esempio); datiReali = CSV dei dati veri per gli indicatori; canali = sito, social e contenuti.
+  // Senza server non è una protezione: è l'ordine delle schermate per chi lavora (l'accesso vero arriva con l'archivio condiviso).
   ruoli: [
-    { id: "direzione", nome: "Direzione", vista: "previsione" },
-    { id: "commerciale", nome: "Commerciale", vista: "offerta" },
-    { id: "ufficio", nome: "Ufficio", vista: "offerta" },
+    { id: "amministratore", nome: "Amministratore unico", descrizione: "Numeri, decisioni e tutte le schermate",
+      casa: "cruscotto", vista: "previsione", schermate: ["cruscotto", "oggi", "clienti", "allocazione", "documenti"],
+      permessi: ["modifica", "delicate", "datiReali", "canali", "approfondimenti"] },
+    { id: "commerciale", nome: "Commerciale", descrizione: "Richieste, sopralluoghi, offerte e clienti",
+      casa: "oggi", vista: "offerta", schermate: ["oggi", "clienti", "allocazione", "cruscotto", "documenti"],
+      permessi: ["modifica", "canali"] },
+    { id: "marketing", nome: "Marketing e analisi", descrizione: "Canali, contenuti e indicatori; le trattative in sola lettura",
+      casa: "cruscotto", vista: "marketing", schermate: ["cruscotto", "clienti", "documenti"],
+      permessi: ["datiReali", "canali", "approfondimenti"] },
   ],
+  // Cruscotto: rimedio proposto per il passo più debole e per il primo motivo di perdita (regole leggibili, da validare con Gate)
+  cruscotto: {
+    rimediPasso: {
+      qualificato: "richiama entro un giorno le richieste nuove e fai le domande di qualifica.",
+      sopralluogo: "proponi la data del sopralluogo già nella prima telefonata.",
+      offerta: "prepara l'offerta dal pacchetto del settore entro 5 giorni dal sopralluogo.",
+      contratto: "sollecita le offerte dopo 7 giorni e manda il link per firmare.",
+    },
+    rimediMotivo: {
+      "prezzo": "rivedi la tariffa con i prezzi di riferimento o proponi una frequenza ridotta.",
+      "tempi di avvio": "verifica le squadre libere prima dell'offerta e indica la data di avvio.",
+      "fuori zona": "accetta richieste fuori zona solo con un partner disponibile.",
+      "capacità insufficiente": "controlla l'avviso di capacità nel preventivo prima di inviare l'offerta.",
+      "nessuna risposta": "sollecita entro 7 giorni e chiama il decisore, non solo la segreteria.",
+    },
+  },
+  // Ruoli dei salvataggi precedenti al 24/10
+  ruoliVecchi: { direzione: "amministratore", ufficio: "commerciale" },
 
   // Chiave con cui i dati vengono salvati nel browser (localStorage)
   chiaveSalvataggio: "gate-sviluppo-commerciale-v2",

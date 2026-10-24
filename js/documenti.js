@@ -35,23 +35,23 @@ function disegnaDocumenti() {
         '<a class="pulsante secondario piccolo" href="#lunedi">Apri</a>'),
     ])}
     ${gruppoDocumenti("Gestionale ed Excel", [
-      rigaDocumento("gestionale", "Dati per il gestionale", `Un file CSV per tabella (${tabelle.length} file), con i nomi del dizionario dati. Caricandoli, sostituiscono i dati di lavoro dopo un backup.`,
+      rigaDocumento("gestionale", "Dati per il gestionale", `Un file CSV per tabella (${tabelle.length} file), con i nomi del dizionario dati. ${puo("delicate") ? "Caricandoli, sostituiscono i dati di lavoro dopo un backup." : "Caricarli è un'operazione dell'amministratore unico."}`,
         `<button class="pulsante secondario piccolo" type="button" data-azione="esporta-ponte">Scarica</button>
-         <button class="pulsante secondario piccolo" type="button" data-azione="ponte">Carica</button>`,
+         ${puo("delicate") ? '<button class="pulsante secondario piccolo" type="button" data-azione="ponte">Carica</button>' : ""}`,
         `<details class="approfondimento"><summary><span class="titolo-richiudibile">Una tabella alla volta</span></summary>
           <p>${tabelle.map((n) => `<button class="pulsante-testo positivo" type="button" data-azione="esporta-ponte" data-id="${n}">${n}</button>`).join(" ")}</p></details>`),
       rigaDocumento("clienti", "Clienti e referenti", "Un elenco da aprire in Excel, un referente per riga.",
         '<button class="pulsante secondario piccolo" type="button" data-azione="esporta-csv">Scarica</button>'),
       rigaDocumento("richieste", "Richieste per gli Indicatori", "CSV a 7 colonne: scarica le richieste mostrate negli Indicatori o carica quelle vere di Gate, che restano separate dalle trattative.",
         `<button class="pulsante secondario piccolo" type="button" data-azione="esporta-csv-richieste">Scarica</button>
-         <button class="pulsante secondario piccolo" type="button" data-azione="importa-csv-reali">Carica dati reali</button>`),
+         ${puo("datiReali") ? '<button class="pulsante secondario piccolo" type="button" data-azione="importa-csv-reali">Carica dati reali</button>' : ""}`),
     ])}
     ${gruppoDocumenti("Backup", [
       rigaDocumento("backup", "Backup di tutti i dati", `I dati restano in questo browser: il backup li conserva o li passa a un collega. Ultimo backup: <span class="quando-backup">${quandoUltimoBackup().quando}</span>.`,
         `<button class="pulsante primario piccolo" type="button" data-azione="esporta-backup">Salva backup</button>
-         <button class="pulsante secondario piccolo" type="button" data-azione="importa-backup">Carica backup</button>`),
-      rigaDocumento("esempio", "Dati di esempio", "Cancella i dati di lavoro e riparte da quelli di esempio: prima chiede conferma.",
-        '<button class="pulsante secondario piccolo" type="button" data-azione="ripristina">Ripristina</button>'),
+         ${puo("delicate") ? '<button class="pulsante secondario piccolo" type="button" data-azione="importa-backup">Carica backup</button>' : ""}`),
+      ...(puo("delicate") ? [rigaDocumento("esempio", "Dati di esempio", "Cancella i dati di lavoro e riparte da quelli di esempio: prima chiede conferma.",
+        '<button class="pulsante secondario piccolo" type="button" data-azione="ripristina">Ripristina</button>')] : []),
     ])}
     </div>`;
 }

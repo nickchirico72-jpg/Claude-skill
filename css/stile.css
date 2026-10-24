@@ -153,7 +153,8 @@ textarea {
   left: 0;
   z-index: 30;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--sidebar-background);
   border-top: 1px solid var(--sidebar-accent);
@@ -4585,4 +4586,179 @@ h1[tabindex="-1"]:focus {
 /* Nella scheda affiancata le colonne sono più strette: le etichette vanno a capo invece di uscire dal riquadro */
 .scheda-affiancata .chip {
   white-space: normal;
+}
+
+/* Cruscotto (24/10): quattro numeri, decisioni, barre di dove e perché si perdono i clienti, controllo del processo */
+.controllo-processo {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+@media (min-width: 900px) {
+  .controllo-processo {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+.numeri-cruscotto,
+.controllo-processo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.numero-cruscotto p,
+.controllo p {
+  margin: 0 0 4px;
+}
+
+.numero-nome {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.numero-valore {
+  font-family: Sora, Manrope, sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.controllo-valore {
+  font-family: Sora, Manrope, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.pagina-cruscotto > .riquadro,
+.cruscotto-due {
+  margin-bottom: 16px;
+}
+
+.cruscotto-due {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.elenco-decisioni {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.elenco-decisioni li {
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.elenco-decisioni li:first-child {
+  border-top: 0;
+}
+
+.elenco-decisioni li > div {
+  display: inline-block;
+  max-width: calc(100% - 90px);
+  vertical-align: top;
+}
+
+.elenco-decisioni li > a {
+  float: right;
+}
+
+.elenco-decisioni p {
+  margin: 2px 0 0;
+}
+
+.barre-cruscotto {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.barra-cruscotto {
+  display: grid;
+  grid-template-columns: minmax(90px, 140px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+}
+
+.barra-traccia {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--muted);
+  overflow: hidden;
+}
+
+.barra-piena {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+}
+
+.barra-cruscotto.debole .barra-piena {
+  background: var(--attenzione);
+}
+
+.barra-cruscotto.debole .barra-etichetta {
+  font-weight: 700;
+}
+
+.barra-numero {
+  min-width: 3ch;
+  text-align: right;
+  font-weight: 700;
+}
+
+.rimedio {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--attenzione-sfondo);
+  color: var(--attenzione);
+  font-weight: 600;
+}
+
+/* Accesso: nome e tre carte di ruolo */
+.accesso {
+  max-width: 640px;
+}
+
+.scelta-ruolo {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ruolo-carta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.ruolo-carta input {
+  grid-row: span 2;
+  margin-top: 4px;
+}
+
+.ruolo-carta:has(input:checked) {
+  border-color: var(--primary);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.avviso-ruolo {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--muted);
 }

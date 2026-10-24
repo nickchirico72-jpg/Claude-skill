@@ -138,7 +138,7 @@ CREATE TABLE utenti (
   id VARCHAR(64) PRIMARY KEY,
   nome VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE,
-  ruolo VARCHAR(16) NOT NULL CHECK (ruolo IN ('direzione', 'commerciale', 'ufficio')),
+  ruolo VARCHAR(16) NOT NULL CHECK (ruolo IN ('amministratore', 'commerciale', 'marketing')),
   attivo TINYINT(1) NOT NULL CHECK (attivo IN (0, 1)),
   aggiornato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   aggiornato_da VARCHAR(255)

@@ -128,6 +128,11 @@ function linkWhatsAppReferente(ref, testo) {
 
 const STATI_AZIENDA = ["Cliente", "In trattativa", "Da qualificare", "Perso"];
 
+// Per i ruoli senza il permesso di modifica: una riga che dice che le trattative sono in sola consultazione
+function avvisoConsultazione() {
+  return puo("modifica") ? "" : `<p class="avviso-ruolo">${icona("attenzione")} Il ruolo ${esc(ruoloUtente().nome)} consulta clienti e trattative: le modifiche le fa il commerciale.</p>`;
+}
+
 // Ricerca e filtri ripresi da interfaccia.filtri (app.js): restano tornando dalla scheda di un cliente
 function disegnaClienti() {
   const conteggi = { "Cliente": 0, "In trattativa": 0, "Da qualificare": 0, "Perso": 0 };
@@ -143,6 +148,7 @@ function disegnaClienti() {
         <button class="pulsante accento" type="button" data-azione="nuovo">${icona("piu")} Nuovo contatto</button></div>`,
     })}
 
+    ${avvisoConsultazione()}
     <section class="riepilogo riepilogo-clienti" aria-label="Filtra per stato">
       ${STATI_AZIENDA.map((nome) => `
         <button class="filtro" type="button" data-azione="filtro-stato" data-id="${nome}" aria-pressed="${f.stato === nome}">
@@ -312,6 +318,7 @@ function disegnaSchedaCliente(id) {
         <button class="pulsante accento" type="button" data-azione="nuova-opportunita" data-id="${esc(a.id)}">${icona("piu")}
           ${statoAzienda(a.id) === "Da qualificare" ? "Qualifica: crea l'opportunità" : "Nuova opportunità"}</button></div>`,
     })}
+    ${avvisoConsultazione()}
     <p class="riga-chip">${chipStato(a.id)} <span class="chip">Fonte: ${esc(a.fonte)}</span> <span class="chip">${esc(a.comune)}</span>
       ${a.piva ? `<span class="chip">P.IVA ${esc(a.piva)}</span>` : ""} <span class="chip">In archivio dal ${formattaData(a.creata)}</span></p>
     ${a.note ? `<p class="nota-piccola">${esc(a.note)}</p>` : ""}
@@ -680,7 +687,7 @@ const AZIONI_CLIENTI = {
     if (!backupInAttesa) return false;
     stato = backupInAttesa;
     backupInAttesa = null;
-  }, { messaggio: "Backup importato", fase: "contatto" }),
+  }, { messaggio: "Backup importato", fase: "contatto", permesso: "delicate" }),
 };
 
 // Invio dei moduli (chiamati da app.js)

@@ -114,7 +114,7 @@ function aggiungiContenuto(modulo) {
     stato.contenuti.push({ id: "app-" + (stato.contatoreId + 1), data_pubblicazione: modulo.data.value, canale: modulo.canale.value,
       tema, settore: CONFIG.pilota.settore, formato: modulo.formato.value });
     stato.contatoreId += 1;
-  }, { messaggio: "Contenuto aggiunto al piano: copia il suo link tracciato" });
+  }, { messaggio: "Contenuto aggiunto al piano: copia il suo link tracciato", permesso: "canali" });
   apriCanali();
 }
 
@@ -265,7 +265,7 @@ function importaContatti() {
   }, {
     messaggio: () => nuovi.length + (nuovi.length === 1 ? " richiesta importata" : " richieste importate") +
       (opportunita ? ": " + opportunita + " in «Oggi», fase Contatto, con preventivo e punteggio" : ": le trovi in Clienti come «Da qualificare»"),
-    vai: () => (opportunita ? "oggi" : "clienti"), fase: "contatto",
+    vai: () => (opportunita && schermataDelRuolo("oggi") ? "oggi" : "clienti"), fase: "contatto", permesso: "canali",
   });
 }
 

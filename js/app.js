@@ -1530,7 +1530,13 @@ function apriRipristino() {
 // Ogni modifica passa da qui: copia per «Annulla», modifica, salvataggio, ridisegno, avviso.
 // cambia() modifica lo stato; se restituisce false non succede nulla.
 // messaggio e vai possono essere funzioni, quando dipendono dalla modifica appena fatta.
-function applica(cambia, { messaggio = "", evidenzia = null, fase = null, vai = null, annullabile = true } = {}) {
+function applica(cambia, { messaggio = "", evidenzia = null, fase = null, vai = null, annullabile = true, permesso = "modifica" } = {}) {
+  // Il ruolo di chi lavora può fare questa modifica? (permessi in CONFIG.ruoli)
+  if (!puo(permesso)) {
+    if (finestra.open) chiudiFinestra();
+    mostraAvviso("Il ruolo " + ruoloUtente().nome + " può consultare ma non fare questa modifica");
+    return false;
+  }
   const copia = { dati: clona(stato), fase: faseSelezionata, evidenzia, schermata: location.hash };
   if (cambia() === false) return false;
   // Ultima difesa: dati che non si rileggerebbero (es. collegati a un'azienda eliminata in un'altra scheda) non si salvano
@@ -1800,7 +1806,8 @@ const AZIONI = {
   ...AZIONI_OGGI,
   "conferma-ripristino": () => applica(() => {
     stato = datiIniziali();
-  }, { messaggio: "Dati di esempio ripristinati", fase: "contatto" }),
+  }, { messaggio: "Dati di esempio ripristinati", fase: "contatto", permesso: "delicate" }),
+  "entra-ospite": () => entraOspite(),
   // Riporta i dati a prima dell'ultima modifica (un solo passo indietro)
   annulla: () => {
     if (!copiaPerAnnulla) return;
@@ -2010,23 +2017,24 @@ function aggiornaStatoBackup() {
 
 const SCHERMATE = {
   oggi: disegnaOggi,             // schermata di apertura: le cose da fare oggi e le trattative per fase (oggi.js)
-  direzione: disegnaDirezione,   // quattro numeri e le decisioni della settimana, per l'amministratore
   clienti: disegnaClienti,
   cliente: disegnaClienteAffiancato, // scheda di un'azienda: #cliente-<id>, con l'elenco accanto su schermo largo
   preventivo: disegnaPreventivo, // preventivo di un'opportunità: #preventivo-<id>
   allocazione: disegnaAllocazione,
   indicatori: disegnaIndicatori,
-  documenti: disegnaDocumenti,   // report da stampare, gestionale, Excel, CSV dei dati reali, backup
+  documenti: disegnaDocumenti,
+  cruscotto: disegnaCruscotto,   // quattro numeri, decisioni, dove e perché si perdono i clienti, canali, controllo del processo
+  accesso: disegnaAccesso,       // chi sta lavorando: nome e ruolo (al primo uso in questo browser)   // report da stampare, gestionale, Excel, CSV dei dati reali, backup
   riepilogo: disegnaRiepilogo,   // riepilogo del mese da stampare: #riepilogo
   lunedi: disegnaLunedi,         // lista del lunedì da stampare o copiare: #lunedi
   "come-funziona": disegnaComeFunziona,   // i 5 livelli della piattaforma e la demo guidata
 };
 
 // Nome della schermata nel titolo della scheda del browser, es. "Clienti · Gate"
-const TITOLI = { oggi: "Oggi", direzione: "Direzione", clienti: "Clienti", allocazione: "Allocazione", indicatori: "Indicatori", documenti: "Documenti" };
+const TITOLI = { oggi: "Oggi", clienti: "Clienti", allocazione: "Allocazione", cruscotto: "Cruscotto", indicatori: "Indicatori", documenti: "Documenti", accesso: "Accesso" };
 
 // Indirizzi vecchi che restano validi: #pipeline è la schermata «Oggi»
-const ALIAS_SCHERMATE = { pipeline: "oggi" };
+const ALIAS_SCHERMATE = { pipeline: "oggi", direzione: "cruscotto" };
 
 // Nome della schermata da un hash: alias risolti, vuoto o sconosciuto = «Oggi» (la schermata di apertura)
 function normalizzaSchermata(hash) {
@@ -2041,7 +2049,18 @@ function comeScorrere() {
 
 // Legge la schermata dall'indirizzo: #oggi (o #pipeline), #clienti, #cliente-az3 ...
 function schermataAttuale() {
+  if (utenteAttuale().daScegliere) return { nome: "accesso", menu: "" };
+  if (!location.hash.slice(1)) return { nome: ruoloUtente().casa, menu: ruoloUtente().casa };   // senza indirizzo: l'apertura del ruolo
+  const scelta = schermataIndirizzo();
+  // Una schermata fuori dal ruolo porta alla schermata di apertura del ruolo
+  return schermataDelRuolo(scelta.menu) && (scelta.nome !== "indicatori" || puo("approfondimenti"))
+    ? scelta : { nome: ruoloUtente().casa, menu: ruoloUtente().casa };
+}
+
+// Schermata, parametro e voce di menu dall'indirizzo
+function schermataIndirizzo() {
   const hash = normalizzaSchermata(location.hash.slice(1));
+  if (hash === "indicatori") return { nome: "indicatori", menu: "cruscotto" };
   if (hash.startsWith("cliente-") && trovaAzienda(hash.slice(8))) return { nome: "cliente", parametro: hash.slice(8), menu: "clienti" };
   if (hash.startsWith("preventivo-") && trova(hash.slice(11))) return { nome: "preventivo", parametro: hash.slice(11), menu: "oggi" };
   if (hash === "riepilogo") return { nome: "riepilogo", menu: "documenti" };
@@ -2062,6 +2081,8 @@ function aggiornaContatore(id, n, testo) {
 // Restituisce true se ha messo il focus sulla scheda appena modificata
 function disegna() {
   const { nome, parametro, menu } = schermataAttuale();
+  // Portato all'apertura del ruolo (indirizzo fuori dal ruolo): l'indirizzo si allinea senza aggiungere un passo alla cronologia
+  if (nome === ruoloUtente().casa && location.hash.slice(1) && normalizzaSchermata(location.hash.slice(1)) !== nome) history.replaceState(null, "", "#" + nome);
   const titolo = nome === "cliente" ? trovaAzienda(parametro).ragioneSociale : nome === "preventivo" ? "Preventivo " + nomeCliente(trova(parametro))
     : nome === "riepilogo" ? "Riepilogo del mese" : nome === "lunedi" ? "Lista del lunedì" : nome === "come-funziona" ? "Come funziona" : TITOLI[nome];
   document.title = titolo + " · Gate";
@@ -2077,9 +2098,13 @@ function disegna() {
   document.getElementById("schermata").innerHTML = html;
 
   // Voce di menu attiva
+  // Voci del ruolo, nel suo ordine (le altre si nascondono); nella schermata di accesso il menu non serve
+  const voci = nome === "accesso" ? [] : ruoloUtente().schermate;
   document.querySelectorAll("[data-vai]").forEach((a) => {
     if (a.dataset.vai === menu) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
+    a.hidden = !voci.includes(a.dataset.vai);
+    a.style.order = voci.indexOf(a.dataset.vai);
   });
 
   // Schede d'azione ancora aperte (0-3) accanto alla voce "Oggi"

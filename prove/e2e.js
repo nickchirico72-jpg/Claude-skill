@@ -27,9 +27,12 @@ function verifica(nome, condizione, dettaglio = '') {
 }
 
 // Nuovo contesto con raccolta degli errori; WhatsApp risponde con una pagina finta
-async function apri(dispositivo = 'desktop', { initScript, config } = {}) {
+async function apri(dispositivo = 'desktop', { initScript, config, senzaUtente } = {}) {
   const ctx = await browser.newContext({ locale: 'it-IT', timezoneId: 'Europe/Rome', ...DISPOSITIVI[dispositivo] });
   await ctx.route('https://wa.me/**', (r) => r.fulfill({ contentType: 'text/html', body: '<p>WhatsApp (finto)</p>' }));
+  // Chi lavora: l'ospite della demo come amministratore unico (tutte le schermate), se la prova non sceglie altro
+  if (!senzaUtente) await ctx.addInitScript(`try { const k = 'gate-sviluppo-commerciale-v2-utente';
+    if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify({ nome: 'Ospite', ruolo: 'amministratore', ospite: true })); } catch (e) {}`);
   if (initScript) await ctx.addInitScript(`try { ${initScript} } catch (e) {}`);
   if (config) await ctx.route('**/js/config.js', (r) => r.fulfill({ contentType: 'application/javascript; charset=utf-8',
     body: config(fs.readFileSync(path.join(REPO, 'js/config.js'), 'utf8')) }));
@@ -55,7 +58,7 @@ const PROVE = {
       const { ctx, page, errori } = await apri(dispositivo);
       const sigla = dispositivo === 'desktop' ? 'desktop' : 'mobile';
       for (const [nome, indirizzo] of [['oggi', 'index.html#oggi'], ['clienti', 'index.html#clienti'], ['scheda-cliente', 'index.html#cliente-c1'],
-        ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['riepilogo', 'index.html#riepilogo'], ['lunedi', 'index.html#lunedi'], ['come-funziona', 'index.html#come-funziona'], ['direzione', 'index.html#direzione'], ['documenti', 'index.html#documenti'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
+        ['allocazione', 'index.html#allocazione'], ['indicatori', 'index.html#indicatori'], ['riepilogo', 'index.html#riepilogo'], ['lunedi', 'index.html#lunedi'], ['come-funziona', 'index.html#come-funziona'], ['cruscotto', 'index.html#cruscotto'], ['documenti', 'index.html#documenti'], ['sopralluogo', 'sopralluogo.html'], ['modulo', 'modulo.html']]) {
         await page.goto(BASE + indirizzo);
         await page.waitForTimeout(400);
         verifica(`${dispositivo} ${nome}: nessuno scorrimento orizzontale`, !(await scorreOrizzontale(page)));
@@ -67,7 +70,7 @@ const PROVE = {
       verifica(`${dispositivo}: #pipeline apre Oggi senza riscrivere l'indirizzo`, await page.isVisible('.pagina-oggi') && !!(await page.$('[data-vai=oggi][aria-current=page]')) && await page.evaluate(() => location.hash) === '#pipeline');
       await page.goto(BASE + 'index.html');
       await page.waitForTimeout(300);
-      verifica(`${dispositivo}: senza indirizzo si apre Oggi`, (await page.textContent('#schermata h1')).trim() === 'Oggi');
+      verifica(`${dispositivo}: senza indirizzo si apre la schermata del ruolo (Cruscotto per l'amministratore)`, (await page.textContent('#schermata h1')).trim() === 'Cruscotto');
       await page.goto(BASE + 'index.html#constructor');   // una proprietà nascosta degli oggetti non è una schermata
       await page.waitForTimeout(300);
       verifica(`${dispositivo}: #constructor apre Oggi senza errori`, (await page.textContent('#schermata h1')).trim() === 'Oggi' && errori.length === 0, errori.join(' | '));
@@ -167,7 +170,7 @@ const PROVE = {
     // Altri tipi di dato per la prova dell'archivio (prove/archivio.py): utente, contenuto, righe CSV reali, ricontatto
     await clic(page, '[data-azione=utente]');
     await page.fill('#modulo-utente [name=nome]', 'Alfredo R.');
-    await page.selectOption('#modulo-utente [name=ruolo]', 'commerciale');
+    await page.selectOption('#modulo-utente [name=ruolo]', 'amministratore');
     await clic(page, '#modulo-utente [type=submit]');
     await page.goto(BASE + 'index.html#clienti');
     await clic(page, '.pagina-clienti [data-azione=canali]');
@@ -626,12 +629,16 @@ const PROVE = {
   // Direzione (essenziale per l'amministratore) e Documenti (file raccolti in una schermata, senza doppioni)
   async direzioneDocumenti() {
     const { ctx, page, errori } = await apri();
-    await page.goto(BASE + 'index.html#direzione');
-    const numeri = await page.$$eval('.direzione-numeri .riepilogo-numero', (el) => el.length);
-    const decisioni = await page.$$eval('.decisioni li', (el) => el.length);
-    const daAssegnare = await page.evaluate(() => stato.opportunita.filter((o) => o.storico.contratto && !o.perso && !o.allocazione).length);
-    verifica('direzione: 4 numeri e da 1 a 4 decisioni', numeri === 4 && decisioni >= 1 && decisioni <= 4, numeri + ' numeri, ' + decisioni + ' decisioni');
-    verifica('direzione: commesse da assegnare uguali al contatore dell\'Allocazione', (await page.textContent('.direzione-numeri .riepilogo-numero:nth-child(4) strong')).trim() === String(daAssegnare));
+    await page.goto(BASE + 'index.html#direzione');   // il vecchio indirizzo apre il Cruscotto
+    const numeri = await page.$$eval('.numero-cruscotto', (el) => el.length);
+    const decisioni = await page.$$eval('.elenco-decisioni li', (el) => el.length);
+    verifica('cruscotto: 4 numeri e da 1 a 3 decisioni, ognuna con il suo pulsante', numeri === 4 && decisioni >= 1 && decisioni <= 3
+      && (await page.$$('.elenco-decisioni li a')).length === decisioni, numeri + ' numeri, ' + decisioni + ' decisioni');
+    const debole = await page.evaluate(() => { const f = calcolaFunnel(stato.opportunita).slice(1).filter((x) => x.conversione !== null).sort((a, b) => a.conversione - b.conversione)[0]; return f.nome; });
+    verifica('cruscotto: il passo più debole è quello con la conversione più bassa, con il rimedio', (await page.textContent('.barra-cruscotto.debole .barra-etichetta')).trim() === debole && /passo più debole/.test(await page.textContent('.pagina-cruscotto')), debole);
+    verifica('cruscotto: 6 indicatori di controllo e una riga per canale', (await page.$$('.controllo')).length === 6 && (await page.$$('.pagina-cruscotto tbody tr')).length > 0);
+    await clic(page, '[data-azione=approfondisci][data-id=marketing]');
+    verifica('approfondisci: gli indicatori sul livello scelto', await page.evaluate(() => location.hash) === '#indicatori' && /Marketing/.test(await page.textContent('#schermata h1')));
     await page.goto(BASE + 'index.html#indicatori');
     verifica('indicatori: niente pulsanti di file (sono in Documenti)', !(await page.$('.pagina-indicatori [data-azione=importa-csv-reali], .pagina-indicatori [href="#riepilogo"]')));
     await page.goto(BASE + 'index.html#clienti');
@@ -858,7 +865,7 @@ const PROVE = {
     await clic(page, '#modulo-utente [type=submit]');
     verifica('utente e ruolo nel piè di pagina', /Alfredo Prova/.test(await page.textContent('#riga-utente')) && /commerciale/.test(await page.textContent('#riga-utente')));
     await page.goto(BASE + 'index.html#indicatori');
-    verifica('il ruolo commerciale apre la vista «Fino all\'offerta»', /Fino all'offerta/.test(await page.textContent('h1')));
+    verifica('il commerciale non ha gli approfondimenti: torna a «Oggi», la sua schermata di apertura', (await page.textContent('#schermata h1')).trim() === 'Oggi' && await page.evaluate(() => location.hash) === '#oggi');
     await page.evaluate(() => { const s = ARCHIVI.locale.scrivi; ARCHIVI.locale.scrivi = (d, m) => { window.ultime = m; s(d, m); }; });
     const id = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && faseRaggiunta(o) === 0).id);
     await page.goto(BASE + 'index.html#oggi');
@@ -986,6 +993,34 @@ const PROVE = {
     verifica('telefono: solo la scheda, senza elenco e senza scorrimento orizzontale', !(await tel.page.isVisible('#cerca-laterale')) && !(await scorreOrizzontale(tel.page)));
     verifica('zero errori', errori.length === 0 && tel.errori.length === 0, errori.concat(tel.errori).join(' | '));
     await tel.ctx.close();
+  },
+
+  // Ruoli (24/10): accesso al primo uso, menu e apertura per ruolo, permessi verificati in applica()
+  async ruoli() {
+    const { ctx, page, errori } = await apri('desktop', { senzaUtente: true });
+    await page.goto(BASE + 'index.html#oggi');
+    verifica('primo uso: si apre la schermata di accesso con 3 ruoli e senza menu', (await page.textContent('#schermata h1')).trim() === 'Chi sta lavorando?'
+      && (await page.$$('.ruolo-carta')).length === 3 && (await page.$$('[data-vai]:not([hidden])')).length === 0);
+    await page.fill('#modulo-utente [name=nome]', 'Marta M.');
+    await page.check('#modulo-utente [name=ruolo][value=marketing]');
+    await clic(page, '#modulo-utente [type=submit]');
+    const menu = await page.$$eval('[data-vai]:not([hidden])', (a) => a.map((x) => x.dataset.vai).sort().join(','));
+    verifica('marketing: apre il Cruscotto, menu Cruscotto, Clienti, Documenti', await page.evaluate(() => location.hash) === '#cruscotto' && menu === 'clienti,cruscotto,documenti', menu);
+    await page.goto(BASE + 'index.html#allocazione');
+    verifica('marketing: una schermata fuori dal ruolo porta al Cruscotto', await page.evaluate(() => location.hash) === '#cruscotto');
+    const prima = await page.evaluate(() => stato.opportunita.length);
+    const bloccata = await page.evaluate(() => applica(() => { stato.opportunita.pop(); }, { messaggio: 'prova' }));
+    verifica('marketing: una modifica alle trattative è bloccata, i dati restano', bloccata === false && (await page.evaluate(() => stato.opportunita.length)) === prima
+      && /consultare/.test(await page.textContent('#avviso')));
+    await page.goto(BASE + 'index.html#documenti');
+    verifica('marketing: in Documenti carica i dati reali ma non sostituisce i dati', !!(await page.$('[data-azione=importa-csv-reali]')) && !(await page.$('[data-azione=ripristina], [data-azione=importa-backup], #documenti [data-azione=ponte], #documento-gestionale [data-azione=ponte]')));
+    await page.evaluate(() => { localStorage.setItem(CONFIG.chiaveSalvataggio + '-utente', JSON.stringify({ nome: 'Luca', ruolo: 'commerciale' })); });
+    await page.goto(BASE + 'index.html');
+    await page.reload();
+    verifica('commerciale: senza indirizzo apre Oggi; niente operazioni delicate in Documenti', (await page.textContent('#schermata h1')).trim() === 'Oggi'
+      && await page.goto(BASE + 'index.html#documenti').then(() => page.$('[data-azione=ripristina]')) === null);
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
   },
 
   // Il file unico da condividere (dist/) si apre da solo e disegna la prima schermata, senza errori

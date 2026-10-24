@@ -72,15 +72,19 @@ function quantiRecord(modifiche) {
 
 // ------------------------------------------------ Chi sta lavorando e registro delle modifiche
 
+let utenteInMemoria = null;   // l'accesso scelto, se il browser non salva (finestra privata)
+
 // Utente di questo browser (nome e ruolo); senza scelta è l'ospite della demo
 function utenteAttuale() {
   try {
     const u = JSON.parse(localStorage.getItem(CONFIG.chiaveSalvataggio + "-utente"));
+    if (u && Object.hasOwn(CONFIG.ruoliVecchi, u.ruolo)) u.ruolo = CONFIG.ruoliVecchi[u.ruolo];
     if (u && typeof u.nome === "string" && CONFIG.ruoli.some((r) => r.id === u.ruolo)) return u;
   } catch (e) {
     // salvataggio non disponibile o valore non valido: si usa l'ospite
   }
-  return { nome: "Ospite", ruolo: "direzione", ospite: true };
+  if (utenteInMemoria) return utenteInMemoria;
+  return { nome: "Ospite", ruolo: "amministratore", ospite: true, daScegliere: true };   // si apre la schermata di accesso
 }
 
 // Responsabile delle trattative nuove: chi sta lavorando (vuoto per l'ospite della demo)
@@ -92,6 +96,16 @@ function responsabileAttuale() {
 // Ruolo dell'utente (nome leggibile e vista degli Indicatori che si apre per prima)
 function ruoloUtente(u = utenteAttuale()) {
   return CONFIG.ruoli.find((r) => r.id === u.ruolo) || CONFIG.ruoli[0];
+}
+
+// Il ruolo di chi lavora ha questo permesso? (modifica, delicate, datiReali, canali, approfondimenti)
+function puo(permesso) {
+  return ruoloUtente().permessi.includes(permesso);
+}
+
+// La schermata del menu fa parte del ruolo? (le altre portano alla schermata di apertura del ruolo)
+function schermataDelRuolo(menu) {
+  return !menu || ruoloUtente().schermate.includes(menu);
 }
 
 // Aggiunge una riga al registro: quando, chi, cosa e quanti record (le righe più vecchie escono oltre il limite)
@@ -110,7 +124,7 @@ function apriUtente() {
     <form class="modulo" id="modulo-utente" novalidate>
       <div>
         <h2>Chi sta lavorando?</h2>
-        <p class="nota-piccola">Il nome compare nel registro delle modifiche; il ruolo sceglie la vista degli Indicatori che si apre per prima.
+        <p class="nota-piccola">Il nome compare nel registro delle modifiche; il ruolo sceglie le schermate e cosa si può modificare.
           Con l'archivio condiviso diventerà l'accesso con password.</p>
       </div>
       <label>Nome e cognome * <input name="nome" required autocomplete="name" value="${u.ospite ? "" : esc(u.nome)}" placeholder="Es. Alfredo R."></label>
@@ -122,19 +136,21 @@ function apriUtente() {
     </form>`);
 }
 
-// Salva nome e ruolo nel browser e apre gli Indicatori sulla vista del ruolo
+// Salva nome e ruolo nel browser e apre la schermata di apertura del ruolo
 function salvaUtente(modulo) {
   const nome = modulo.nome.value.trim();
   if (!nome) return segnalaCampo(modulo.nome, "Scrivi il tuo nome");
   const u = { nome, ruolo: modulo.ruolo.value };
+  utenteInMemoria = u;
   try {
     localStorage.setItem(CONFIG.chiaveSalvataggio + "-utente", JSON.stringify(u));
   } catch (e) {
     // senza salvataggio il nome vale solo finché la pagina resta aperta
   }
   interfaccia.indicatori.livello = ruoloUtente(u).vista;
-  chiudiFinestra();
-  disegna();
+  if (finestra.open) chiudiFinestra();
+  if (location.hash.slice(1) === ruoloUtente(u).casa) disegna();
+  else location.hash = ruoloUtente(u).casa;
   mostraAvviso("Ora lavori come " + nome + " (" + ruoloUtente(u).nome.toLowerCase() + ")");
 }
 
@@ -163,4 +179,38 @@ function aggiornaRigaUtente() {
     <button class="pulsante-testo positivo" type="button" data-azione="utente">${u.ospite ? "Dimmi chi sei" : "Cambia"}</button> ·
     dati in: ${esc(archivio().nome.toLowerCase())} ·
     <button class="pulsante-testo positivo" type="button" data-azione="registro">Registro delle modifiche</button>`;
+}
+
+// Schermata di accesso (al primo uso in questo browser): nome e ruolo, poi la schermata di apertura del ruolo
+function disegnaAccesso() {
+  return `
+    <div class="pagina-accesso">
+      ${intestazione({ titolo: "Chi sta lavorando?", istruzione: "Scrivi il tuo nome e scegli il ruolo: il CRM ti mostra le schermate che ti servono." })}
+      <form class="modulo riquadro accesso" id="modulo-utente" novalidate>
+        <label>Nome e cognome * <input name="nome" required autocomplete="name" placeholder="Es. Alfredo R."></label>
+        <fieldset class="scelta-ruolo"><legend>Ruolo</legend>
+          ${CONFIG.ruoli.map((r, i) => `<label class="ruolo-carta"><input type="radio" name="ruolo" value="${esc(r.id)}" ${i === 0 ? "checked" : ""}>
+            <strong>${esc(r.nome)}</strong><span class="nota-piccola">${esc(r.descrizione)}</span></label>`).join("")}
+        </fieldset>
+        <div class="azioni-intestazione"><button class="pulsante primario" type="submit">Entra</button>
+          <button class="pulsante secondario" type="button" data-azione="entra-ospite">Prova la demo senza nome</button></div>
+        <p class="nota-piccola">Senza un server non è un accesso protetto: il ruolo ordina le schermate e i permessi in questo browser.
+          Con l'archivio condiviso diventerà l'accesso con password.</p>
+      </form>
+    </div>`;
+}
+
+// Demo senza nome: si entra come ospite con il ruolo scelto (il registro scrive «Ospite»)
+function entraOspite() {
+  const scelto = document.querySelector("#modulo-utente [name=ruolo]:checked");
+  const u = { nome: "Ospite", ruolo: scelto ? scelto.value : CONFIG.ruoli[0].id, ospite: true };
+  try {
+    localStorage.setItem(CONFIG.chiaveSalvataggio + "-utente", JSON.stringify(u));
+  } catch (e) {
+    // senza salvataggio l'accesso vale finché la pagina resta aperta
+  }
+  utenteInMemoria = u;
+  interfaccia.indicatori.livello = ruoloUtente(u).vista;
+  if (location.hash.slice(1) === ruoloUtente(u).casa) disegna();
+  else location.hash = ruoloUtente(u).casa;
 }

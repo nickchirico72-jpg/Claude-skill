@@ -152,6 +152,7 @@ function disegnaIndicatori() {
   const corpo = scelta.fonte === "fittizi" ? vistaFittizi(scelta.livello) : vistaReali(scelta.livello, kpiReali(scelta.fonte));
   return `
     <div class="pagina-indicatori">
+    <a class="link-indietro" href="#cruscotto">${icona("indietro")} Cruscotto</a>
     ${intestazione({ titolo: "Indicatori · " + (livello.titolo || livello.nome), istruzione: livello.istruzione })}
     ${barraIndicatori(scelta, reali)}
     ${corpo}
@@ -446,7 +447,7 @@ function confermaCsvReali() {
   applica(() => {
     stato.richiesteReali = (stato.richiesteReali || []).filter((r) => !fonti.includes(r.fonte)).concat(righe);
     interfaccia.indicatori.fonte = fonti[0];
-  }, { messaggio: righe.length + " richieste reali importate (" + fonti.join(", ") + ")", vai: "indicatori" });
+  }, { messaggio: righe.length + " richieste reali importate (" + fonti.join(", ") + ")", vai: "indicatori", permesso: "datiReali" });
   csvDaImportare = null;
 }
 
@@ -535,37 +536,122 @@ function disegnaRiepilogo() {
     </article>`;
 }
 
-// ============================================================ DIREZIONE
+// ============================================================ CRUSCOTTO (24/10, riferimento di Claude Design)
 
-// Schermata essenziale per l'amministratore unico: quattro numeri e le decisioni della settimana
-function disegnaDirezione() {
+// Un numero del cruscotto: nome, valore, su cosa si basa, obiettivo (con l'esito a colori e in parole) e andamento
+function numeroCruscotto({ nome, valore, base, obiettivo = "", raggiunto = null, andamento = "" }) {
+  const esito = raggiunto === null ? "" : `<span class="chip ${raggiunto ? "chip-ok" : "chip-attenzione"}">${raggiunto ? "obiettivo raggiunto" : "sotto l'obiettivo"}</span>`;
+  return `<div class="riquadro numero-cruscotto">
+      <p class="numero-nome">${nome}</p>
+      <p class="numero-valore">${valore}</p>
+      <p class="nota-piccola">${base}</p>
+      ${obiettivo ? `<p class="nota-piccola">Obiettivo: ${obiettivo} ${esito}</p>` : ""}
+      ${andamento ? `<p class="nota-piccola">${andamento}</p>` : ""}
+    </div>`;
+}
+
+// Barra orizzontale con etichetta e numero (dove e perché si perdono i clienti)
+function barraCruscotto(etichetta, n, massimo, nota = "", evidenzia = false) {
+  const larghezza = massimo ? Math.max(2, Math.round((n / massimo) * 100)) : 0;
+  return `<li class="barra-cruscotto${evidenzia ? " debole" : ""}"><span class="barra-etichetta">${etichetta}</span>
+      <span class="barra-traccia"><span class="barra-piena" style="width:${larghezza}%"></span></span>
+      <span class="barra-numero">${n}${nota ? ` <span class="nota-piccola">${nota}</span>` : ""}</span></li>`;
+}
+
+// Cruscotto: quattro numeri, decisioni della settimana, dove e perché si perdono i clienti, canali, controllo del processo
+function disegnaCruscotto() {
   const tutte = stato.opportunita;
   const fine = oggi();
   const ora = numeriPeriodo(tutte, aggiungiGiorni(fine, -29), fine);
   const prima = numeriPeriodo(tutte, aggiungiGiorni(fine, -59), aggiungiGiorni(fine, -30));
+  const k = calcolaKpi(tutte);
   const p = previsionePonderata(tutte);
+  const ob = CONFIG.obiettivi;
   const portafoglio = coerenzaPortafoglio(tutte);
-  const daAssegnare = tutte.filter((o) => o.storico.contratto && !o.perso && !o.allocazione).length;
-  // La prima azione di ogni previsione di «Cosa fare domani»: al massimo quattro decisioni
-  const decisioni = previsioniDomani(tutte).filter((x) => x.azioni.length).map((x) => ({ ...x.azioni[0], previsione: x.titolo }));
+  const c = CONFIG.cruscotto;
+  // Decisioni: la prima azione di ogni previsione di «Cosa fare domani», al massimo tre
+  const decisioni = previsioniDomani(tutte).filter((x) => x.azioni.length).map((x) => ({ ...x.azioni[0], previsione: x.titolo })).slice(0, 3);
+  // Dove si perdono: il passo con la conversione più bassa
+  const funnel = calcolaFunnel(tutte).map((f, i) => ({ ...f, id: CONFIG.fasi[i].id }));
+  const debole = funnel.slice(1).reduce((m, f) => (f.conversione !== null && (!m || f.conversione < m.conversione) ? f : m), null);
+  const motivi = motiviPerdita(tutte);
+  const gruppi = risultatiPerGruppo(tutte).filter((g) => g.contatti);
+  const tempo = tempoRisparmiato();
+  const ore = tempo.ore.toLocaleString("it-IT", { maximumFractionDigits: 1 });
   return `
-    <div class="pagina-direzione">
-    ${intestazione({ titolo: "Direzione", istruzione: "I numeri che contano e le decisioni della settimana. Il resto è negli Indicatori." })}
-    <div class="riepilogo-numeri quattro direzione-numeri">
-      ${numeroRiepilogo("Contratti del mese", ora.contratti, formattaEuro(ora.valore) + " all'anno · " + confronto(ora.contratti, prima.contratti))}
-      ${numeroRiepilogo("Ricavi attesi", formattaEuro(p.ponderata), "all'anno da " + p.aperte + " trattative aperte, pesati per fase")}
-      ${numeroRiepilogo("Trattative buone", quota(portafoglio.buone.n, portafoglio.totale.n), "punteggio da " + CONFIG.punteggio.buona + " in su")}
-      ${numeroRiepilogo("Commesse da assegnare", daAssegnare, daAssegnare ? '<a class="link" href="#allocazione">Assegnale</a>' : "tutte assegnate")}
+    <div class="pagina-cruscotto">
+    ${intestazione({ occhiello: "Ultimi 30 giorni · confronto con i 30 precedenti", titolo: "Cruscotto",
+      istruzione: "Quattro numeri, dove si perdono i clienti e cosa decidere questa settimana.",
+      azione: '<div class="azioni-intestazione"><a class="pulsante secondario" href="#riepilogo">Riepilogo da stampare</a></div>' })}
+
+    <div class="numeri-cruscotto">
+      ${numeroCruscotto({ nome: "Contratti firmati", valore: ora.contratti, base: formattaEuro(ora.valore) + " all'anno", andamento: confronto(ora.contratti, prima.contratti) })}
+      ${numeroCruscotto({ nome: "Conversione delle offerte", valore: k.offerteDecise ? quota(k.contratti, k.offerteDecise) : NESSUN_DATO,
+        base: k.contratti + " contratti su " + k.offerteDecise + " offerte con esito", obiettivo: "almeno " + formattaPercentuale(ob.conversioneOfferte),
+        raggiunto: k.offerteDecise ? k.conversioneOfferte >= ob.conversioneOfferte : null })}
+      ${numeroCruscotto({ nome: "Tempo di prima risposta", valore: formattaGiorni(ora.risposta), base: "media delle richieste del mese",
+        obiettivo: "entro " + giorni(ob.primaRispostaGiorni), raggiunto: ora.risposta === null ? null : ora.risposta <= ob.primaRispostaGiorni,
+        andamento: confronto(ora.risposta, prima.risposta, true) })}
+      ${numeroCruscotto({ nome: "Ricavi attesi", valore: formattaEuro(p.ponderata), base: "all'anno da " + p.aperte + " trattative aperte, pesate per fase" })}
     </div>
-    <section class="riquadro decisioni" aria-label="Da decidere">
-      <h2 class="titolo-riquadro">Da decidere</h2>
-      ${decisioni.length ? `<ol class="elenco-consigli">${decisioni.map((x) => `<li>
-        <a class="link-titolo" href="${x.aziendaId ? "#cliente-" + esc(x.aziendaId) : x.link}">${esc(x.testo)}</a>
-        <span class="consiglio-perche">${esc(x.previsione)} · perché: ${esc(x.perche)}</span></li>`).join("")}</ol>`
-        : '<p class="nota-piccola">Nessuna decisione urgente.</p>'}
+
+    <section class="riquadro decisioni" aria-label="Da decidere questa settimana">
+      <h2 class="titolo-riquadro">Da decidere questa settimana</h2>
+      ${decisioni.length ? `<ol class="elenco-decisioni">${decisioni.map((x) => `<li>
+        <div><strong>${esc(x.testo)}</strong><p class="nota-piccola">Perché: ${esc(x.perche)} · ${esc(x.previsione)}</p></div>
+        <a class="pulsante secondario piccolo" href="${x.aziendaId ? "#cliente-" + esc(x.aziendaId) : x.link}">Apri</a></li>`).join("")}</ol>`
+        : '<p class="nota-piccola">Nessuna decisione urgente questa settimana.</p>'}
     </section>
-    <p class="azioni-intestazione"><a class="pulsante secondario piccolo" href="#indicatori">Tutti gli indicatori</a>
-      <a class="pulsante secondario piccolo" href="#riepilogo">Riepilogo da stampare</a></p>
+
+    <div class="cruscotto-due">
+      <section class="riquadro" aria-label="Dove si perdono i clienti">
+        <h2 class="titolo-riquadro">Dove si perdono i clienti</h2>
+        <p class="nota-piccola">Su ${funnel[0].n} richieste, quante arrivano a ogni passo.</p>
+        <ul class="barre-cruscotto">${funnel.map((f) => barraCruscotto(esc(f.nome), f.n, funnel[0].n,
+          f.conversione === null ? "" : formattaPercentuale(f.conversione) + " dal passo prima", debole && f.id === debole.id)).join("")}</ul>
+        ${debole ? `<p class="rimedio">Il passo più debole è «${esc(debole.nome)}» (${formattaPercentuale(debole.conversione)}): ${esc(c.rimediPasso[debole.id] || "")}</p>` : ""}
+      </section>
+      <section class="riquadro" aria-label="Perché le perdiamo">
+        <h2 class="titolo-riquadro">Perché le perdiamo</h2>
+        <p class="nota-piccola">${quanti(k.persi, "trattativa persa", "trattative perse")}, per motivo.</p>
+        ${motivi.length ? `<ul class="barre-cruscotto">${motivi.map((m, i) => barraCruscotto(esc(maiuscola(m.motivo)), m.numero, motivi[0].numero, "", i === 0)).join("")}</ul>
+          <p class="rimedio">Rimedio per il primo motivo: ${esc(c.rimediMotivo[motivi[0].motivo] || "analizza le trattative perse con il commerciale.")}</p>`
+          : '<p class="nota-piccola">Nessuna trattativa persa: quando ce ne saranno, qui comparirà il motivo più frequente.</p>'}
+      </section>
+    </div>
+
+    <section class="riquadro" aria-label="Da dove arrivano i clienti">
+      <h2 class="titolo-riquadro">Da dove arrivano i clienti</h2>
+      <p class="nota-piccola">${k.contatti} richieste, ${k.qualificati} contatti qualificati, ${k.sopralluoghi} sopralluoghi. Il ${formattaPercentuale(k.quotaDigitali)} arriva dai canali digitali.</p>
+      <div class="tabella-scorrevole"><table class="tabella impilata">
+        <thead><tr><th>Canale</th><th class="num">Richieste</th><th class="num">Contratti</th><th class="num">Costo</th><th class="num">Costo per contratto</th></tr></thead>
+        <tbody>${gruppi.map((g) => `<tr><td data-etichetta="Canale">${esc(maiuscola(g.gruppo))}</td><td class="num" data-etichetta="Richieste">${g.contatti}</td>
+          <td class="num" data-etichetta="Contratti">${g.contratti}</td><td class="num" data-etichetta="Costo">${g.costi === null ? "—" : formattaEuro(g.costi)}</td>
+          <td class="num" data-etichetta="Costo per contratto">${g.costoAcquisizione === null ? "—" : formattaEuro(g.costoAcquisizione)}</td></tr>`).join("")}</tbody>
+      </table></div>
+    </section>
+
+    <section class="riquadro" aria-label="Controllo del processo">
+      <h2 class="titolo-riquadro">Controllo del processo</h2>
+      <div class="controllo-processo">
+        ${[["Dalla richiesta all'offerta", formattaGiorni(k.tempoOfferta), "media su " + k.conOfferta + " offerte"],
+          ["Trattative ferme", k.aperte ? String(k.ferme) : NESSUN_DATO, "su " + k.aperte + " aperte"],
+          ["Durata della trattativa", formattaGiorni(k.durataCiclo), "dalla richiesta alla firma"],
+          ["Trattative buone", quota(portafoglio.buone.n, portafoglio.totale.n), "punteggio da " + CONFIG.punteggio.buona + " in su"],
+          ["Contatti qualificati", quota(k.qualificati, k.contatti), "obiettivo almeno " + formattaPercentuale(ob.tassoQualificati)],
+          ["Richieste dai canali digitali", quota(k.digitali, k.contatti), "sito, profilo Google, WhatsApp, LinkedIn"],
+        ].map(([nome, valore, nota]) => `<div class="controllo"><p class="numero-nome">${nome}</p><p class="controllo-valore">${valore}</p><p class="nota-piccola">${nota}</p></div>`).join("")}
+      </div>
+    </section>
+
+    <p class="riepilogo-tempo">Tempo risparmiato con il CRM, stima: circa <strong>${ore} ore</strong> e <strong>${formattaEuro(tempo.euro)}</strong> al mese.
+      ${puo("approfondimenti") ? '<button class="pulsante-testo positivo" type="button" data-azione="approfondisci" data-id="previsione">Minuti e calcolo</button>' : ""}</p>
+
+    ${puo("approfondimenti") ? `<section class="riquadro" aria-label="Approfondisci">
+      <h2 class="titolo-riquadro">Approfondisci</h2>
+      <p class="nota-piccola">Tutti gli indicatori, lungo il percorso del cliente.</p>
+      <div class="pulsanti-rapidi">${Object.entries(LIVELLI).map(([id, l]) => `<button class="pulsante secondario piccolo" type="button" data-azione="approfondisci" data-id="${id}">${l.nome}</button>`).join("")}</div>
+    </section>` : ""}
     </div>`;
 }
 
@@ -630,6 +716,11 @@ function copiaLunedi() {
 
 // Azioni della schermata: livello, CSV (stato dell'interfaccia o dati reali importati)
 Object.assign(AZIONI_CLIENTI, {
+  // Dal Cruscotto agli indicatori dettagliati, sul livello scelto
+  approfondisci: (el) => {
+    interfaccia.indicatori.livello = el.dataset.id;
+    location.hash = "indicatori";
+  },
   livello: (el) => {
     interfaccia.indicatori.livello = el.dataset.id;
     disegna();

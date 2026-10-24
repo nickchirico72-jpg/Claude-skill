@@ -217,7 +217,7 @@ def main():
             "orario non valido": "UPDATE attivita SET ora = '9.30' LIMIT 1;",
             "proposta a un partner che non esiste": f"INSERT INTO proposte_partner (id_opportunita, ordine, id_partner, data, esito) VALUES ('{o['id']}', 9, 'pa99', '2026-10-01', 'attesa');",
             "allocazione a partner senza partner": f"INSERT INTO allocazioni (id_opportunita, tipo, data) VALUES ('{o['id']}', 'partner', '2026-10-01');",
-            "ruolo utente non previsto": "INSERT INTO utenti (id, nome, ruolo, attivo) VALUES ('u1', 'Prova', 'amministratore', 1);",
+            "ruolo utente non previsto": "INSERT INTO utenti (id, nome, ruolo, attivo) VALUES ('u1', 'Prova', 'ospite', 1);",
             "lavoratore autonomo come tipo sbagliato": "INSERT INTO partner (id, nome, tipo, ordine, attivo) VALUES ('px', 'Prova', 'freelance', 9, 1);",
             "impostazione non in JSON": "INSERT INTO impostazioni (chiave, valore) VALUES ('prova', 'non json');",
             "data impossibile": "UPDATE attivita SET data = '2026-02-30' LIMIT 1;",
@@ -230,8 +230,8 @@ def main():
         ok1, _ = db.sql(f"INSERT INTO proposte_partner (id_opportunita, ordine, id_partner, data, esito) VALUES ('{o['id']}', 7, 'pa1', '2026-10-01', 'attesa');", controlla=False)
         ok2, _ = db.sql(f"INSERT INTO proposte_partner (id_opportunita, ordine, id_partner, data, esito) VALUES ('{o['id']}', 8, 'pa2', '2026-10-02', 'attesa');", controlla=False)
         verifica("rifiutato: due proposte in attesa per la stessa trattativa (la prima è accettata)", ok1 and not ok2)
-        ok, _ = db.sql("INSERT INTO utenti (id, nome, email, ruolo, attivo) VALUES ('u1', 'Alfredo R.', 'alfredo@esempio.it', 'direzione', 1);", controlla=False)
-        verifica("accettato: un utente con ruolo direzione", ok)
+        ok, _ = db.sql("INSERT INTO utenti (id, nome, email, ruolo, attivo) VALUES ('u1', 'Alfredo R.', 'alfredo@esempio.it', 'amministratore', 1);", controlla=False)
+        verifica("accettato: un utente con ruolo amministratore", ok)
         ok, _ = db.sql("UPDATE squadre SET ore_impegnate = 2000, aggiornato_da = 'Alfredo R.' WHERE id = 'sq1';", controlla=False)
         _, quando = db.sql("SELECT aggiornato_da, aggiornato_il IS NOT NULL FROM squadre WHERE id = 'sq1';")
         verifica("ogni modifica registra chi e quando (aggiornato_da, aggiornato_il)", ok and quando.split() [:1] == ["Alfredo"], quando.strip())

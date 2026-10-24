@@ -81,7 +81,7 @@ TABELLE = [
      [("chiave", "VARCHAR(64)", "PRIMARY KEY"), ("valore", "TEXT", "NOT NULL CHECK (JSON_VALID(valore))")] + META, []),
     ("utenti", "Chi usa il CRM: nome, email per l'accesso, ruolo",
      [("id", ID, "PRIMARY KEY"), ("nome", TESTO, "NOT NULL"), ("email", TESTO, "UNIQUE"),
-      ("ruolo", "VARCHAR(16)", "NOT NULL CHECK (ruolo IN ('direzione', 'commerciale', 'ufficio'))"), sino("attivo", True)] + META, []),
+      ("ruolo", "VARCHAR(16)", "NOT NULL CHECK (ruolo IN ('amministratore', 'commerciale', 'marketing'))"), sino("attivo", True)] + META, []),
     # --- Dati del CRM (oggi lo "stato" nel browser)
     ("aziende", "Aziende clienti o potenziali",
      [("id", ID, "PRIMARY KEY"), ("ragione_sociale", TESTO, "NOT NULL CHECK (TRIM(ragione_sociale) <> '')"), ("partita_iva", "VARCHAR(32)", ""),
