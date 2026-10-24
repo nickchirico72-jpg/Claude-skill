@@ -315,13 +315,14 @@ const LIVELLI_PIATTAFORMA = [
     ["Privacy: base giuridica e consenso di ogni referente", "persona", "#clienti", "Clienti"],
     ["Scambio con il gestionale in CSV, con i controlli prima di sostituire i dati", "propone", "#documenti", "Documenti"]] },
   { titolo: "Strumenti di lavoro", sotto: "dalla richiesta alla commessa", passi: [
-    ["Preventivo indicativo e punteggio di coerenza", "automatico", "#oggi", "Oggi"],
+    ["Ogni trattativa ha la sua scheda: a che punto è e un solo pulsante per il passo successivo", "automatico", "#oggi", "Oggi"],
+    ["Preventivo indicativo, punteggio di coerenza e avviso se le squadre non hanno ore libere", "automatico", "#oggi", "Oggi"],
     ["Offerta da pacchetto: prezzo e margine calcolati, la persona sceglie e invia", "propone", "#oggi", "Oggi"],
     ["Firma da link: contratto, data di chiusura e scadenza registrati", "automatico", "#oggi", "Oggi"],
     ["Chi esegue: la squadra con ore libere è proposta, il partner risponde su WhatsApp", "propone", "#allocazione", "Allocazione"],
     ["Promemoria, avvisi e lista del lunedì", "automatico", "#lunedi", "Lista del lunedì"]] },
   { titolo: "Cruscotto", sotto: "per decidere", passi: [
-    ["KPI lungo il percorso del cliente", "automatico", "#indicatori", "Indicatori"],
+    ["Quattro numeri, decisioni della settimana, dove e perché si perdono i clienti", "automatico", "#cruscotto", "Cruscotto"],
     ["Cosa fare domani: previsioni e azioni proposte, la direzione decide", "propone", "#indicatori-domani", "Cosa fare domani"],
     ["Tempo risparmiato e riepilogo del mese", "automatico", "#riepilogo", "Riepilogo del mese"]] },
 ];
@@ -336,11 +337,11 @@ const ETICHETTE_PASSI = {
 const DEMO_GUIDATA = [
   ["Nota della telefonata", "Oggi → «Nuova richiesta» → esempio 1 → «Conferma e registra»"],
   ["Preventivo e punteggio", "si apre da solo dopo la conferma"],
-  ["Offerta da pacchetto", "pacchetto Plus → «Segna l'offerta come inviata» → Salva"],
-  ["Firma da link", "dalla scheda in Offerta → «Firma da link» → «Il cliente ha firmato»"],
-  ["Chi esegue", "Allocazione: squadra o partner"],
-  ["Indicatori aggiornati", "«Dall'offerta al contratto»: un contratto in più"],
-  ["Tempo risparmiato", "«Cosa fare domani»: ore ed euro al mese"],
+  ["Offerta da pacchetto", "pacchetto Plus → «Segna l'offerta come inviata» → Salva: si apre la scheda della trattativa"],
+  ["Firma da link", "nella scheda, prossimo passo «Ottenere la firma» → «Firma da link» → «Il cliente ha firmato»"],
+  ["Chi esegue", "si apre l'Allocazione: squadra interna o partner"],
+  ["Cruscotto aggiornato", "«Contratti firmati»: un contratto in più"],
+  ["Tempo risparmiato", "in fondo al Cruscotto: ore ed euro al mese"],
 ];
 
 // Pagina «Come funziona»: i 5 livelli, chi fa cosa e la demo guidata

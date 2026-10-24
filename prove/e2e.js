@@ -147,7 +147,7 @@ const PROVE = {
     await clic(page, '[data-azione=registra-offerta]');                           // dal preventivo all'offerta
     if (await page.isVisible('#modulo-fase [name=motivazione]')) await page.fill('#modulo-fase [name=motivazione]', 'Prova della demo');
     await clic(page, '#modulo-fase [type=submit]');
-    await clic(page, `#scheda-${id} [data-azione=firma-link]`);
+    await clic(page, '.prossimo-passo [data-azione=firma-link]');   // dopo l'offerta si apre la scheda della trattativa
     if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, 'firma-da-link-desktop.png') });
     await clic(page, '[data-azione=conferma-firma]');
     const firmata = await page.evaluate((i) => ({ fase: faseAttuale(trova(i)), link: trova(i).firmaDaLink, hash: location.hash }), id);
@@ -342,8 +342,9 @@ const PROVE = {
     const inviata = await page.evaluate((i) => { const o = trova(i); return { fase: faseAttuale(o), offerta: o.storico.offerta, scadenza: o.scadenzaOfferta, pacchetto: o.preventivo.pacchetto,
       sopralluogo: stato.attivita.some((x) => x.opportunitaId === i || x.aziendaId === o.aziendaId && /sopralluogo non necessario/.test(x.testo)) }; }, r.id);
     verifica('«Segna l\'offerta come inviata»: data di invio, validità, pacchetto; fasi saltate dichiarate', inviata.fase === 'offerta' && inviata.offerta && inviata.scadenza && inviata.pacchetto === 'Plus' && inviata.sopralluogo, JSON.stringify(inviata));
-    verifica('dopo l\'offerta si torna a Oggi con la scheda in vista tra le fasi', await page.evaluate(() => location.hash) === '#oggi' && await page.isVisible(`#scheda-${r.id}`));
-    await clic(page, `#scheda-${r.id} [data-azione=firma-link]`);
+    verifica('dopo l\'offerta si apre la scheda della trattativa: il prossimo passo è la firma', await page.evaluate((i) => location.hash === '#trattativa-' + i, r.id)
+      && /Ottenere la firma/.test(await page.textContent('.prossimo-passo')));
+    await clic(page, '.prossimo-passo [data-azione=firma-link]');
     await clic(page, '[data-azione=conferma-firma]');
     const firmata = await page.evaluate((i) => { const o = trova(i); return { fase: faseAttuale(o), link: o.firmaDaLink, chiusura: o.storico.contratto, scadenza: o.scadenzaContratto, oggi: oggi() }; }, r.id);
     verifica('firma da link: contratto, firma_da_link, chiusura oggi e scadenza a 12 mesi', firmata.fase === 'contratto' && firmata.link && firmata.chiusura === firmata.oggi
@@ -713,7 +714,7 @@ const PROVE = {
     if (process.env.FOTO) await page.screenshot({ path: path.join(SHOT, 'offerta-pacchetto-desktop.png'), fullPage: true });
     await clic(page, '[data-azione=registra-offerta]');
     await clic(page, '#modulo-fase [type=submit]');
-    await clic(page, `#scheda-${id} [data-azione=firma-link]`);
+    await clic(page, '.prossimo-passo [data-azione=firma-link]');   // dopo l'offerta si apre la scheda della trattativa
     await clic(page, '[data-azione=conferma-firma]');
     if (await page.$(`#commessa-${id} [data-azione=assegna-squadra]`)) await clic(page, `#commessa-${id} [data-azione=assegna-squadra]`);
     else {
@@ -721,11 +722,9 @@ const PROVE = {
       await clic(page, `#commessa-${id} [data-azione=risposta-si]`);
     }
     const assegnata = await page.evaluate((i) => !!trova(i).allocazione, id);
-    await page.goto(BASE + 'index.html#indicatori');
-    await clic(page, '[data-azione=livello][data-id=contratto]');
+    await clic(page, '[data-vai=cruscotto]');
     const contrattiDopo = await page.evaluate(() => calcolaKpi(stato.opportunita).contratti);
-    await clic(page, '[data-azione=livello][data-id=previsione]');
-    await page.waitForSelector('#tempo-risparmiato');
+    verifica('demo guidata: nel Cruscotto il tempo risparmiato in fondo', /Tempo risparmiato/.test(await page.textContent('.pagina-cruscotto')));
     const secondi = (Date.now() - inizio) / 1000;
     verifica('demo guidata: un contratto in più, commessa assegnata, tempo risparmiato in vista', contrattiDopo === contrattiPrima + 1 && assegnata, contrattiPrima + ' → ' + contrattiDopo);
     verifica('demo guidata in meno di 90 secondi (con le pause del test)', secondi < 90, secondi.toFixed(1) + ' s');

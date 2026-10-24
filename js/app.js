@@ -1537,8 +1537,8 @@ function salvaFase(modulo) {
     }
     promemoria = registraFase(o, fase, data, dettaglio);
   }, { messaggio: () => messaggioFase(o, fase, promemoria), evidenzia: o.id, fase: fase.id,
-    // Dopo la firma si va all'allocazione; dopo l'offerta registrata dal preventivo si torna a «Oggi»
-    vai: fase.id === "contratto" ? "allocazione" : location.hash.startsWith("#preventivo-") ? "oggi" : null });
+    // Dopo la firma si va all'allocazione; dopo l'offerta registrata dal preventivo, alla scheda della trattativa (prossimo passo: la firma)
+    vai: fase.id === "contratto" ? "allocazione" : location.hash.startsWith("#preventivo-") ? "trattativa-" + o.id : null });
 }
 
 // «Da ricontattare»: etichetta sulla fase attuale con la data (obbligatoria) in cui richiamare il cliente
