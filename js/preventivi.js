@@ -119,6 +119,22 @@ function disegnaPreventivo(id) {
     </div>`;
 }
 
+// Prima di inviare l'offerta: c'è una squadra della zona con abbastanza ore libere al mese? (US 6, PASSAGGIO 5)
+function capacitaPreventivo(o, v) {
+  const lavoro = { comune: o.comune, servizio: v.servizio || o.servizio };
+  const zona = infoComune(o.comune).zona;
+  const libere = CONFIG.squadre.filter((sq) => squadraCopre(sq, lavoro)).map((sq) => ({ sq, ore: oreLibereSquadra(sq, stato.opportunita, o.id) }))
+    .sort((a, b) => b.ore - a.ore);
+  const migliore = libere[0];
+  if (migliore && migliore.ore >= v.ore) {
+    return `<p class="nota-piccola capacita-preventivo" id="capacita-preventivo">${icona("spunta")} Capacità: ${esc(migliore.sq.nome)} ha ${migliore.ore} ore libere al mese in zona ${esc(zona)}, l'offerta ne chiede ${v.ore}.</p>`;
+  }
+  const quante = migliore ? Math.max(0, migliore.ore) : 0;
+  return `<p class="avviso-margine capacita-preventivo" id="capacita-preventivo">${icona("attenzione")} Capacità insufficiente: ${migliore
+    ? `la squadra più libera della zona ${esc(zona)} (${esc(migliore.sq.nome)}) ha ${quante} ore al mese`
+    : `nessuna squadra interna copre questo servizio in zona ${esc(zona)}`}, l'offerta ne chiede ${v.ore}. Prima di inviarla verifica un partner in Allocazione o concorda una data di avvio più avanti.</p>`;
+}
+
 // Pannelli che cambiano mentre si scrive: conti, prezzi di riferimento, classe, riepilogo da stampare
 function risultatoPreventivo(o, v) {
   if (!(v.ore > 0) || !(v.tariffa > 0)) return '<div class="riquadro"><p class="vuoto">Inserisci ore al mese e tariffa per vedere il preventivo.</p></div>';
@@ -143,6 +159,7 @@ function risultatoPreventivo(o, v) {
         <tr><td><strong>Margine</strong></td><td class="punti"><span class="chip chip-${tono}">${formattaPercentualeDecimale(c.margine)} · ${formattaEuro(c.margineAnno)}/anno</span></td></tr>
       </tbody></table>
       ${c.margine < minimo ? `<p class="avviso-margine">${icona("attenzione")} Sotto il margine minimo del ${formattaPercentuale(minimo)}: alza la tariffa almeno a ${euroOra(c.minima)}.</p>` : ""}
+      ${capacitaPreventivo(o, v)}
       <details class="kpi-come"><summary>Come si calcola il punteggio</summary>${tabellaCriteri(c.punteggio)}</details>
     </section>
     <section class="riquadro">

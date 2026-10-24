@@ -928,6 +928,34 @@ const PROVE = {
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },
+
+  // Avviso di capacità nel preventivo: ore dell'offerta contro le ore libere della squadra più libera della zona
+  async capacita() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#oggi');
+    const id = await page.evaluate(() => stato.opportunita.find((o) => trattativaAperta(o) && CONFIG.squadre.some((s) => squadraCopre(s, o) && oreLibereSquadra(s, stato.opportunita, o.id) > 10)).id);
+    await page.goto(BASE + 'index.html#preventivo-' + id);
+    await page.fill('#modulo-preventivo [name=ore]', '9999');
+    await page.waitForTimeout(300);
+    verifica('capacità: offerta oltre le ore libere → avviso', /Capacità insufficiente/.test(await page.textContent('#capacita-preventivo')));
+    await page.fill('#modulo-preventivo [name=ore]', '1');
+    await page.waitForTimeout(300);
+    verifica('capacità: offerta piccola → squadra con ore libere', /^\s*Capacità: .+ ore libere al mese/.test(await page.textContent('#capacita-preventivo')));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // Il file unico da condividere (dist/) si apre da solo e disegna la prima schermata, senza errori
+  async fileUnico() {
+    require('child_process').execSync('python3 strumenti/versione_unica.py', { cwd: REPO });
+    const { ctx, page, errori } = await apri();
+    await page.goto('file://' + path.join(REPO, 'dist', 'gate-crm-prototipo.html'));
+    await page.waitForTimeout(800);
+    const testo = (await page.textContent('#schermata')).trim();
+    verifica('file unico: la prima schermata si disegna', testo.length > 100, testo.slice(0, 60));
+    verifica('file unico: zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
 };
 
 (async () => {
