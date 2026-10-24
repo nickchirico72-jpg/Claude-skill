@@ -155,6 +155,7 @@ Trattative aperte: 83 opportunità aperte su 300 (96% contattate da agosto), chi
 ## Come avviarlo
 
 - **In locale:** apri `index.html` con un doppio clic, non serve installare nulla.
+- **Accessibilità e uso (verificati in automatico su tutte le schermate, 25/10):** contrasto del testo almeno 4,5:1; pulsanti e campi alti almeno 44 px, link nel testo con un'area di almeno 24 px col mouse e 44 px al tocco; ogni campo con la sua etichetta; un solo titolo per schermata; focus visibile e «Vai al contenuto» col tasto Tab; ogni schermata si disegna in meno di 20 millisecondi.
 - **Da mandare ad Alfredo o a un esterno:** `python3 strumenti/versione_unica.py` crea in `dist/` il CRM in un file solo (`gate-crm-prototipo.html`) e i due moduli pubblici (`sopralluogo.html`, `modulo.html`): si mandano insieme, nella stessa cartella. Si aprono con un doppio clic, anche senza internet (senza internet i caratteri diventano quelli di sistema). Al primo avvio chiede chi sta lavorando; i dati restano nel browser di quel computer, con il backup in Documenti per passarli a un collega. Browser: Chrome o Edge aggiornati (dalla versione 117), Safari dalla 16.4, Firefox dalla 121. Provato in automatico: primo accesso, richiesta da nota fino alla firma, riapertura con i dati salvati, modulo pubblico, a 1366 e 390 px, con e senza internet.
 - **Online, con GitHub Pages:** *Settings → Pages → Deploy from a branch*, cartella `/ (root)`.
 - **Dove stanno i dati.** I dati del CRM restano nel browser (localStorage). In **Documenti → Backup**:

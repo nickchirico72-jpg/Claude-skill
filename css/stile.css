@@ -4854,3 +4854,63 @@ h1[tabindex="-1"]:focus {
 .conti-preventivo .criteri td {
   overflow-wrap: anywhere;
 }
+
+/* Bersagli (US 8): pulsanti e campi alti almeno 44 px; i link nel testo hanno un'area di almeno 24 px col mouse e 44 px al tocco */
+.pulsante,
+.pulsante.piccolo,
+.pulsante-testo,
+select,
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]) {
+  min-height: 44px;
+}
+
+.pulsante-testo {
+  display: inline-flex;
+  align-items: center;
+}
+
+.link-titolo,
+.scheda-nome,
+button.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+@media (pointer: coarse) {
+  .link-titolo,
+  .scheda-nome,
+  button.link {
+    min-height: 44px;
+  }
+}
+
+/* «Vai al contenuto»: il primo tasto Tab salta il menu (invisibile finché non ha il focus) */
+.salta-contenuto {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+
+.salta-contenuto:focus {
+  transform: none;
+}
+
+/* Gli ultimi controlli sotto i 44 px: scelta della zona e della fonte, pulsanti a icona, «Nessuna prossima azione» */
+.filtro-zona select,
+.scegli-fonte select,
+.pulsante-icona,
+.scheda-riga-pulsante {
+  min-height: 44px;
+}
+
+.pulsante-icona {
+  min-width: 44px;
+}

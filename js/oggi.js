@@ -60,7 +60,7 @@ function descrizioneOfferta(o) {
 // Riga sotto il nome: referente · comune · dettaglio, con il numero del referente in coda
 function sottorigaScheda(ref, comune, dettaglio) {
   const parti = [ref ? esc(ref.nome) : "", esc(comune), dettaglio].filter(Boolean);
-  const numero = ref && ref.telefono ? ` · <a class="link" href="tel:+${numeroInternazionale(ref.telefono)}">${esc(ref.telefono)}</a>` : "";
+  const numero = ref && ref.telefono ? ` · <a class="link" href="tel:+${numeroInternazionale(ref.telefono)}">${esc(telefonoLeggibile(ref.telefono))}</a>` : "";
   return parti.join(" · ") + numero;
 }
 

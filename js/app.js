@@ -1939,6 +1939,12 @@ const AZIONI = {
     stato = datiIniziali();
   }, { messaggio: "Dati di esempio ripristinati", fase: "contatto", permesso: "delicate" }),
   "entra-ospite": () => entraOspite(),
+  // «Vai al contenuto» da tastiera: il focus va al titolo della schermata, senza cambiare indirizzo
+  "vai-contenuto": (el, evento) => {
+    evento.preventDefault();
+    const h1 = document.querySelector("#schermata h1");
+    if (h1) h1.focus();
+  },
   // Riporta i dati a prima dell'ultima modifica (un solo passo indietro)
   annulla: () => {
     if (!copiaPerAnnulla) return;
