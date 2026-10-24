@@ -1932,23 +1932,8 @@ textarea {
   font-size: 18px;
 }
 
-.anteprima-portale {
-  max-width: 420px;
-  margin-top: 14px;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--card);
-  opacity: 0.85;
-}
 
-.anteprima-portale .pulsanti-risposta {
-  margin-top: 10px;
-}
 
-.anteprima-portale .pulsante {
-  cursor: not-allowed;
-}
 
 /* ------------------------------------------------------------- Tabelle */
 .tabella-scorrevole {

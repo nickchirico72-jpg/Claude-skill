@@ -104,7 +104,7 @@ Il **punteggio di coerenza** (0–100) ha il colore pieno della sua fascia: bass
 | KPI (APQC e KPI compendium) | `kpi_catalogo` e `docs/kpi.md`: ogni KPI ha il processo APQC, categoria 3.0 Market and Sell (dove il PASSAGGIO lo indica, "da verificare sul PCF"). |
 | Piramide di Anthony | Il livello di ogni KPI (operativo, tattico, strategico) in «Come si calcola» e nella colonna `livello_anthony` del catalogo; le sezioni seguono il percorso del cliente. |
 | Piattaforma e platform thinking | Cliente senza app (modulo e WhatsApp), partner via WhatsApp, CRM come punto unico dei dati, canali tracciati con utm senza pixel. |
-| Roadmap della trasformazione | Le **evoluzioni previste:** portale partner (anteprima in Allocazione), lead scoring con modello statistico, archivio condiviso online. |
+| Roadmap della trasformazione | Le **evoluzioni previste:** portale partner (solo come visione, non nel prototipo), lead scoring con modello statistico, archivio condiviso online. |
 | Digital gap | La quota di richieste digitali (K15) e il tempo di prima risposta (K12), prima e dopo il test. |
 
 ## Interrogare il database con SQL
@@ -154,7 +154,8 @@ Trattative aperte: 83 opportunità aperte su 300 (96% contattate da agosto), chi
 
 ## Come avviarlo
 
-- **In locale:** apri `index.html` con un doppio clic, non serve installare nulla. Per condividerlo in un solo file: `python3 strumenti/versione_unica.py` crea `dist/gate-crm-prototipo.html`.
+- **In locale:** apri `index.html` con un doppio clic, non serve installare nulla.
+- **Da mandare ad Alfredo o a un esterno:** `python3 strumenti/versione_unica.py` crea in `dist/` il CRM in un file solo (`gate-crm-prototipo.html`) e i due moduli pubblici (`sopralluogo.html`, `modulo.html`): si mandano insieme, nella stessa cartella. Si aprono con un doppio clic, anche senza internet (senza internet i caratteri diventano quelli di sistema). Al primo avvio chiede chi sta lavorando; i dati restano nel browser di quel computer, con il backup in Documenti per passarli a un collega. Browser: Chrome o Edge aggiornati (dalla versione 117), Safari dalla 16.4, Firefox dalla 121. Provato in automatico: primo accesso, richiesta da nota fino alla firma, riapertura con i dati salvati, modulo pubblico, a 1366 e 390 px, con e senza internet.
 - **Online, con GitHub Pages:** *Settings → Pages → Deploy from a branch*, cartella `/ (root)`.
 - **Dove stanno i dati.** I dati del CRM restano nel browser (localStorage). In **Documenti → Backup**:
   - **Salva backup** (il piè di pagina lo ricorda, con il pulsante, se l'ultimo backup è di oltre 7 giorni fa);

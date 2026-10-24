@@ -1,7 +1,7 @@
 """
 VERSIONE IN UN SOLO FILE DEL PROTOTIPO (da condividere per email o chat)
 Inserisce css/stile.css e gli script di js/ dentro index.html e scrive dist/gate-crm-prototipo.html.
-I moduli pubblici (sopralluogo.html, modulo.html) restano pagine separate: i link verso di loro non funzionano nel file unico.
+Scrive anche dist/sopralluogo.html e dist/modulo.html (i moduli pubblici, autonomi): vanno condivisi insieme al CRM.
 Uso: python3 strumenti/versione_unica.py
 """
 
@@ -23,6 +23,13 @@ def incorpora():
     uscita.parent.mkdir(exist_ok=True)
     uscita.write_text(html, encoding="utf-8")
     print(f"Creato {uscita} ({uscita.stat().st_size // 1024} KB)")
+    # I moduli pubblici, anch'essi in un file solo: messi accanto al CRM, i link «Apri il modulo» funzionano anche fuori da GitHub Pages
+    for pagina in ("sopralluogo.html", "modulo.html"):
+        testo = (RADICE / pagina).read_text(encoding="utf-8").replace('<link rel="stylesheet" href="css/stile.css">', "<style>\n" + css + "\n</style>")
+        testo = re.sub(r'<script src="(js/[^"]+)"></script>',
+                       lambda m: "<script>\n" + re.sub(r"</(script)", r"<\\/\1", (RADICE / m.group(1)).read_text(encoding="utf-8"), flags=re.I) + "\n</script>", testo)
+        (uscita.parent / pagina).write_text(testo, encoding="utf-8")
+        print(f"Creato {uscita.parent / pagina}")
 
 
 if __name__ == "__main__":

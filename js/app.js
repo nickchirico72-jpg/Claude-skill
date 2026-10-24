@@ -392,18 +392,7 @@ function disegnaAllocazione() {
           </table>
         </div>` : '<p class="vuoto">Nessuna proposta inviata.</p>') : ""}
 
-    ${richiudibile("portale", "Portale partner", '<span class="chip">evoluzione futura</span>', `
-      <p class="nota-piccola">Oggi il partner risponde SÌ o NO su WhatsApp e non usa nessuna app: la tecnologia sta solo dal lato Gate.
-        In futuro un portale potrebbe permettere al partner di vedere le richieste, rispondere con un clic e caricare il DURC aggiornato.</p>
-      <div class="anteprima-portale" aria-hidden="true">
-        <p class="commessa-codice">RICHIESTA DA GATE S.R.L.</p>
-        <p><strong>Pulizia Professionale · Modugno</strong></p>
-        <p class="nota-piccola">60 ore al mese · avvio tra 15 giorni</p>
-        <div class="pulsanti-risposta">
-          <button class="pulsante si piccolo" type="button" disabled tabindex="-1">Accetto</button>
-          <button class="pulsante no piccolo" type="button" disabled tabindex="-1">Rifiuto</button>
-        </div>
-      </div>`)}`;
+`;
 }
 
 // Riquadro richiudibile dell'Allocazione: titolo e riassunto sempre visibili, il resto con un clic (aperto o chiuso resta com'era)

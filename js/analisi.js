@@ -116,12 +116,12 @@ function previsioniDomani(opportunita = stato.opportunita) {
     { id: "contratti", titolo: "Contratti in arrivo",
       valore: offerte.length ? "circa " + Math.round(offerte.length * k.conversioneOfferte) + " contratti" : NESSUN_DATO,
       dettaglio: offerte.length ? formattaEuro(valoreOfferte * k.conversioneOfferte) + " all'anno" : "",
-      base: quanti(offerte.length, "offerta aperta", "offerte aperte") + " × " + formattaPercentuale(k.conversioneOfferte) + " delle offerte che oggi diventano contratti (K3)",
+      base: quanti(offerte.length, "offerta aperta", "offerte aperte") + " × " + formattaPercentuale(k.conversioneOfferte) + " delle offerte che oggi diventano contratti",
       azioni: di("contratti") },
     { id: "rischio", titolo: "Trattative a rischio",
       valore: quanti(ferme.length, "trattativa ferma", "trattative ferme"),
       dettaglio: formattaEuro(ferme.reduce((s, o) => s + ricaviAttesi(o), 0)) + " all'anno di ricavi attesi in gioco",
-      base: "ferme oltre i giorni previsti per la loro fase (K9), su " + quanti(aperte.length, "trattativa aperta", "trattative aperte"),
+      base: "ferme oltre i giorni previsti per la loro fase, su " + quanti(aperte.length, "trattativa aperta", "trattative aperte"),
       azioni: di("rischio") },
     { id: "capacita", titolo: "Capacità delle squadre",
       valore: scoperte.length ? "mancano " + scoperte.reduce((s, z) => s + z.mancano, 0) + " ore/mese" : "capacità sufficiente",
@@ -131,7 +131,7 @@ function previsioniDomani(opportunita = stato.opportunita) {
     { id: "contatti", titolo: "Nuovi contatti il prossimo mese",
       valore: recenti ? "circa " + Math.round(alMese) + " contatti" : NESSUN_DATO,
       dettaglio: recenti ? "da cui circa " + Math.round(alMese * k.winRate) + " contratti" : "",
-      base: "media degli ultimi 3 mesi (" + recenti + " contatti) × " + formattaPercentuale(k.winRate) + " di trattative chiuse con un contratto (K7)",
+      base: "media degli ultimi 3 mesi (" + recenti + " contatti) × " + formattaPercentuale(k.winRate) + " di trattative chiuse con un contratto",
       azioni: di("contatti") },
   ];
 }
@@ -292,8 +292,8 @@ function listaLunedi(rif = oggi(), opportunita = stato.opportunita) {
     })
     .sort((x, y) => y.evidenza - x.evidenza || y.valore - x.valore);   // prima quelli entro 60 giorni, poi per valore
   return [
-    { id: "risposta", titolo: "Richieste senza prima risposta", spiegazione: "da più di " + quanti(c.giorniLavorativiRisposta, "giorno lavorativo", "giorni lavorativi") + " (K12); giorni = giorni lavorativi di attesa", righe: ordina(senzaRisposta) },
-    { id: "ferme", titolo: "Trattative ferme", spiegazione: "oltre i giorni previsti per la loro fase (K9); giorni = giorni nella fase", righe: ordina(ferme) },
+    { id: "risposta", titolo: "Richieste senza prima risposta", spiegazione: "da più di " + quanti(c.giorniLavorativiRisposta, "giorno lavorativo", "giorni lavorativi") + "; giorni = giorni lavorativi di attesa", righe: ordina(senzaRisposta) },
+    { id: "ferme", titolo: "Trattative ferme", spiegazione: "oltre i giorni previsti per la loro fase; giorni = giorni nella fase", righe: ordina(ferme) },
     { id: "offerte", titolo: "Offerte senza esito", spiegazione: "inviate da più di " + c.giorniOffertaSenzaEsito + " giorni; giorni = giorni dall'invio", righe: ordina(offerte) },
     { id: "rinnovi", titolo: "Contratti da rinnovare", spiegazione: "in scadenza entro " + c.giorniScadenzaContratti + " giorni, in evidenza entro " + c.giorniScadenzaEvidenza + "; giorni = giorni alla scadenza", righe: contratti },
   ];

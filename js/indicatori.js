@@ -211,7 +211,7 @@ function vistaFittizi(livello) {
       <section class="sezione">
         <h2>Risultati per canale <span class="sottotitolo">i 7 gruppi di canale</span></h2>
         <div class="tabella-scorrevole"><table class="tabella">
-          <thead><tr><th>Canale</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Chiusura</th><th class="num">Punteggio medio</th><th class="num">Margine medio</th><th class="num">Costo per contratto (K4)</th></tr></thead>
+          <thead><tr><th>Canale</th><th class="num">Contatti</th><th class="num">Contratti</th><th class="num">Chiusura</th><th class="num">Punteggio medio</th><th class="num">Margine medio</th><th class="num">Costo per contratto</th></tr></thead>
           <tbody>${risultatiPerGruppo(tutte).filter((r) => r.contatti).map((r) => `<tr>
             <td><strong>${esc(maiuscola(r.gruppo))}</strong><br><span class="nota-piccola">${esc(r.canali.join(", "))}</span></td>
             <td class="num">${r.contatti}</td><td class="num">${r.contratti}</td>
@@ -512,14 +512,14 @@ function disegnaRiepilogo() {
         ${numeroRiepilogo("Contratti firmati", ora.contratti, confronto(ora.contratti, prima.contratti))}
         ${numeroRiepilogo("Valore dei contratti", formattaEuro(ora.valore), "all'anno · " + confronto(ora.valore, prima.valore))}
         ${numeroRiepilogo("Trattative perse", ora.perse, (motivo ? "soprattutto «" + esc(motivo.motivo) + "» · " : "") + confronto(ora.perse, prima.perse, true))}
-        ${numeroRiepilogo("Prima risposta", formattaGiorni(ora.risposta), "media (K12) · " + confronto(ora.risposta, prima.risposta, true))}
+        ${numeroRiepilogo("Prima risposta", formattaGiorni(ora.risposta), "media · " + confronto(ora.risposta, prima.risposta, true))}
       </div>
 
       <h3>Oggi</h3>
       <div class="riepilogo-numeri quattro">
-        ${numeroRiepilogo("Trattative aperte", p.aperte, k.ferme + " ferme (K9)")}
-        ${numeroRiepilogo("Ricavi attesi", formattaEuro(p.ponderata), "all'anno, pesati per fase (K6)")}
-        ${numeroRiepilogo("Trattative buone", quota(portafoglio.buone.n, portafoglio.totale.n), "punteggio da " + CONFIG.punteggio.buona + " in su (K11)")}
+        ${numeroRiepilogo("Trattative aperte", p.aperte, k.ferme + " ferme")}
+        ${numeroRiepilogo("Ricavi attesi", formattaEuro(p.ponderata), "all'anno, pesati per fase")}
+        ${numeroRiepilogo("Trattative buone", quota(portafoglio.buone.n, portafoglio.totale.n), "punteggio da " + CONFIG.punteggio.buona + " in su")}
         ${numeroRiepilogo("Commesse da assegnare", daAssegnare, "contratti firmati senza squadra o partner")}
       </div>
       <p class="riepilogo-tempo">Tempo risparmiato con il CRM, stima: <strong>${tempoRisparmiato().ore.toLocaleString("it-IT", { maximumFractionDigits: 1 })} ore</strong>
