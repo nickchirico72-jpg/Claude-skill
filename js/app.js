@@ -2012,7 +2012,7 @@ const SCHERMATE = {
   oggi: disegnaOggi,             // schermata di apertura: le cose da fare oggi e le trattative per fase (oggi.js)
   direzione: disegnaDirezione,   // quattro numeri e le decisioni della settimana, per l'amministratore
   clienti: disegnaClienti,
-  cliente: disegnaSchedaCliente, // scheda di un'azienda: #cliente-<id>
+  cliente: disegnaClienteAffiancato, // scheda di un'azienda: #cliente-<id>, con l'elenco accanto su schermo largo
   preventivo: disegnaPreventivo, // preventivo di un'opportunità: #preventivo-<id>
   allocazione: disegnaAllocazione,
   indicatori: disegnaIndicatori,

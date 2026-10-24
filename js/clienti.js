@@ -215,13 +215,8 @@ function chipStato(aziendaId) {
 
 const LIMITE_CLIENTI = 30; // aziende mostrate prima di «Mostra le altre»
 
-// Righe dell'elenco: prima le aziende con un'attività scaduta o di oggi, poi quelle con una prossima azione
-// (per data), poi le altre in ordine alfabetico. Le prossime azioni si calcolano una volta sola
-function schedeClienti(aziende) {
-  if (!aziende.length) {
-    return `<div class="vuoto">Nessuna azienda trovata.
-      <button class="pulsante secondario piccolo" type="button" data-azione="cancella-filtri">Cancella i filtri</button></div>`;
-  }
+// Ordine dell'elenco con la prossima azione di ogni azienda (calcolata una volta sola)
+function ordinaClienti(aziende) {
   const prossime = new Map();
   attivitaDaFare().forEach((x) => { if (!prossime.has(x.aziendaId)) prossime.set(x.aziendaId, x); });
   // 0 = scaduta o di oggi, 1 = prossima azione futura, 2 = nessuna
@@ -229,6 +224,37 @@ function schedeClienti(aziende) {
   const ordinate = [...aziende].sort((x, y) => gruppo(x) - gruppo(y)
     || (gruppo(x) < 2 ? prossime.get(x.id).data.localeCompare(prossime.get(y.id).data) : 0)
     || x.ragioneSociale.localeCompare(y.ragioneSociale));
+  return { ordinate, prossime };
+}
+
+// Elenco stretto accanto alla scheda (solo su schermo largo): nome, stato, comune e prossima azione; l'azienda aperta è evidenziata
+function righeLaterali(idScelto) {
+  const { ordinate, prossime } = ordinaClienti(aziendeFiltrate());
+  if (!ordinate.length) return '<p class="vuoto">Nessun cliente trovato. Controlla il nome o registra una nuova richiesta.</p>';
+  return ordinate.map((a) => {
+    const p = prossime.get(a.id);
+    return `<a class="riga-laterale" href="#cliente-${esc(a.id)}" ${a.id === idScelto ? 'aria-current="true"' : ""}>
+      <span class="riga-laterale-alto"><strong>${esc(a.ragioneSociale)}</strong> ${chipStato(a.id)}</span>
+      <span class="nota-piccola">${esc(a.comune)}${p ? " · " + esc(accorcia(p.testo, 38)) : ""}</span></a>`;
+  }).join("");
+}
+
+// Colonna con ricerca ed elenco, a sinistra della scheda del cliente
+function elencoLaterale(idScelto) {
+  return `<aside class="elenco-laterale" aria-label="Elenco dei clienti">
+      <label class="campo-cerca">${icona("cerca")}<input type="search" id="cerca-laterale" placeholder="Cerca per nome o comune" aria-label="Cerca un cliente" value="${esc(interfaccia.filtri.testo)}"></label>
+      <nav id="righe-laterali" class="righe-laterali">${righeLaterali(idScelto)}</nav>
+    </aside>`;
+}
+
+// Righe dell'elenco: prima le aziende con un'attività scaduta o di oggi, poi quelle con una prossima azione
+// (per data), poi le altre in ordine alfabetico. Le prossime azioni si calcolano una volta sola
+function schedeClienti(aziende) {
+  if (!aziende.length) {
+    return `<div class="vuoto">Nessuna azienda trovata.
+      <button class="pulsante secondario piccolo" type="button" data-azione="cancella-filtri">Cancella i filtri</button></div>`;
+  }
+  const { ordinate, prossime } = ordinaClienti(aziende);
   const limite = interfaccia.clientiMostrati || LIMITE_CLIENTI;
   const altre = ordinate.length - limite;
   // Riga compatta: azienda e stato, referente principale con i pulsanti di contatto, opportunità e prossima azione
@@ -259,6 +285,11 @@ function schedeClienti(aziende) {
 }
 
 // ============================================================== SCHEDA CLIENTE
+
+// Su schermo largo elenco e scheda affiancati (si passa da un cliente all'altro con un clic); da telefono solo la scheda
+function disegnaClienteAffiancato(id) {
+  return `<div class="clienti-affiancati">${elencoLaterale(id)}<div class="scheda-affiancata">${disegnaSchedaCliente(id)}</div></div>`;
+}
 
 function disegnaSchedaCliente(id) {
   const a = trovaAzienda(id);
@@ -771,3 +802,11 @@ const GESTORI_MODULI = {
     { messaggio: "Prossima azione fissata: " + accorcia(testo, 40) + " " + formattaGiorno(data), evidenzia: o ? o.id : null });
   },
 };
+
+// Ricerca nell'elenco accanto alla scheda: aggiorna solo le righe (stesso filtro della schermata Clienti)
+document.addEventListener("input", (evento) => {
+  if (evento.target.id !== "cerca-laterale") return;
+  interfaccia.filtri.testo = evento.target.value;
+  const scelto = location.hash.startsWith("#cliente-") ? location.hash.slice(9) : "";
+  document.getElementById("righe-laterali").innerHTML = righeLaterali(scelto);
+});

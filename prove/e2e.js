@@ -971,6 +971,23 @@ const PROVE = {
     await ctx.close();
   },
 
+  // Clienti: su schermo largo elenco e scheda affiancati, da telefono solo la scheda
+  async clientiAffiancati() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#cliente-c1');
+    verifica('schermo largo: elenco accanto alla scheda, cliente aperto evidenziato', await page.isVisible('#cerca-laterale') && !!(await page.$('.riga-laterale[aria-current="true"][href="#cliente-c1"]')));
+    await page.click('.riga-laterale:not([aria-current]) >> nth=0');
+    verifica('un clic su un altro cliente apre la sua scheda', await page.evaluate(() => location.hash.startsWith('#cliente-') && location.hash !== '#cliente-c1'));
+    await page.fill('#cerca-laterale', 'zzzz');
+    verifica('ricerca senza risultati: istruzione', /Nessun cliente trovato/.test(await page.textContent('#righe-laterali')));
+    await ctx.close();
+    const tel = await apri('telefono');
+    await tel.page.goto(BASE + 'index.html#cliente-c1');
+    verifica('telefono: solo la scheda, senza elenco e senza scorrimento orizzontale', !(await tel.page.isVisible('#cerca-laterale')) && !(await scorreOrizzontale(tel.page)));
+    verifica('zero errori', errori.length === 0 && tel.errori.length === 0, errori.concat(tel.errori).join(' | '));
+    await tel.ctx.close();
+  },
+
   // Il file unico da condividere (dist/) si apre da solo e disegna la prima schermata, senza errori
   async fileUnico() {
     require('child_process').execSync('python3 strumenti/versione_unica.py', { cwd: REPO });

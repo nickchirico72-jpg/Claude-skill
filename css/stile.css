@@ -4520,3 +4520,69 @@ h1[tabindex="-1"]:focus {
 .decisioni {
   margin-bottom: 16px;
 }
+
+/* Clienti: elenco e scheda affiancati da 1100 px in su; sotto, l'elenco laterale sparisce e resta la scheda */
+.elenco-laterale {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .clienti-affiancati {
+    display: grid;
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .elenco-laterale {
+    position: sticky;
+    top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: calc(100vh - 32px);
+  }
+
+  .righe-laterali {
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+  }
+
+  .riga-laterale {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 44px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--border);
+    color: var(--foreground);
+    text-decoration: none;
+  }
+
+  .riga-laterale:first-child {
+    border-top: 0;
+  }
+
+  .riga-laterale:hover {
+    background: var(--muted);
+  }
+
+  .riga-laterale[aria-current="true"] {
+    background: var(--muted);
+    box-shadow: inset 3px 0 0 var(--primary);
+  }
+
+  .riga-laterale-alto {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+/* Nella scheda affiancata le colonne sono più strette: le etichette vanno a capo invece di uscire dal riquadro */
+.scheda-affiancata .chip {
+  white-space: normal;
+}
