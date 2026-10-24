@@ -208,7 +208,7 @@ function apriNota() {
       <div>
         <h2>Nuova richiesta da nota</h2>
         <p class="nota-piccola">Scrivi la nota della telefonata o dell'incontro, oppure dettala con il microfono della tastiera del telefono o del computer.
-          L'assistente propone i campi con regole: tu controlli, correggi e confermi.</p>
+          Mentre scrivi, l'assistente propone i campi con regole: tu controlli, correggi e confermi.</p>
       </div>
       <label>Nota *
         <textarea name="nota" rows="5" required placeholder="Es. Ha chiamato la titolare dello Studio Rossi di Bari: uffici di 200 mq, pulizia 2 volte a settimana, ci ha conosciuti tramite LinkedIn, 333 000 0000"></textarea>
@@ -351,6 +351,21 @@ document.addEventListener("change", (evento) => {
     leggiNota();
   } else if (campo.dataset.campoNota !== undefined) correggiCampoNota(campo);
 });
+// Nota scritta a mano: si legge da sola poco dopo l'ultima battuta, come le note di esempio
+let timerNota = null;
+function letturaAutomaticaNota() {
+  const modulo = document.getElementById("modulo-nota");
+  if (!modulo || modulo.querySelector('.campo-nota[data-stato="corretto"]')) return; // non sovrascrive i campi corretti a mano
+  if (modulo.nota.value.trim()) return leggiNota();
+  document.getElementById("campi-nota").innerHTML = "";
+  document.getElementById("conferma-nota").hidden = true;
+}
+
 document.addEventListener("input", (evento) => {
+  if (evento.target.name === "nota" && evento.target.closest && evento.target.closest("#modulo-nota")) {
+    clearTimeout(timerNota);
+    timerNota = setTimeout(letturaAutomaticaNota, 700);
+    return;
+  }
   if (evento.target.dataset && evento.target.dataset.campoNota !== undefined && evento.target.closest("#modulo-nota")) correggiCampoNota(evento.target);
 });

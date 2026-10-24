@@ -945,6 +945,20 @@ const PROVE = {
     await ctx.close();
   },
 
+  // Nota scritta a mano (non di esempio): i campi si propongono da soli e «Conferma e registra» compare
+  async notaScritta() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#oggi');
+    await page.evaluate(() => apriNota());
+    await page.fill('#modulo-nota [name=nota]', 'Ha chiamato la titolare dello Studio Verdi di Bari: uffici di 150 mq, pulizia 2 volte a settimana, ci ha trovati su LinkedIn, 333 123 4567');
+    await page.waitForSelector('#conferma-nota:not([hidden])', { timeout: 3000 });
+    verifica('nota scritta: campi proposti senza premere «Leggi la nota»', (await page.$$('#campi-nota .campo-nota')).length > 5);
+    await clic(page, '#conferma-nota');
+    verifica('nota scritta: si registra e apre il preventivo', await page.evaluate(() => location.hash.startsWith('#preventivo-')));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
   // Il file unico da condividere (dist/) si apre da solo e disegna la prima schermata, senza errori
   async fileUnico() {
     require('child_process').execSync('python3 strumenti/versione_unica.py', { cwd: REPO });
