@@ -216,6 +216,8 @@ function estraiNota(testo) {
     nome: estraiNome(t, a, ruolo),
     servizio: servizioNota.valore ? servizioNota : servizio ? { valore: servizio, frase: "proposto dal settore", stato: "controllare" } : campo("", t, 0),
     ore: estraiOre(t),
+    // Tutti i servizi citati: se sono più di uno, alla conferma nasce una trattativa per ciascuno
+    serviziTrovati: Object.entries(a.servizi).filter(([, parole]) => trovaParole(t, parole).length).map(([nome]) => nome),
   };
 }
 
@@ -318,6 +320,8 @@ function leggiNota() {
           <p class="stato-campo"><span class="chip ${s.classe}" id="stato-${k}">${s.testo}</span>${c.frase ? ` <span class="frase-nota">da «${esc(c.frase)}»</span>` : ""}</p>
         </div>`;
       }).join("")}
+      ${campi.serviziTrovati.length > 1 ? `<fieldset class="campo-nota altri-servizi"><legend>La nota chiede più servizi: alla conferma nasce una trattativa per ciascuno</legend>
+        ${campi.serviziTrovati.map((x) => `<label class="spunta"><input type="checkbox" name="altroServizio" value="${esc(x)}" checked> ${esc(maiuscola(x))}</label>`).join("")}</fieldset>` : ""}
       <div class="campo-nota"><label>Data della richiesta * <input name="dataRichiesta" type="date" required max="${oggi()}" value="${oggi()}"></label>
         <p class="stato-campo"><span class="frase-nota">oggi, se la richiesta è arrivata oggi</span></p></div>
     </div>`;
@@ -343,6 +347,8 @@ function registraDaNota(modulo) {
   const secondi = secondiNota();
   const doppioni = possibiliDoppioni({ ragioneSociale: v("azienda"), telefono: v("telefono"), email: v("email") });
   let opp = null;
+  // Altri servizi spuntati (diversi da quello principale): una trattativa in più per ciascuno
+  const altri = [...modulo.querySelectorAll("[name=altroServizio]:checked")].map((c) => c.value).filter((x) => x !== v("servizio") && Object.hasOwn(CONFIG.servizi, x));
   applica(() => {
     let azienda = doppioni.length ? doppioni[0].azienda : null;
     if (!azienda) {
@@ -368,9 +374,17 @@ function registraDaNota(modulo) {
     registraAttivita({ aziendaId: azienda.id, referenteId: referente ? referente.id : null, opportunitaId: opp.id, tipo: "Nota",
       data: v("dataRichiesta"), testo: "Nota della richiesta: " + modulo.nota.value.trim() });
     cadenza(opp, CONFIG.fasi[0], oggi());   // promemoria: chiamata di qualifica
+    altri.forEach((servizio) => {
+      const altra = opportunitaDaRichiesta({ tipo: "nota", servizio, ambiente: v("ambiente"), mq: Number(v("mq")) || 0, frequenza: v("frequenza"),
+        fonte: v("canale"), campagna: "", contenuto: "", pagina: "", consenso: false, ore: "" }, azienda.id, referente ? referente.id : null, v("comune") || azienda.comune);
+      altra.storico.contatto = v("dataRichiesta");
+      stato.opportunita.push(altra);
+      cadenza(altra, CONFIG.fasi[0], oggi());
+    });
     stato.tempiRegistrazione = (stato.tempiRegistrazione || []).concat({ id: nuovoId("tr"), opportunitaId: opp.id, secondi, data: oggi() });
     ultimaModificata = opp.id;
-  }, { messaggio: () => "Richiesta registrata in " + secondi + " secondi: preventivo e punteggio pronti", vai: () => "preventivo-" + opp.id, fase: "contatto" });
+  }, { messaggio: () => "Richiesta registrata in " + secondi + " secondi: preventivo e punteggio pronti"
+    + (altri.length ? " (più " + quanti(altri.length, "trattativa", "trattative") + " per gli altri servizi)" : ""), vai: () => "preventivo-" + opp.id, fase: "contatto" });
   if (notaAperta) clearInterval(notaAperta.timer);
   notaAperta = null;
 }

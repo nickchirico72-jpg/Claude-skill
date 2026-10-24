@@ -958,6 +958,15 @@ const PROVE = {
     verifica('nota scritta: campi proposti senza premere «Leggi la nota»', (await page.$$('#campi-nota .campo-nota')).length > 5);
     await clic(page, '#conferma-nota');
     verifica('nota scritta: si registra e apre il preventivo', await page.evaluate(() => location.hash.startsWith('#preventivo-')));
+    await page.goto(BASE + 'index.html#oggi');
+    // Più servizi nella stessa nota: una trattativa per ciascuno, stessa azienda
+    await page.evaluate(() => apriNota());
+    await page.fill('#modulo-nota [name=nota]', "Ha chiamato la segreteria dell'azienda Delta Servizi di Bari: pulizie degli uffici e manutenzione del verde, 333 765 4321");
+    await page.waitForSelector('[name=altroServizio]', { timeout: 3000 });
+    const primaN = await page.evaluate(() => stato.opportunita.length);
+    await clic(page, '#conferma-nota');
+    const dopoN = await page.evaluate(() => { const nuove = stato.opportunita.slice(-2); return { n: stato.opportunita.length, stessa: nuove[0].aziendaId === nuove[1].aziendaId, servizi: nuove.map((o) => o.servizio).sort().join(',') }; });
+    verifica('nota con due servizi: due trattative per la stessa azienda', dopoN.n === primaN + 2 && dopoN.stessa && dopoN.servizi === 'cleaning e hospitality,servizi alle strutture', JSON.stringify(dopoN));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },
