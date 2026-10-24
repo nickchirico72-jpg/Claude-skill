@@ -308,7 +308,7 @@ const PROVE = {
     await page.selectOption('#modulo-nota [name=esempio]', '0');
     await page.waitForSelector('.campo-nota');
     const stati = await page.$$eval('.campo-nota[data-stato]', (el) => el.map((e) => e.dataset.stato));
-    verifica('scheda: ogni campo con stato e frase da cui viene', stati.length === 12 && stati.includes('sicuro') && (await page.$$('.frase-nota')).length >= 9, stati.join(','));
+    verifica('scheda: ogni campo con stato e frase da cui viene', stati.length === 13 && stati.includes('sicuro') && (await page.$$('.frase-nota')).length >= 9, stati.join(','));
     verifica('niente si salva prima della conferma', (await page.evaluate(() => stato.opportunita.length)) === prima);
     await page.fill('#modulo-nota [name=nome]', 'Dott.ssa Laura Bianchi');
     verifica('un campo corretto a mano diventa «corretto da te»', /corretto da te/.test(await page.textContent('#stato-nome')));
@@ -952,6 +952,9 @@ const PROVE = {
     await page.evaluate(() => apriNota());
     await page.fill('#modulo-nota [name=nota]', 'Ha chiamato la titolare dello Studio Verdi di Bari: uffici di 150 mq, pulizia 2 volte a settimana, ci ha trovati su LinkedIn, 333 123 4567');
     await page.waitForSelector('#conferma-nota:not([hidden])', { timeout: 3000 });
+    const lum = await page.evaluate(() => { const c = estraiNota('Ha chiamato il reparto tecnico-amministrativo della LUM (casamssima) fissando una commessa per 300 ore al mese per pulizie degli ambienti universitari');
+      return [c.azienda.valore, c.comune.valore, c.ore.valore, c.servizio.valore, c.settore.stato].join(' | '); });
+    verifica('nota con sigla, comune sbagliato e ore: LUM, Casamassima, 300 ore, pulizie (settore da controllare)', lum === 'LUM | Casamassima | 300 | cleaning e hospitality | controllare', lum);
     verifica('nota scritta: campi proposti senza premere «Leggi la nota»', (await page.$$('#campi-nota .campo-nota')).length > 5);
     await clic(page, '#conferma-nota');
     verifica('nota scritta: si registra e apre il preventivo', await page.evaluate(() => location.hash.startsWith('#preventivo-')));

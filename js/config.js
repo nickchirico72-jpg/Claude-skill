@@ -302,7 +302,8 @@ const CONFIG = {
     // Parole con cui comincia il nome dell'azienda (fanno parte del nome), dalla più lunga
     prefissi: ["Studio Legale", "Studio Tecnico", "Studio Commercialisti", "Studio Medico", "Studio", "Poliambulatorio", "Clinica",
       "Laboratorio Analisi", "Laboratorio", "Hotel", "Albergo", "B&B", "Residence", "Ristorante", "Supermercato", "Discount",
-      "Centro Uffici", "Centro Commerciale", "Agenzia", "Negozio", "Officine", "Istituto", "Consorzio", "Deposito", "Autotrasporti"],
+      "Centro Uffici", "Centro Commerciale", "Agenzia", "Negozio", "Officine", "Istituto", "Consorzio", "Deposito", "Autotrasporti",
+      "Università", "Ospedale", "Farmacia", "Palestra"],
     settori: {
       "uffici e commercio": ["ufficio", "uffici", "studio legale", "studio tecnico", "studio professionale", "commercialist*", "notai*",
         "avvocat*", "agenzia", "negozio", "negozi", "showroom", "coworking", "amministrativ*"],
@@ -311,7 +312,7 @@ const CONFIG = {
       "ricettivo": ["hotel", "albergo", "b&b", "residence", "ristorant*", "camere", "ricettiv*"],
       "sanità": ["ambulatori*", "poliambulatori*", "clinica", "studio medico", "laboratorio analisi", "dentist*", "sanitari*"],
       "trasporti": ["logistica", "autotrasport*", "spedizion*", "autostazione", "corrier*"],
-      "enti pubblici": ["comune di", "scuola", "istituto", "asl", "pubblica amministrazione", "ufficio comunale"],
+      "enti pubblici": ["comune di", "scuola", "istituto", "asl", "pubblica amministrazione", "ufficio comunale", "universit*"],
     },
     // Tipo di ambienti del preventivo (nomi uguali a preventivo.ambienti)
     ambienti: {
@@ -342,6 +343,12 @@ const CONFIG = {
       "socio amministratore", "amministratore delegato", "amministratore", "titolare", "direttore", "direttrice", "segreteria",
       "segretaria", "proprietario", "presidente", "responsabile"],
     titoli: ["sig.ra", "sig.", "signora", "signor", "dott.ssa", "dott.", "dottoressa", "dottor", "avv.", "ing.", "arch."],
+    // Servizio riconosciuto dalle parole della nota (prevale su quello proposto dal settore)
+    servizi: {
+      "cleaning e hospitality": ["pulizi*", "sanificazion*", "igienizzazion*", "portineria", "reception", "accoglienza"],
+      "logistica e retail": ["facchinaggio", "logistica", "scaffalatur*", "rifornimento", "movimentazione"],
+      "servizi alle strutture": ["manutenzion*", "giardinaggio", "verde", "impianti", "piccoli lavori"],
+    },
     // Servizio proposto in base al settore (si può cambiare prima di confermare)
     servizioPerSettore: {
       "uffici e commercio": "cleaning e hospitality", "GDO": "logistica e retail", "industria": "servizi alle strutture",

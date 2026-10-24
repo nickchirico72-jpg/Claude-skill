@@ -19,7 +19,7 @@ const CAMPI_NOTA = [
   ["azienda", "Azienda *", "testo"], ["comune", "Comune", "comuni"], ["settore", "Settore", "settori"], ["mq", "Metri quadri", "numero"],
   ["ambiente", "Tipo di ambienti", "ambienti"], ["frequenza", "Frequenza", "frequenze"], ["canale", "Canale *", "canali"],
   ["ruolo", "Ruolo del referente", "testo"], ["telefono", "Telefono", "testo"], ["email", "Email", "testo"],
-  ["nome", "Nome del referente", "testo"], ["servizio", "Servizio *", "servizi"],
+  ["nome", "Nome del referente", "testo"], ["servizio", "Servizio *", "servizi"], ["ore", "Ore al mese", "numero"],
 ];
 
 // Espressione regolare di una parola chiave: parola intera, oppure inizio di parola se finisce con *
@@ -84,6 +84,11 @@ function estraiAzienda(testo, a) {
     const primo = candidati.sort((x, y) => x.indice - y.indice)[0];
     return campo(primo.valore, testo, primo.indice, "sicuro");
   }
+  // Poi: un nome dopo «della», «del», «presso», «per conto di» (anche una sigla come «LUM»), se non è un comune
+  const dopo = [...testo.matchAll(/(?<![\p{L}])(?:dell[ao]|dell'|del|presso(?:\s+la|\s+il|\s+lo)?|per conto (?:di|della|del))\s*(?=[A-ZÀ-Ý])/gu)]
+    .map((m) => ({ parole: paroleNome(testo, m.index + m[0].length - 1), indice: m.index }))
+    .filter((x) => x.parole.length && !CONFIG.comuni.some((c) => c.nome === x.parole.join(" ")));
+  if (dopo.length) return campo(dopo[0].parole.join(" "), testo, dopo[0].indice, "controllare");
   // Ultima possibilità: due parole maiuscole di seguito a metà frase (da controllare: potrebbe essere una persona)
   const m = testo.match(/(?<=[a-zà-ÿ,]\s)([A-ZÀ-Ý][\p{L}'&]+\s+[A-ZÀ-Ý][\p{L}'&]+)/u);
   return m ? campo(m[1], testo, m.index, "controllare") : campo("", testo, 0);
@@ -106,9 +111,40 @@ function estraiComune(testo) {
       if (!trovati.some((x) => t.indice < x.fine && t.fine > x.indice)) trovati.push({ ...t, nome: c.nome });
     });
   });
-  if (!trovati.length) return campo("", testo, 0);
+  if (!trovati.length) return comuneSimile(testo);
   const primo = trovati.sort((x, y) => x.indice - y.indice)[0];
   return campo(primo.nome, testo, primo.indice, new Set(trovati.map((t) => t.nome)).size === 1 ? "sicuro" : "controllare");
+}
+
+// Lettere da cambiare per passare da una parola all'altra (distanza di Levenshtein)
+function distanza(a, b) {
+  let riga = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const nuova = [i];
+    for (let j = 1; j <= b.length; j++) nuova[j] = Math.min(riga[j] + 1, nuova[j - 1] + 1, riga[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    riga = nuova;
+  }
+  return riga[b.length];
+}
+
+// Comune scritto con un errore di battitura («casamssima»): 1 lettera sbagliata fino a 7 lettere, 2 oltre (da controllare)
+function comuneSimile(testo) {
+  const parole = [...testo.matchAll(/[\p{L}']+/gu)];
+  for (const c of CONFIG.comuni) {
+    const n = c.nome.split(/\s+/).length;
+    for (let i = 0; i + n <= parole.length; i++) {
+      const gruppo = parole.slice(i, i + n).map((m) => m[0]).join(" ").toLowerCase();
+      const d = distanza(gruppo, c.nome.toLowerCase());
+      if (d > 0 && gruppo.length >= 5 && d <= (c.nome.length > 7 ? 2 : 1)) return campo(c.nome, testo, parole[i].index, "controllare");
+    }
+  }
+  return campo("", testo, 0);
+}
+
+// Ore al mese: «300 ore al mese», «40 ore mensili»
+function estraiOre(testo) {
+  const m = testo.match(/(\d{1,4})\s*ore\s*(?:(?:al|a|per|ogni)\s+mese|mensili)/i);
+  return m ? campo(Number(m[1]), testo, m.index, "sicuro") : campo("", testo, 0);
 }
 
 // Metri quadri: numero seguito da «mq», «m2» o «metri» (anche «1.200 metri quadri»)
@@ -171,13 +207,15 @@ function estraiNota(testo) {
   const settore = estraiPerParole(t, a.settori);
   const ruolo = estraiRuolo(t, a);
   const servizio = a.servizioPerSettore[settore.valore];
+  const servizioNota = estraiPerParole(t, a.servizi);
   return {
     azienda: estraiAzienda(t, a), comune: estraiComune(t), settore, mq: estraiMq(t), ambiente: estraiPerParole(t, a.ambienti),
     frequenza: estraiFrequenza(t, a), canale: estraiCanale(t, a), ruolo: { valore: ruolo.valore, frase: ruolo.frase, stato: ruolo.stato },
     telefono: telefono ? campo(telefono[0].trim(), t, telefono.index, "sicuro") : campo("", t, 0),
     email: email ? campo(email[0], t, email.index, "sicuro") : campo("", t, 0),
     nome: estraiNome(t, a, ruolo),
-    servizio: servizio ? { valore: servizio, frase: "proposto dal settore", stato: "controllare" } : campo("", t, 0),
+    servizio: servizioNota.valore ? servizioNota : servizio ? { valore: servizio, frase: "proposto dal settore", stato: "controllare" } : campo("", t, 0),
+    ore: estraiOre(t),
   };
 }
 
@@ -324,6 +362,7 @@ function registraDaNota(modulo) {
     }
     opp = opportunitaDaRichiesta({ tipo: "nota", servizio: v("servizio"), ambiente: v("ambiente"), mq: Number(v("mq")) || 0, frequenza: v("frequenza"),
       fonte: v("canale"), campagna: "", contenuto: "", pagina: "", consenso: false, ore: "" }, azienda.id, referente ? referente.id : null, v("comune") || azienda.comune);
+    if (Number(v("ore")) > 0) opp.ore = Math.round(Number(v("ore")));   // ore dette nella nota: prevalgono sulla stima da mq e frequenza
     opp.storico.contatto = v("dataRichiesta");   // la richiesta può essere arrivata prima di oggi; annotata oggi
     stato.opportunita.push(opp);
     registraAttivita({ aziendaId: azienda.id, referenteId: referente ? referente.id : null, opportunitaId: opp.id, tipo: "Nota",
