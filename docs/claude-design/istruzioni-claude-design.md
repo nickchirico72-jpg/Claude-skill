@@ -1,6 +1,6 @@
 # Istruzioni e memoria per Claude Design: prototipo gestionale commerciale di Gate srl
 
-*Versione 1, 23/10/2026. Da caricare in Claude Design insieme all'HTML del prototipo. Aggiorna la sezione 16 (registro) a ogni sessione.*
+*Versione 2, 24/10/2026 (allineata al prototipo in Claude Code). Da caricare in Claude Design insieme all'HTML del prototipo. Aggiorna la sezione 16 (registro) a ogni sessione.*
 
 ---
 
@@ -50,25 +50,36 @@ Lavori come un piccolo team senior che unisce tre competenze:
 5. **P5 Contratto e avvio**: controllo che ci sia una squadra disponibile.
 6. **P6 Report e rinnovo**: report periodico al cliente (anche sostenibilità), avviso dei rinnovi.
 
-Fasi della trattativa nel prototipo: richiesta → sopralluogo → offerta → firmato, più "perso" con motivo obbligatorio.
+Fasi della trattativa nel prototipo: richiesta → sopralluogo → offerta → firmato, più "perso" con motivo obbligatorio. Nel database restano 5 fasi (contatto, qualificato, sopralluogo, offerta, contratto): la «Richiesta» dell'interfaccia unisce contatto e qualificato.
 
 ## 6. Cosa c'è già nel prototipo (da conservare)
 
-Pipeline per fasi con azioni dirette (fissa sopralluogo, avanza, perso); schede "Da fare oggi" e "Da seguire"; schede azienda con referenti, opportunità, attività e cronologia; "Qual è la prossima azione?"; cancellazione dei dati personali di un referente; salvataggio e caricamento del backup in formato JSON; esportazione per Excel; "Collega sito e social" (link tracciati per canale, importazione di contatti da WhatsApp, email e campagne); dati di esempio ripristinabili; palette e caratteri del sito di Gate; attenzione ad accessibilità e contrasto.
+Menu per ruolo (al primo uso «Chi sta lavorando?»: nome e ruolo):
+- **Amministratore unico**: si apre sul Cruscotto; tutte le schermate e le operazioni che sostituiscono i dati (gestionale, backup, dati di esempio).
+- **Commerciale**: si apre su Oggi; Oggi, Clienti, Allocazione, Cruscotto, Documenti.
+- **Marketing e analisi**: si apre sul Cruscotto con gli approfondimenti; Clienti in sola consultazione, Documenti con i dati reali, sito e social.
+
+Schermate:
+- **Oggi** (apertura del commerciale): data, «Nuova richiesta» (richiesta da nota), al massimo 3 schede d'azione con un solo pulsante, «Poi, se resta tempo», avvisi, trattative per fase.
+- **Scheda della trattativa** (pagina intera): avanzamento in 4 passi, «Prossimo passo» con un solo pulsante principale, servizio, cronologia, referente, richiesta, perché del punteggio, chi la eseguirebbe, correzioni.
+- **Clienti**: righe compatte con ricerca e filtri; scheda del cliente con referenti, cronologia, prossima azione, privacy; su computer l'elenco accanto alla scheda.
+- **Preventivo**: misure, pacchetto (Base, Plus, Completo), tariffa, margine, punteggio, avviso di capacità delle squadre, offerta stampabile senza margine.
+- **Allocazione**: squadre interne, partner su WhatsApp, DURC.
+- **Cruscotto**: quattro numeri con obiettivo e andamento, tre decisioni della settimana, dove e perché si perdono i clienti con il rimedio, canali con i costi, sei indicatori di controllo, tempo risparmiato; «Approfondisci» apre gli indicatori lungo il percorso del cliente.
+- **Documenti**: riepilogo del mese e lista del lunedì da stampare, CSV per il gestionale ed Excel, dati reali, backup.
+- **Come funziona**: i cinque livelli della piattaforma e la demo guidata in 7 passi.
+
+Sempre: firma da link, richiesta da nota a regole (più servizi = una trattativa per ciascuno), cancellazione dei dati personali del referente, palette e caratteri del sito di Gate.
 
 ## 7. Cosa migliorare (backlog in ordine di priorità)
 
-1. **Schermata "Oggi"** come pagina iniziale: al massimo 3 schede d'azione (risposta in ritardo, sopralluogo di oggi, offerta da inviare), un solo pulsante per scheda.
-2. **Scheda della richiesta**: avanzamento in 4 passi visibile, un solo pulsante principale che cambia con la fase, pacchetto consigliato e cronologia.
-3. **Richiesta da nota** (N1): incolli un messaggio o una nota, il prototipo propone i campi compilati; la persona controlla e salva.
-4. **Offerta da pacchetto** (N2): offerta generata dal pacchetto del settore, con firma simulata da link.
-5. **Tempo risparmiato** (N3): ore ed euro risparmiati rispetto al processo attuale (stima, dichiararla come tale).
-6. **Lista del lunedì e rinnovi** (N4).
-7. **Ponte con il gestionale di Gate** (N5): importazione ed esportazione CSV nei campi del dizionario dati.
-8. **Vista "Come funziona"** (N6) e percorso della demo da 90 secondi in massimo 5 clic.
-9. **Report mensile** al cliente (N7, opzionale), con una sezione sostenibilità.
+Fatto: Oggi, Scheda della trattativa, Cruscotto, Richiesta da nota (N1), Offerta da pacchetto (N2), Tempo risparmiato (N3), Lista del lunedì (N4), Ponte con il gestionale (N5), Come funziona (N6), ruoli.
 
-Riferimento visivo già pronto: canvas "Gate prototipo: restyling" con le schermate Oggi, Scheda della richiesta e Cruscotto.
+Da fare:
+1. **Offerta da firmare, vista del cliente** (schermata 10): pagina che il cliente apre dal link, senza account, con l'offerta e la firma simulata dichiarata come tale.
+2. **Offerta unica con più servizi**: da decidere dopo l'incontro con Alfredo del 29/10 (un prezzo unico o una riga per servizio).
+3. **Disponibilità delle squadre per data** («squadra disponibile da [data]»): manca il dato.
+4. **Report mensile al cliente** (N7, opzionale), con una sezione sostenibilità.
 
 ## 8. Dati (dizionario dati v1, sintesi)
 
@@ -90,26 +101,26 @@ Usa questi codici nel codice e nei commenti. Nell'interfaccia scrivi il nome per
 | K3 | Conversione delle offerte | Contratti firmati / offerte con esito, per opportunità |
 | K4 | Costo di acquisizione per canale | Costo del canale / clienti acquisiti da quel canale |
 | K5 | Margine atteso | Valore × margine × probabilità della fase |
-| K6 | Trattative pesate | Somma del valore delle trattative aperte × probabilità della fase |
+| K6 | Trattative pesate (ricavi attesi) | Somma del valore delle trattative aperte × probabilità della fase |
 | K7 | Trattative vinte | Vinte / chiuse |
 | K8 | Durata della trattativa | Giorni dalla richiesta alla firma |
-| K9 | Trattative ferme | Ferme oltre 7, 14, 14, 21 giorni secondo la fase |
+| K9 | Trattative ferme | Ferme oltre la soglia di giorni della loro fase |
 | K10 | Motivi di perdita | Distribuzione dei motivi |
-| K11 | Clienti adatti a Gate | Quota di clienti nelle classi A, B, C rispetto all'obiettivo |
-| K12 | Tempo di prima risposta | Dalla richiesta alla prima risposta |
+| K11 | Trattative buone | Quota di trattative con punteggio di coerenza da 70 in su |
+| K12 | Tempo di prima risposta | Dalla richiesta alla prima risposta (obiettivo: entro 1 giorno) |
 | K13 | Dalla richiesta all'offerta | Giorni dalla richiesta all'invio dell'offerta |
-| K14 | Richieste registrate entro 24 ore | Quota registrata entro 24 ore, obiettivo almeno 80% |
 | K15 | Richieste dai canali digitali | Quota arrivata da sito, profilo Google, WhatsApp, LinkedIn |
-| K16 | Offerte firmate da link | Quota di offerte firmate con firma elettronica |
-| K17 | Facilità percepita | Voto medio degli utenti, obiettivo almeno 4 su 5 |
 
-Le soglie sono obiettivi del prototipo, cioè ipotesi da validare con Gate. Ordina il cruscotto per livello della piramide di Anthony: direzione (K3, K4, K5, K11), controllo (K6-K10, K12-K14), operativo (K1, K2, K15-K17).
+K14 (registrate entro 24 ore), K16 (offerte firmate da link) e K17 (facilità percepita) sono **tolti** (21/10 e 23/10): non vanno usati, nemmeno nel cruscotto. I dati che li alimentavano (data di annotazione, firma da link) restano registrati.
+
+Le soglie sono obiettivi del prototipo, cioè ipotesi da validare con Gate. Il Cruscotto attuale mostra in alto contratti firmati, K3, K12 e K6; nel controllo del processo K13, K9, K8, K11, K1, K15; i canali con K4.
 
 ## 10. Regole economiche
 
 - Ogni funzione deve dire **quale costo abbassa o quale ricavo aumenta**. Se non lo fa, va in appendice.
 - Preventivo: metri quadri × frequenza × costo orario della squadra + materiali + margine. Il costo orario di riferimento è la tabella del Ministero del Lavoro per il settore pulizie e multiservizi (provincia di Bari): usarla solo come parametro modificabile.
-- Classe del cliente A/B/C = coerenza con capacità e margine (vincolo di Gate). Un cliente grande ma non servibile non è un buon cliente.
+- **Punteggio di coerenza da 0 a 100** (non più classi A/B/C nell'interfaccia, decisione del 21/10): coerenza con capacità e margine (vincolo di Gate). Si mostra solo il numero, con il colore pieno della fascia: 0–29 rosso, 30–49 arancione, 50–69 giallo, 70–84 verde chiaro, 85–100 verde scuro. Trattativa buona = da 70 in su. Un cliente grande ma non servibile non è un buon cliente.
+- Prima di inviare un'offerta il preventivo avvisa se nessuna squadra della zona ha abbastanza ore libere.
 - Costi della soluzione reale da tenere bassi: strumenti gratuiti o con costi minimi nel pilota, nessun costo fisso nuovo prima della scelta dello strumento (entro il 27/11).
 
 ## 11. Regole di adozione (vincolanti)
@@ -129,7 +140,8 @@ Le soglie sono obiettivi del prototipo, cioè ipotesi da validare con Gate. Ordi
 
 ## 13. Vincoli tecnici
 
-- Un file HTML con CSS e JavaScript, senza server; dati nel localStorage del browser con backup JSON. Se il file cresce troppo, va diviso in index.html, stile.css e app.js.
+- Prototipo diviso in index.html, css/stile.css e file JavaScript in js/ (script classici); da questi si genera anche un file HTML unico da condividere. Senza server; dati nel localStorage del browser con backup JSON. L'archivio condiviso (con accesso protetto per ruolo) è da scegliere entro il 27/11.
+- Nell'interfaccia niente richiami al «prototipo» né etichette «dati fittizi»: i dati fittizi si dichiarano solo nel piè di pagina e nel menu «Fonte dei dati» degli indicatori (decisione del 21/10).
 - Nessuna chiamata di rete tranne i Google Fonts. Nessuna libreria esterna non necessaria.
 - Privacy (GDPR): solo i dati necessari, cancellazione dei dati personali del referente, nessun dato reale nei dati di esempio. L'IA per il punteggio dei contatti va presentata con l'umano che decide (EU AI Act: un punteggio dei contatti B2B rientra di norma nel rischio minimo; se c'è un assistente che dialoga, va detto che è un sistema di IA).
 - Il codice dev'essere leggibile da Claude Code: nomi in italiano coerenti con quelli già presenti, e i dati in una configurazione centrale.
@@ -153,5 +165,8 @@ Quando una schermata è approvata, prepara il pacchetto di consegna per Claude C
 | 19/10/2026 | Regola di adozione: zero attrito per il cliente, disciplina dentro Gate. |
 | 20/10/2026 | Aggiunti gli indicatori di adozione K12-K17. |
 | 22/10/2026 | Gate ha un gestionale interno nuovo: il prototipo deve parlarci via CSV (strada preferita: il modello dentro il loro gestionale). |
-| 23/10/2026 | Restyling: schermate Oggi, Scheda della richiesta e Cruscotto come riferimento visivo. |
+| 21/10/2026 | Punteggio di coerenza da 0 a 100 con 5 fasce di colore, niente classi A/B/C; trattativa buona da 70. Tolti K14, K16, K17. Niente etichette «prototipo» nell'interfaccia. |
+| 22/10/2026 | Schermata Documenti (tutti i file in un posto). Più servizi nella stessa richiesta = una trattativa per servizio. |
+| 23/10/2026 | Restyling: schermate Oggi, Scheda della richiesta e Cruscotto come riferimento visivo. Oggi sostituisce la Pipeline come apertura. |
+| 24/10/2026 | Cruscotto unico al posto di Direzione e Indicatori; tre ruoli (amministratore unico, commerciale, marketing e analisi); scheda della trattativa a pagina intera; Clienti con l'elenco accanto alla scheda; avviso di capacità nel preventivo. |
 | 29/10/2026 | Incontro con Alfredo: [ESITO DA INSERIRE] |
