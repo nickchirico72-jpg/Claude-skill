@@ -546,6 +546,8 @@ function cancellaDatiPersonali(referenteId) {
   const collegato = stato.opportunita.some((o) => o.referenteId === r.id);
   // Il nome si toglie anche dai testi, purché non sia così corto da cambiare altre parole
   const nome = r.nome.trim().length >= 3 ? r.nome.trim() : "";
+  const email = (r.email || "").trim().toLowerCase();
+  const cifre = soloCifre(r.telefono).slice(-9);   // il numero si riconosce dalle ultime 9 cifre, in qualunque formato sia scritto
   applica(() => {
     if (collegato) {
       // Il ruolo di decisore resta, così il punteggio delle trattative non cambia
@@ -554,7 +556,14 @@ function cancellaDatiPersonali(referenteId) {
       stato.referenti = stato.referenti.filter((x) => x.id !== r.id);
     }
     // Il nome sparisce da ogni testo libero: cronologia, note dell'azienda, note e motivazioni delle trattative
-    const togliNome = (testo) => (nome && testo ? testo.split(nome).join("[referente cancellato]") : testo);
+    // Nome, email e telefono spariscono da ogni testo libero: cronologia (anche la nota della telefonata), note, motivazioni, registro
+    const togliNome = (testo) => {
+      if (!testo) return testo;
+      let t = nome ? testo.split(nome).join("[referente cancellato]") : testo;
+      if (email) t = t.replace(new RegExp(email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), "[email cancellata]");
+      if (cifre.length >= 6) t = t.replace(/\+?\d[\d\s./-]{5,}\d/g, (m) => (soloCifre(m).endsWith(cifre) ? "[telefono cancellato]" : m));
+      return t;
+    };
     stato.attivita.forEach((x) => {
       if (x.referenteId === r.id) x.referenteId = null;
       x.testo = togliNome(x.testo);
@@ -565,6 +574,7 @@ function cancellaDatiPersonali(referenteId) {
       o.motivazioneC = togliNome(o.motivazioneC);
       if (o.perso) o.perso.nota = togliNome(o.perso.nota);
     });
+    (stato.registro || []).forEach((x) => { x.cosa = togliNome(x.cosa); });
     registraAttivita({ aziendaId: r.aziendaId, tipo: "Pipeline", testo: "Dati personali di un referente cancellati su richiesta il " + formattaData(oggi()) });
   }, { messaggio: "Dati personali cancellati" });
 }
@@ -630,7 +640,7 @@ function importaBackup(file) {
     apriFinestra(`
       <h2>Importare il backup?</h2>
       <p>Il backup contiene ${dati.aziende.length} aziende, ${dati.opportunita.length} opportunità e ${dati.attivita.length} attività.
-        I dati attuali in questo browser saranno sostituiti.</p>
+        I dati attuali in questo browser saranno sostituiti: prima si scarica da solo un backup.</p>
       <div class="azioni-finestra">
         <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
         <button class="pulsante primario" type="button" data-azione="conferma-importa">Importa</button>
@@ -685,6 +695,7 @@ const AZIONI_CLIENTI = {
   },
   "conferma-importa": () => applica(() => {
     if (!backupInAttesa) return false;
+    esportaBackup();   // copia dei dati attuali prima di sostituirli
     stato = backupInAttesa;
     backupInAttesa = null;
   }, { messaggio: "Backup importato", fase: "contatto", permesso: "delicate" }),

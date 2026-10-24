@@ -81,12 +81,13 @@ function tabelleDaStato() {
 
 // Testo CSV di una tabella: virgola, virgolette solo se servono, celle vuote per i valori mancanti, a capo Windows
 function csvPonte(nome, righe) {
-  const cella = (v) => {
+  const cella = (v, colonna) => {
     if (v === null || v === undefined) return "";
-    const s = String(v);
+    let s = String(v);
+    if (colonnaDiTesto(colonna) && /^[=+\-@\t\r]/.test(s)) s = "'" + s;   // Excel la leggerebbe come formula
     return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   };
-  return [TABELLE_PONTE[nome].join(",")].concat(righe.map((r) => TABELLE_PONTE[nome].map((c) => cella(r[c])).join(","))).join("\r\n") + "\r\n";
+  return [TABELLE_PONTE[nome].join(",")].concat(righe.map((r) => TABELLE_PONTE[nome].map((c) => cella(r[c], c)).join(","))).join("\r\n") + "\r\n";
 }
 
 // Scarica un CSV (o tutti, uno dopo l'altro: il browser può chiedere il permesso per più download)
@@ -135,6 +136,11 @@ function tabellaDiIntestazione(intestazione) {
 }
 
 // Valore di una cella convertito nel tipo della colonna; { errore } se non è valido
+// Colonna di testo libero (non numero, non data): l'unica in cui può nascondersi una formula
+function colonnaDiTesto(colonna) {
+  return !INTERI_PONTE.includes(colonna) && !DECIMALI_PONTE.includes(colonna) && !colonna.startsWith("data");
+}
+
 function valorePonte(colonna, testo) {
   const s = String(testo ?? "").trim();
   if (s === "") return { valore: null };
@@ -144,7 +150,7 @@ function valorePonte(colonna, testo) {
     return Number.isFinite(n) ? { valore: n } : { errore: colonna + " non è un numero: «" + s + "»" };
   }
   if (colonna.startsWith("data")) return formattaData(s) && !Number.isNaN(Date.parse(s)) ? { valore: s } : { errore: colonna + " non è una data AAAA-MM-GG: «" + s + "»" };
-  return { valore: s };
+  return { valore: /^'[=+\-@]/.test(s) ? s.slice(1) : s };   // l'apostrofo messo all'export contro le formule si toglie
 }
 
 // Controlla i file letti: tipi, valori ammessi e collegamenti tra tabelle. Restituisce tabelle valide, righe scartate e problemi gravi

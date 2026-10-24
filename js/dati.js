@@ -244,6 +244,9 @@ function strutturaValida(d) {
   if (![d.contatore, d.contatoreId].every((n) => Number.isSafeInteger(n) && n >= 0)) return false;
   if (d.ultimoBackup != null && !isData(d.ultimoBackup)) return false;
   const idAziende = new Set(d.aziende.map((a) => a && a.id));
+  // Ogni record ha un identificativo suo (e ogni trattativa un codice suo): con un doppione le modifiche finirebbero sul record sbagliato
+  const unici = (elenco, chiave = "id") => new Set(elenco.map((x) => x && x[chiave])).size === elenco.length;
+  if (![d.aziende, d.referenti, d.opportunita, d.attivita].every((e) => Array.isArray(e) && unici(e)) || !unici(d.opportunita, "codice")) return false;
   const aziendaEsiste = (id) => isId(id) && idAziende.has(id);
   const facoltativo = (x, controllo) => x == null || controllo(x); // campi aggiunti dopo: assenti o validi
   const testoFacoltativo = (x) => facoltativo(x, isTesto);

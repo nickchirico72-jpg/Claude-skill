@@ -1649,7 +1649,7 @@ function salvaPerso(modulo) {
 function apriRipristino() {
   apriFinestra(`
     <h2>Ripristinare i dati di esempio?</h2>
-    <p>Le opportunità create e le modifiche fatte in questo browser andranno perse.</p>
+    <p>Le opportunità create e le modifiche fatte in questo browser saranno sostituite. Prima si scarica da solo un backup dei dati attuali.</p>
     <div class="azioni-finestra">
       <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
       <button class="pulsante primario" type="button" data-azione="conferma-ripristino">Ripristina</button>
@@ -1936,6 +1936,7 @@ const AZIONI = {
   ...AZIONI_CLIENTI,
   ...AZIONI_OGGI,
   "conferma-ripristino": () => applica(() => {
+    esportaBackup();   // copia dei dati attuali prima di sostituirli con quelli di esempio
     stato = datiIniziali();
   }, { messaggio: "Dati di esempio ripristinati", fase: "contatto", permesso: "delicate" }),
   "entra-ospite": () => entraOspite(),

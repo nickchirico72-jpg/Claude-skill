@@ -36,3 +36,12 @@ Scelte da raccontare: chiavi primarie ed esterne ovunque; tabelle separate per c
 
 ## Dove può stare il server MySQL
 Da chiedere ad Alfredo: **dove è ospitato oggi gatesrl.it?** Molti hosting italiani includono già MySQL e PHP: il server (punto 1) potrebbe stare lì, senza costi in più. In alternativa un MySQL gestito in UE con backup automatici. Lo schema non cambia in nessuno dei due casi.
+
+## Controlli già fatti nel prototipo (25/10)
+- Validazione completa dei dati letti, con identificativi e codici unici (come le chiavi primarie e il vincolo UNIQUE dell'archivio MySQL).
+- Registro delle modifiche con l'ora locale.
+- Backup automatico prima di ogni sostituzione completa dei dati.
+- CSV del ponte protetti dalle formule di Excel (apostrofo all'export, tolto all'import).
+- Diritto alla cancellazione: nome, email e telefono del referente tolti anche dai testi liberi e dal registro.
+
+Restano compiti dell'archivio condiviso: accesso con password e permessi controllati dal server, cifratura, copie automatiche, scrittura contemporanea di più persone.

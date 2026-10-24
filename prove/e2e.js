@@ -1105,6 +1105,46 @@ const PROVE = {
     await ctx.close();
   },
 
+  // Affidabilità dei dati (25/10): identificativi unici, ora locale nel registro, copia prima di sostituire i dati,
+  // niente formule nei CSV per il gestionale, cancellazione completa dei dati personali
+  async datiSicuri() {
+    const { ctx, page, errori } = await apri();
+    await page.goto(BASE + 'index.html#oggi');
+    const doppioni = await page.evaluate(() => {
+      const conId = clona(stato); conId.opportunita.push({ ...conId.opportunita[0] });
+      const conCodice = clona(stato); conCodice.opportunita.push({ ...conCodice.opportunita[0], id: 'op-doppio' });
+      return { id: strutturaValida(conId), codice: strutturaValida(conCodice), buono: strutturaValida(clona(stato)) };
+    });
+    verifica('un backup con identificativi o codici doppi viene rifiutato', !doppioni.id && !doppioni.codice && doppioni.buono, JSON.stringify(doppioni));
+    const ora = await page.evaluate(() => { const id = stato.opportunita.find((o) => trattativaAperta(o) && faseRaggiunta(o) === 0).id; avanza(id);
+      const d = new Date(); const r = stato.registro[stato.registro.length - 1]; return { registro: r.quando, locale: oggi() + 'T' + String(d.getHours()).padStart(2, '0'), completa: !!r.cosa && !!r.ruolo && !!r.chi, valida: strutturaValida(stato) }; });
+    verifica('registro delle modifiche: ora locale (non UTC), chi, ruolo e cosa; dati sempre validi', ora.registro.startsWith(ora.locale) && ora.completa && ora.valida, JSON.stringify(ora));
+    const formula = await page.evaluate(() => {
+      stato.aziende[0].ragioneSociale = '=HYPERLINK("http://esempio.invalid","clic")';
+      const testo = csvPonte('clienti', tabelleDaStato().clienti);
+      const esito = controllaPonte([{ nome: 'clienti.csv', righe: leggiCsvPonte(testo), tabella: 'clienti' }]);
+      return { protetto: testo.includes("'=HYPERLINK"), ritorno: esito.tabelle.clienti.some((r) => r.nome === stato.aziende[0].ragioneSociale) };
+    });
+    verifica('CSV per il gestionale: nessuna formula per Excel, e all\'import il nome torna identico', formula.protetto && formula.ritorno, JSON.stringify(formula));
+    const privacy = await page.evaluate(() => {
+      const r = stato.referenti.find((x) => !x.cancellato && stato.opportunita.some((o) => o.referenteId === x.id));
+      r.telefono = '+39 333 765 4321'; r.email = 'mario.rossi@esempio.it';
+      stato.attivita.push({ ...stato.attivita.find((x) => !x.daFare), id: 'at-prova', aziendaId: r.aziendaId, referenteId: null, opportunitaId: null, tipo: 'Nota', data: oggi(), testo: 'Nota della richiesta: richiamare al 3337654321 o scrivere a Mario.Rossi@esempio.it entro il 12/10/2026' });
+      stato.registro.push({ quando: oggi() + 'T10:00', chi: 'Prova', ruolo: 'commerciale', cosa: 'Chiamata al 333 765 4321', record: 1 });
+      salva();
+      cancellaDatiPersonali(r.id);
+      const nota = stato.attivita.find((x) => x.id === 'at-prova').testo;
+      return { nota, registro: stato.registro.some((x) => /765 4321/.test(x.cosa)), avviso: document.querySelector('#avviso').textContent };
+    });
+    verifica('cancellazione dei dati personali: spariscono telefono ed email anche dalle note e dal registro (la data resta)',
+      !/3337654321|mario\.rossi/i.test(privacy.nota) && /12\/10\/2026/.test(privacy.nota) && !privacy.registro, privacy.nota + ' | ' + privacy.avviso);
+    await page.evaluate(() => apriRipristino());
+    const [copia] = await Promise.all([page.waitForEvent('download'), clic(page, '[data-azione=conferma-ripristino]')]);
+    verifica('ripristino dei dati di esempio: prima si scarica da solo il backup dei dati attuali', /backup/.test(copia.suggestedFilename()));
+    verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
   // Il file unico da condividere (dist/) si apre da solo e disegna la prima schermata, senza errori
   async fileUnico() {
     require('child_process').execSync('python3 strumenti/versione_unica.py', { cwd: REPO });

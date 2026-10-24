@@ -48,8 +48,15 @@ def esporta(cartella, database=RADICE / "data" / "gate.db"):
         with open(cartella / f"{nome}.csv", "w", newline="", encoding="utf-8") as f:
             scrittore = csv.writer(f)
             scrittore.writerow(colonne)
-            scrittore.writerows(con.execute(f"SELECT {', '.join(colonne)} FROM {nome}"))
+            # Un testo che comincia con = + - @ prende un apostrofo: in Excel non diventa una formula (all'import si toglie)
+            scrittore.writerows([[f"'{v}" if di_testo(c) and isinstance(v, str) and v[:1] in "=+-@\t\r" and v else v for c, v in zip(colonne, riga)]
+                                 for riga in con.execute(f"SELECT {', '.join(colonne)} FROM {nome}")])
     con.close()
+
+
+def di_testo(colonna):
+    """Colonna di testo libero (non numero, non data): l'unica in cui può nascondersi una formula."""
+    return colonna not in INTERI and colonna not in DECIMALI and not colonna.startswith("data")
 
 
 def valore(colonna, testo):
@@ -70,7 +77,7 @@ def valore(colonna, testo):
             return s, None
         except ValueError:
             return None, f"{colonna} non è una data AAAA-MM-GG: «{s}»"
-    return s, None
+    return (s[1:] if len(s) > 1 and s[0] == "'" and s[1] in "=+-@" else s), None   # l'apostrofo messo all'export contro le formule si toglie
 
 
 def controlla(cartella):

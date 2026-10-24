@@ -278,6 +278,22 @@ with tempfile.TemporaryDirectory() as cartella:
     condizione("una riga sbagliata viene scartata con il motivo", len(scartate_neg) == 1 and "cliente 8888 inesistente" in scartate_neg[0][2]
                and "fase non ammesso" in scartate_neg[0][2] and "data_contatto" in scartate_neg[0][2], scartate_neg[0][2] if scartate_neg else "")
 
+# Un nome che comincia con «=» non deve diventare una formula in Excel: apostrofo all'export, nome identico all'import
+with tempfile.TemporaryDirectory() as cartella:
+    copia = Path(cartella) / "copia.db"
+    sorgente, destinazione = sqlite3.connect(RADICE / "data" / "gate.db"), sqlite3.connect(copia)
+    sorgente.backup(destinazione)
+    sorgente.close()
+    formula = '=HYPERLINK("http://esempio.invalid","clic")'
+    destinazione.execute("UPDATE clienti SET nome = ? WHERE id_cliente = (SELECT MIN(id_cliente) FROM clienti)", (formula,))
+    destinazione.commit()
+    destinazione.close()
+    G.esporta(Path(cartella) / "csv", copia)
+    cella = (Path(cartella) / "csv" / "clienti.csv").read_text(encoding="utf-8")
+    t, scartate_f, _ = G.importa(Path(cartella) / "csv", Path(cartella) / "nuovo.db")
+    condizione("CSV per il gestionale: un testo che comincia con «=» esce con l'apostrofo (niente formule in Excel) e torna identico all'import",
+               "'=HYPERLINK" in cella and any(r["nome"] == formula for r in t["clienti"]) and not scartate_f, "nome di prova: " + formula)
+
 print("\nApp e MySQL leggono gli stessi dati")
 js = (RADICE / "js" / "dati-db.js").read_text(encoding="utf-8")
 app = json.loads(js[js.index("{"):js.rindex(";")])

@@ -112,7 +112,8 @@ function schermataDelRuolo(menu) {
 function registraModifica(cosa, modifiche) {
   const u = utenteAttuale();
   stato.registro = (stato.registro || []).concat({
-    quando: new Date().toISOString().slice(0, 16), chi: u.nome, ruolo: u.ruolo, cosa: String(cosa || "Modifica"),
+    // Ora locale: in Italia l'ora UTC sarebbe indietro di una o due ore
+    quando: oggi() + "T" + oraAdesso(), chi: u.nome, ruolo: u.ruolo, cosa: String(cosa || "Modifica"),
     record: modifiche ? quantiRecord(modifiche) : 0,
   }).slice(-CONFIG.archivio.righeRegistro);
 }
