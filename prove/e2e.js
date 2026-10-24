@@ -28,7 +28,8 @@ function verifica(nome, condizione, dettaglio = '') {
 
 // Nuovo contesto con raccolta degli errori; WhatsApp risponde con una pagina finta
 async function apri(dispositivo = 'desktop', { initScript, config, senzaUtente } = {}) {
-  const ctx = await browser.newContext({ locale: 'it-IT', timezoneId: 'Europe/Rome', ...DISPOSITIVI[dispositivo] });
+  // Service worker spento nelle prove: la prova «app» lo accende in un contesto suo
+  const ctx = await browser.newContext({ locale: 'it-IT', timezoneId: 'Europe/Rome', serviceWorkers: 'block', ...DISPOSITIVI[dispositivo] });
   await ctx.route('https://wa.me/**', (r) => r.fulfill({ contentType: 'text/html', body: '<p>WhatsApp (finto)</p>' }));
   // Chi lavora: l'ospite della demo come amministratore unico (tutte le schermate), se la prova non sceglie altro
   if (!senzaUtente) await ctx.addInitScript(`try { const k = 'gate-sviluppo-commerciale-v2-utente';
@@ -1067,6 +1068,40 @@ const PROVE = {
     verifica('commerciale: senza indirizzo apre Oggi; niente operazioni delicate in Documenti', (await page.textContent('#schermata h1')).trim() === 'Oggi'
       && await page.goto(BASE + 'index.html#documenti').then(() => page.$('[data-azione=ripristina]')) === null);
     verifica('zero errori', errori.length === 0, errori.join(' | '));
+    await ctx.close();
+  },
+
+  // App installabile (GitHub Pages): manifesto con icone vere, service worker con tutti i file dell'app, apertura senza rete
+  async app() {
+    const ctx = await browser.newContext({ locale: 'it-IT', timezoneId: 'Europe/Rome', ...DISPOSITIVI.telefono });
+    await ctx.addInitScript(() => { try { localStorage.setItem('gate-sviluppo-commerciale-v2-utente', JSON.stringify({ nome: 'Ospite', ruolo: 'commerciale', ospite: true })); } catch (e) {} });
+    const page = await ctx.newPage();
+    const errori = [];
+    page.on('pageerror', (e) => errori.push(e.message));
+    page.on('console', (m) => { if (m.type() === 'error') errori.push(m.text()); });
+    await page.goto(BASE + 'index.html#oggi');
+    const manifesto = await page.evaluate(async () => {
+      const m = await (await fetch(document.querySelector('link[rel=manifest]').href)).json();
+      const icone = await Promise.all(m.icons.map(async (i) => { const r = await fetch(i.src); const img = await createImageBitmap(await r.blob()); return r.ok && i.sizes === img.width + 'x' + img.height; }));
+      return { nome: m.short_name, display: m.display, avvio: m.start_url, icone: icone.every(Boolean), maskable: m.icons.some((i) => i.purpose === 'maskable'), n: icone.length };
+    });
+    verifica('manifesto: nome, apertura a tutto schermo, icone 192 e 512 della misura dichiarata, icona adattabile', manifesto.nome === 'Gate CRM' && manifesto.display === 'standalone' && manifesto.icone && manifesto.maskable, JSON.stringify(manifesto));
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    const copia = await page.evaluate(async () => {
+      const salvati = (await (await caches.open((await caches.keys())[0])).keys()).map((r) => new URL(r.url).pathname.replace(/^\//, ''));
+      const servono = [...document.querySelectorAll('script[src], link[rel=stylesheet][href^="css"], link[rel=manifest]')].map((e) => e.getAttribute('src') || e.getAttribute('href'));
+      return servono.filter((f) => !salvati.includes(f));
+    });
+    verifica('service worker: ogni file caricato da index.html è nella copia (sw.js aggiornato)', copia.length === 0, copia.join(', '));
+    await page.waitForTimeout(500);
+    await ctx.setOffline(true);
+    await page.reload();
+    await page.waitForSelector('#schermata h1');
+    verifica('senza rete il CRM si apre dalla copia, sulla schermata del ruolo', (await page.textContent('#schermata h1')).trim() === 'Oggi' && await page.isVisible('[data-vai=oggi]'));
+    await page.goto(BASE + 'sopralluogo.html?utm_source=linkedin');
+    verifica('senza rete si apre anche il modulo pubblico con i parametri del link', await page.isVisible('form'));
+    await ctx.setOffline(false);
+    verifica('zero errori', errori.filter((e) => !/ERR_INTERNET_DISCONNECTED|fonts\.g/.test(e)).length === 0, errori.join(' | '));
     await ctx.close();
   },
 

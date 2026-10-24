@@ -28,7 +28,8 @@ Prototipo web per l'Open Challenge by Enterprise 2026 (Digital Transformation, L
 - Archivio MySQL: dopo prove/e2e.js (che scrive gli stati in prove/archivio/), python3 prove/archivio.py avvia un MariaDB temporaneo e verifica andata e ritorno, vincoli e query.
 - Dati: python3 generatore/genera_dati.py rigenera database, CSV, copia MySQL e dati dell'app; python3 generatore/controlla_dati.py verifica tutto (deve finire con "tutti i controlli superati"); python3 generatore/importa_richieste.py importa i CSV dei dati veri.
 - Branch di lavoro: claude/new-session-ihkyfm. Commit in italiano. Dopo ogni modifica importante aggiorna README e screenshot in docs/screenshot/.
-- Versione in un solo file per la condivisione: python3 strumenti/versione_unica.py (inserisce css e js dentro index.html; scrive dist/gate-crm-prototipo.html, non versionato).
+- Versione in un solo file per la condivisione: python3 strumenti/versione_unica.py (inserisce css e js dentro index.html; scrive dist/gate-crm-prototipo.html e i moduli dist/sopralluogo.html e dist/modulo.html, non versionati; toglie il blocco app-installabile).
+- App installabile (25/10) su GitHub Pages (ramo claude/new-session-ihkyfm, cartella root, .nojekyll): manifest.webmanifest, icone/ (192, 512, maskable, apple-touch-icon) e sw.js (copia dei file per l'uso senza rete, prima la rete). Un file nuovo dell'app va aggiunto all'elenco FILE di sw.js: la prova «app» lo segnala. Nelle prove il service worker è spento (serviceWorkers: 'block' in apri()), tranne nella prova «app».
 
 # Coordinamento con il progetto di analisi ed esperimento SQL (19/10/2026)
 

@@ -2364,3 +2364,8 @@ function rigaZoneSenzaSquadre(zone) {
     (${esc(fuori.map((z) => z.zona).join(", "))}): servono partner.</p>`;
 }
 
+// App installabile (GitHub Pages): il service worker conserva una copia dei file per aprire il CRM anche senza rete.
+// Aperto con un doppio clic (file://) non serve e non si registra
+if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});   // su http non sicuro il browser lo rifiuta: il CRM funziona lo stesso
+}

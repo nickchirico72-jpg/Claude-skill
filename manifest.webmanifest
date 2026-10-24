@@ -1,0 +1,16 @@
+{
+  "name": "Gate · Sviluppo commerciale",
+  "short_name": "Gate CRM",
+  "description": "Gate S.R.L.: le cose da fare oggi, trattative, clienti, squadre e cruscotto.",
+  "lang": "it",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F7F9FB",
+  "theme_color": "#1E3A5F",
+  "icons": [
+    { "src": "icone/icona-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icone/icona-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icone/icona-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
