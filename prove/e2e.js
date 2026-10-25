@@ -259,15 +259,19 @@ const PROVE = {
   async allocazioneZone() {
     const { ctx, page, errori } = await apri('telefono');
     await page.goto(BASE + 'index.html#allocazione');
-    const tutte = await page.$$eval('details.commessa', (el) => el.length);
+    const tutte = await page.$$eval('.riga-commessa', (el) => el.length);
     const zona = await page.$eval('#filtro-zona', (s) => s.options[1].value);
     await page.selectOption('#filtro-zona', zona);
-    const dopo = await page.$$eval('details.commessa', (el) => el.length);
+    const dopo = await page.$$eval('.riga-commessa', (el) => el.length);
     verifica('zona: la tendina riduce le commesse', dopo > 0 && dopo < tutte, tutte + ' → ' + dopo);
-    await page.click('#riquadro-squadre-partner summary');
-    await page.waitForFunction(() => interfaccia.allocazione.aperti['squadre-partner']);   // l'evento toggle arriva subito dopo il clic
+    await page.click('#riquadro-assegnate summary');
+    await page.waitForFunction(() => interfaccia.allocazione.aperti['assegnate']);   // l'evento toggle arriva subito dopo il clic
     await page.selectOption('#filtro-zona', '');
-    verifica('riquadro «Squadre e partner» resta aperto dopo il ridisegno', await page.$eval('#riquadro-squadre-partner', (d) => d.open));
+    verifica('riquadro «Commesse assegnate» resta aperto dopo il ridisegno', await page.$eval('#riquadro-assegnate', (d) => d.open));
+    const righe = await page.$$eval('.riga-commessa', (el) => el.map((r) => r.querySelectorAll('.commessa-azione .pulsante').length));
+    verifica('ogni commessa ha la sua proposta e al più un pulsante (o SÌ/NO se si attende il partner)', righe.every((n) => n <= 2) && righe.some((n) => n === 1), righe.join(','));
+    const squadre = await page.$$eval('.scheda-squadra', (el) => el.map((q) => q.querySelector('.chip').textContent));
+    verifica('ore libere: una scheda per squadra con lo stato (ha posto, quasi piena, piena)', squadre.length === 4 && squadre.every((t) => /Ha posto|Quasi piena|Piena/.test(t)), squadre.join(', '));
     verifica('nessun riferimento al prototipo', !/prototip/i.test(await page.textContent('body')));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
@@ -295,8 +299,8 @@ const PROVE = {
     verifica('avvisi: commesse da assegnare e DURC (le offerte scadute sono una scheda «Sollecita»)', ['vai-allocazione', 'vai-partner'].every((x) => avvisi.includes(x)) && !avvisi.includes('vai-domani'), avvisi.join(','));
     verifica('offerta scaduta: scheda o riga «Sollecita» in Oggi', /Sollecita/.test(await page.textContent('.pagina-oggi')));
     await clic(page, '.riga-avvisi [data-azione=vai-partner]');
-    await page.waitForSelector('#riquadro-squadre-partner[open]');
-    verifica('avviso DURC: apre Allocazione con squadre e partner in vista', page.url().endsWith('#allocazione'));
+    await page.waitForSelector('#imprese-partner');
+    verifica('avviso DURC: apre Squadre con le imprese partner e il DURC scaduto in vista', page.url().endsWith('#allocazione') && /non proponibile/.test(await page.textContent('#imprese-partner')));
     verifica('zero errori', errori.length === 0, errori.join(' | '));
     await ctx.close();
   },
@@ -898,7 +902,7 @@ const PROVE = {
       await page.goto(BASE + 'index.html#trattativa-' + id);
       const primari = await page.$$eval('.prossimo-passo .pulsante.primario', (b) => b.map((x) => x.textContent.trim()));
       const adesso = await page.$$eval('.avanzamento [aria-current=step]', (el) => el.length);
-      verifica(`fase ${fase}: un solo pulsante principale «${testo || "Assegna / Vai all'allocazione"}» e il passo attuale segnato`, primari.length === 1 && (testo ? primari[0].includes(testo) : /Assegna a|allocazione/.test(primari[0])) && adesso === (fase === 'contratto' ? 0 : 1), primari.join(' | '));
+      verifica(`fase ${fase}: un solo pulsante principale «${testo || "Assegna / Vai a Squadre"}» e il passo attuale segnato`, primari.length === 1 && (testo ? primari[0].includes(testo) : /Assegna a|Squadre/.test(primari[0])) && adesso === (fase === 'contratto' ? 0 : 1), primari.join(' | '));
     }
     const id = await page.evaluate(() => stato.opportunita.find((o) => faseAttuale(o) === 'offerta' && !o.allocazione).id);
     await page.goto(BASE + 'index.html#trattativa-' + id);

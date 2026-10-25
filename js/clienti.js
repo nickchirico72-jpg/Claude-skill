@@ -304,7 +304,7 @@ function disegnaSchedaCliente(id) {
   const daFare = attivitaDaFare().filter((x) => x.aziendaId === id);
   const cronologia = attivitaDi(id).filter((x) => !x.daFare).sort((x, y) => y.data.localeCompare(x.data) || y.id.localeCompare(x.id, "it", { numeric: true }));
   // Ritorno: a «Oggi» o all'Allocazione se si arriva da lì, altrimenti all'elenco (con i filtri di prima)
-  const ritorno = { oggi: "Oggi", allocazione: "Allocazione" }[interfaccia.provenienza];
+  const ritorno = { oggi: "Oggi", allocazione: "Squadre" }[interfaccia.provenienza];
 
   return `
     ${ritorno ? `<a class="link-indietro" href="#${interfaccia.provenienza}">${icona("indietro")} ${ritorno}</a>`

@@ -319,7 +319,7 @@ const LIVELLI_PIATTAFORMA = [
     ["Preventivo indicativo, punteggio di coerenza e avviso se le squadre non hanno ore libere", "automatico", "#oggi", "Oggi"],
     ["Offerta da pacchetto: prezzo e margine calcolati, la persona sceglie e invia", "propone", "#oggi", "Oggi"],
     ["Firma da link: contratto, data di chiusura e scadenza registrati", "automatico", "#oggi", "Oggi"],
-    ["Chi esegue: la squadra con ore libere è proposta, il partner risponde su WhatsApp", "propone", "#allocazione", "Allocazione"],
+    ["Chi esegue: la squadra con ore libere è proposta, il partner risponde su WhatsApp", "propone", "#allocazione", "Squadre"],
     ["Promemoria, avvisi e lista del lunedì", "automatico", "#lunedi", "Lista del lunedì"]] },
   { titolo: "Cruscotto", sotto: "per decidere", passi: [
     ["Quattro numeri, decisioni della settimana, dove e perché si perdono i clienti", "automatico", "#cruscotto", "Cruscotto"],
@@ -339,7 +339,7 @@ const DEMO_GUIDATA = [
   ["Preventivo e punteggio", "si apre da solo dopo la conferma"],
   ["Offerta da pacchetto", "pacchetto Plus → «Segna l'offerta come inviata» → Salva: si apre la scheda della trattativa"],
   ["Firma da link", "nella scheda, prossimo passo «Ottenere la firma» → «Firma da link» → «Il cliente ha firmato»"],
-  ["Chi esegue", "si apre l'Allocazione: squadra interna o partner"],
+  ["Chi esegue", "si apre Squadre: squadra interna o partner"],
   ["Cruscotto aggiornato", "«Contratti firmati»: un contratto in più"],
   ["Tempo risparmiato", "in fondo al Cruscotto: ore ed euro al mese"],
 ];

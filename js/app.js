@@ -316,17 +316,17 @@ function disegnaAllocazione() {
     si: `<span class="stato ok">${icona("spunta")} SÌ</span>`,
     no: `<span class="stato critico">${icona("x")} NO</span>`,
   };
-  const sature = CONFIG.squadre.filter((sq) => oreLibereSquadra(sq, tutte) <= 0).length;
-  const idonei = CONFIG.partner.filter((pa) => requisitiPartner(pa).idoneo).length;
+  const proponibili = CONFIG.partner.filter((pa) => requisitiPartner(pa).idoneo).length;
 
   return `
+    <div class="pagina-squadre">
     ${intestazione({
-      titolo: "Chi esegue il servizio",
-      istruzione: conPartner ? "Apri una commessa e assegnala: prima a una squadra Gate con ore libere nella zona, altrimenti a un'impresa partner su WhatsApp."
-        : "Apri una commessa e assegnala a una squadra Gate con ore libere nella zona.",
+      titolo: "Squadre",
+      istruzione: conPartner ? "Assegna i contratti firmati: prima a una squadra Gate con ore libere in zona, altrimenti a un'impresa partner."
+        : "Assegna i contratti firmati a una squadra Gate con ore libere in zona.",
     })}
 
-    <section class="sezione">
+    <section class="sezione riquadro elenco-commesse" aria-label="Da assegnare">
       <div class="testa-sezione">
         <h2>Da assegnare <span class="conteggio">${daAssegnare.length}</span></h2>
         ${zone.length > 1 ? `<label class="filtro-zona">Zona
@@ -335,23 +335,23 @@ function disegnaAllocazione() {
             ${zone.map((z) => `<option value="${esc(z)}" ${z === scelta.zona ? "selected" : ""}>${esc(z)} (${quante(z)})</option>`).join("")}
           </select></label>` : ""}
       </div>
-      ${visibili.length ? visibili.map((o) => schedaCommessa(o, visibili.length === 1)).join("")
-        : '<p class="vuoto">Nessuna commessa da assegnare. I contratti firmati in «Oggi» compaiono qui.</p>'}
+      ${visibili.length ? `<ul class="righe-commesse">${visibili.map(rigaCommessa).join("")}</ul>`
+        : '<p class="vuoto">Nessuna commessa da assegnare: i contratti firmati compaiono qui.</p>'}
     </section>
 
-    ${sezioneCapacitaFutura()}
+    <section class="sezione" aria-label="Ore libere al mese">
+      <h2>Ore libere al mese</h2>
+      <p class="nota-piccola">Barra scura: ore già impegnate. Barra chiara: ore libere.</p>
+      <div class="griglia-squadre">${CONFIG.squadre.map(schedaSquadra).join("")}</div>
+      ${avvisoCapacita()}
+    </section>
 
-    ${richiudibile("squadre-partner", `Squadre${conPartner ? " e partner" : ""}`,
-      `${quanti(CONFIG.squadre.length, "squadra", "squadre")}${sature ? `, <span class="chip chip-attenzione">${quanti(sature, "satura", "sature")}</span>` : ""}${conPartner ? " · " + quanti(idonei, "partner idoneo", "partner idonei") : ""}`, `
-      <ul class="regole" aria-label="Regole">
-        <li>${icona("spunta")} Prima le squadre interne con ore libere nella zona</li>
-        ${conPartner ? `<li>${icona("spunta")} Solo imprese partner con DURC regolare, nessun lavoratore autonomo</li>` : ""}
-        <li>${icona("spunta")} Il cliente resta di Gate: Gate firma il contratto e controlla la qualità</li>
-      </ul>
-      <h3 class="titolo-gruppo">Squadre interne <span class="sottotitolo">ore al mese</span></h3>
-      <div class="griglia tre">${CONFIG.squadre.map(schedaSquadra).join("")}</div>
-      ${conPartner ? `<h3 class="titolo-gruppo">Imprese partner <span class="sottotitolo">in ordine di priorità</span></h3>
-      <div class="griglia tre">${CONFIG.partner.map(schedaPartner).join("")}</div>` : ""}`)}
+    ${conPartner ? `<section class="sezione riquadro" id="imprese-partner" aria-label="Imprese partner">
+      <h2>Imprese partner <span class="sottotitolo">${proponibili} proponibili su ${CONFIG.partner.length}</span></h2>
+      <ul class="righe-partner">${CONFIG.partner.map(rigaPartner).join("")}</ul>
+      <p class="nota-piccola">Al partner non si scrive mai il nome del cliente: il contratto resta di Gate, che coordina e controlla la qualità.
+        Solo imprese con regolarità contributiva (DURC) valida, nessun lavoratore autonomo.</p>
+    </section>` : ""}
 
     ${richiudibile("assegnate", "Commesse assegnate", `<span class="conteggio">${assegnate.length}</span>`, `
       ${avviate ? `<p class="nota-piccola">Altre ${avviate} commesse erano già avviate: le loro ore sono già nelle ore impegnate delle squadre.</p>` : ""}
@@ -365,7 +365,7 @@ function disegnaAllocazione() {
                 const chi = interna ? nomeSquadra(o.allocazione.id) : nomePartner(o.allocazione.id);
                 return `<tr>
                   <td data-etichetta="Rif."><span class="codice">${esc(o.codice)}</span></td>
-                  <td data-etichetta="Cliente"><a class="link" href="#cliente-${esc(o.aziendaId)}">${esc(nomeCliente(o))}</a></td>
+                  <td data-etichetta="Cliente"><a class="link" href="#trattativa-${esc(o.id)}">${esc(nomeCliente(o))}</a></td>
                   <td data-etichetta="Servizio">${esc(o.servizio)}</td>
                   <td data-etichetta="Comune">${esc(o.comune)}</td>
                   <td class="num" data-etichetta="Ore/mese">${Number(o.ore)}</td>
@@ -377,7 +377,7 @@ function disegnaAllocazione() {
           </table>
         </div>` : '<p class="vuoto">Ancora nessuna commessa assegnata.</p>'}`)}
 
-    ${conPartner ? richiudibile("proposte", "Registro delle proposte", `<span class="conteggio">${registro.length}</span>`, registro.length ? `
+    ${conPartner ? richiudibile("proposte", "Proposte ai partner", `<span class="conteggio">${registro.length}</span>`, registro.length ? `
         <div class="tabella-scorrevole">
           <table class="tabella impilata">
             <thead><tr><th>Data</th><th>Commessa</th><th>Partner</th><th>Esito</th></tr></thead>
@@ -391,11 +391,10 @@ function disegnaAllocazione() {
             </tbody>
           </table>
         </div>` : '<p class="vuoto">Nessuna proposta inviata.</p>') : ""}
-
-`;
+    </div>`;
 }
 
-// Riquadro richiudibile dell'Allocazione: titolo e riassunto sempre visibili, il resto con un clic (aperto o chiuso resta com'era)
+// Riquadro richiudibile di Squadre: titolo e riassunto sempre visibili, il resto con un clic (aperto o chiuso resta com'era)
 function richiudibile(id, titolo, riassunto, corpo) {
   return `
     <details class="approfondimento" id="riquadro-${id}" data-ricorda="${id}" ${interfaccia.allocazione.aperti[id] ? "open" : ""}>
@@ -404,109 +403,92 @@ function richiudibile(id, titolo, riassunto, corpo) {
     </details>`;
 }
 
-// Commessa da assegnare: una riga con il prossimo passo, che si apre con un clic (squadra interna o proposta al partner)
-function schedaCommessa(o, unica) {
+// Una commessa da assegnare in una riga: chi è, la proposta (squadra o partner) e un solo pulsante
+function rigaCommessa(o) {
   const zona = infoComune(o.comune).zona;
   const squadra = squadraDisponibile(o, stato.opportunita);
-  let passo, prossimo;
-
+  const rifiuti = (o.proposte || []).filter((p) => p.esito === "no");
+  let proposta, tono, azione = "", sotto = "";
   if (squadra) {
-    // 1. C'è una squadra interna con ore libere
-    prossimo = `<span class="chip chip-ok">${esc(squadra.nome)} disponibile</span>`;
-    passo = `
-      <div class="passo passo-squadra">
-        <p class="passo-titolo">${icona("spunta")} Squadra interna disponibile</p>
-        <p><strong>${esc(squadra.nome)}</strong> · ${esc(squadra.caposquadra)} · ${oreLibereSquadra(squadra, stato.opportunita, o.id)} ore libere al mese (ne servono ${Number(o.ore)})</p>
-        <button class="pulsante primario" type="button" data-azione="assegna-squadra" data-id="${esc(o.id)}">Assegna a ${esc(squadra.nome)}</button>
-      </div>`;
+    tono = "ok";
+    proposta = `${esc(squadra.nome)} ha posto: ${oreLibereSquadra(squadra, stato.opportunita, o.id)} ore libere al mese`;
+    azione = `<button class="pulsante primario" type="button" data-azione="assegna-squadra" data-id="${esc(o.id)}">Assegna alla ${esc(squadra.nome)}</button>`;
+  } else if (!CONFIG.funzioni.partner) {
+    tono = "critico";
+    proposta = `Nessuna squadra in ${esc(zona)} ha ${Number(o.ore)} ore libere: rinvia l'avvio o libera ore`;
   } else {
-    // 2. Nessuna squadra: si propone a un partner, uno alla volta
-    const rifiuti = (o.proposte || []).filter((p) => p.esito === "no");
     const attesa = propostaInAttesa(o);
-    let corpo;
+    const partner = attesa ? trovaPartner(attesa.partnerId) : prossimoPartner(o);
     if (attesa) {
-      prossimo = `<span class="chip chip-attenzione">In attesa di ${esc(nomePartner(attesa.partnerId))}</span>`;
-      // Se il partner è stato tolto da config.js si può solo registrare il NO e passare al successivo
-      const partner = trovaPartner(attesa.partnerId);
-      corpo = `
-        <p class="passo-titolo">${icona("orologio")} In attesa di risposta da ${esc(nomePartner(attesa.partnerId))}</p>
-        <p class="nota-piccola">Proposta inviata il ${formattaData(attesa.data)}. Registra qui la risposta arrivata su WhatsApp:</p>
-        <div class="pulsanti-risposta">
+      tono = "attenzione";
+      proposta = `In attesa di ${esc(nomePartner(attesa.partnerId))}: proposta inviata il ${formattaData(attesa.data)}`;
+      azione = `<div class="pulsanti-risposta">
           ${partner ? `<button class="pulsante si" type="button" data-azione="risposta-si" data-id="${esc(o.id)}">${icona("spunta")} Ha risposto SÌ</button>` : ""}
-          <button class="pulsante no" type="button" data-azione="risposta-no" data-id="${esc(o.id)}">${icona("x")} Ha risposto NO</button>
-        </div>
-        ${partner ? `<a class="link" href="${esc(linkWhatsApp(o, partner))}" target="_blank" rel="noopener">Riapri il messaggio su WhatsApp</a>` : ""}`;
+          <button class="pulsante no" type="button" data-azione="risposta-no" data-id="${esc(o.id)}">${icona("x")} Ha risposto NO</button></div>`;
+      if (partner) sotto = `<a class="link" href="${esc(linkWhatsApp(o, partner))}" target="_blank" rel="noopener">Riapri il messaggio su WhatsApp</a>`;
+    } else if (partner) {
+      tono = "info";
+      proposta = `Nessuna squadra in zona: partner ${esc(partner.nome)}`;
+      azione = `<a class="pulsante primario whatsapp" href="${esc(linkWhatsApp(o, partner))}" target="_blank" rel="noopener"
+        data-azione="proponi" data-id="${esc(o.id)}" data-partner="${esc(partner.id)}">${icona("messaggio")} Proponi su WhatsApp</a>`;
+      sotto = `<details class="messaggio-partner"><summary>Il messaggio, senza il nome del cliente</summary>
+        <blockquote class="messaggio">${esc(testoWhatsApp(o, partner)).replace(/\n/g, "<br>")}</blockquote></details>`;
     } else {
-      const partner = prossimoPartner(o);
-      if (partner) {
-        prossimo = `<span class="chip chip-info">Da proporre a ${esc(partner.nome)}</span>`;
-        corpo = `
-          <p class="passo-titolo">Partner proposto: ${esc(partner.nome)}</p>
-          <p class="nota-piccola">${requisitiPartner(partner).testo} · zone: ${esc(partner.zone.join(", "))}</p>
-          <blockquote class="messaggio"><span class="messaggio-titolo">Messaggio precompilato</span>${esc(testoWhatsApp(o, partner)).replace(/\n/g, "<br>")}</blockquote>
-          <a class="pulsante whatsapp" href="${esc(linkWhatsApp(o, partner))}" target="_blank" rel="noopener"
-             data-azione="proponi" data-id="${esc(o.id)}" data-partner="${esc(partner.id)}">${icona("messaggio")} Proponi su WhatsApp</a>`;
-      } else if (rifiuti.length) {
-        prossimo = '<span class="chip chip-critico">Tutti i partner hanno detto NO</span>';
-        corpo = `
-          <p class="passo-titolo avviso">${icona("attenzione")} Tutti i partner idonei hanno risposto NO</p>
-          <p class="nota-piccola">Valuta con il cliente un rinvio dell'avvio o cerca un nuovo partner con DURC regolare in ${esc(zona)}.</p>`;
-      } else {
-        prossimo = '<span class="chip chip-critico">Nessun partner idoneo</span>';
-        corpo = `
-          <p class="passo-titolo avviso">${icona("attenzione")} Nessun partner idoneo in ${esc(zona)}</p>
-          <p class="nota-piccola">Valuta con il cliente un rinvio dell'avvio o cerca un partner con DURC regolare in questa zona.</p>`;
-      }
+      tono = "critico";
+      proposta = (rifiuti.length ? "Tutti i partner hanno risposto NO" : `Né squadre libere né partner proponibili in ${esc(zona)} per ${esc(o.servizio)}`)
+        + ": rinvia l'avvio o cerca un partner";
     }
-    passo = `
-      <div class="passo passo-partner">
-        <p class="avviso-capacita">${icona("attenzione")} Nessuna squadra interna in ${esc(zona)} ha ${Number(o.ore)} ore libere al mese per ${esc(o.servizio.toLowerCase())}.</p>
-        ${rifiuti.length ? `<ul class="rifiuti">${rifiuti.map((r) => `<li>${icona("x")} ${esc(nomePartner(r.partnerId))} ha risposto NO il ${formattaData(r.data)}</li>`).join("")}</ul>` : ""}
-        ${corpo}
-      </div>`;
   }
-
-  const aperta = interfaccia.allocazione.aperti["commessa-" + o.id] ?? (unica || o.id === ultimaModificata);
   return `
-    <details class="riquadro commessa ${o.id === ultimaModificata ? "evidenziata" : ""}" id="commessa-${esc(o.id)}" data-ricorda="commessa-${esc(o.id)}" ${aperta ? "open" : ""}>
-      <summary class="commessa-testa">
-        <span class="commessa-nome"><span class="commessa-codice">${esc(o.codice)}</span> <strong>${esc(nomeCliente(o))}</strong></span>
-        <span class="commessa-dati">${esc(o.comune)} · ${Number(o.ore)} h/mese</span>
-        ${prossimo}
-      </summary>
-      <p class="commessa-dati commessa-dettaglio">${esc(o.servizio)} · ${esc(o.comune)} (${esc(zona)}) · firmato il ${formattaData(o.storico.contratto)} ·
-        <a class="link" href="#cliente-${esc(o.aziendaId)}">scheda cliente</a></p>
-      ${passo}
-    </details>`;
+    <li class="riga-commessa ${o.id === ultimaModificata ? "evidenziata" : ""}" id="commessa-${esc(o.id)}">
+      <div class="commessa-chi">
+        <p><span class="commessa-codice">${esc(o.codice)}</span> <a class="link-titolo" href="#trattativa-${esc(o.id)}">${esc(nomeCliente(o))}</a></p>
+        <p class="nota-piccola">${esc(o.comune)} · ${Number(o.ore)} ore al mese · ${esc(o.servizio)} · firmato il ${formattaData(o.storico.contratto)}</p>
+      </div>
+      <p class="commessa-proposta ${tono}">${icona(tono === "ok" ? "spunta" : tono === "info" ? "messaggio" : "attenzione")} ${proposta}</p>
+      <div class="commessa-azione">${azione}</div>
+      ${rifiuti.length || sotto ? `<div class="commessa-sotto">${rifiuti.map((r) => `<p class="nota-piccola">${icona("x")} ${esc(nomePartner(r.partnerId))} ha risposto NO il ${formattaData(r.data)}</p>`).join("")}${sotto}</div>` : ""}
+    </li>`;
 }
 
+// Una squadra: ore libere grandi, stato (ha posto, quasi piena, piena), barra delle ore impegnate
 function schedaSquadra(s) {
   const libere = oreLibereSquadra(s, stato.opportunita);
-  const impegnate = s.oreCapacita - libere;
-  const quota = Math.min(1, impegnate / s.oreCapacita);
-  const satura = libere <= 0;
+  const impegnate = Math.min(s.oreCapacita, s.oreCapacita - libere);
+  const stato_ = libere <= 0 ? ["Piena", "critico"] : libere / s.oreCapacita < 0.1 ? ["Quasi piena", "attenzione"] : ["Ha posto", "ok"];
   return `
-    <article class="riquadro">
-      <h3>${s.nome}</h3>
-      <p class="partner-dati">${s.caposquadra} · ${s.zone.join(", ")}</p>
-      <p class="partner-dati">${s.servizi.join(", ")}</p>
+    <article class="riquadro scheda-squadra" id="squadra-${esc(s.id)}">
+      <div class="scheda-squadra-testa"><h3>${esc(s.nome.replace(/^Squadra /, ""))}</h3><span class="chip chip-${stato_[1]}">${stato_[0]}</span></div>
+      <p class="nota-piccola">${esc(s.zone.join(", "))} · ${esc(s.caposquadra)}</p>
+      <p class="squadra-libere"><strong>${Math.max(0, libere).toLocaleString("it-IT")}</strong> ore libere su ${s.oreCapacita.toLocaleString("it-IT")}</p>
       <div class="misuratore" role="meter" aria-label="Ore impegnate" aria-valuemin="0" aria-valuemax="${s.oreCapacita}" aria-valuenow="${impegnate}">
-        <span class="${satura ? "satura" : ""}" style="width:${quota * 100}%"></span>
+        <span class="${libere <= 0 ? "satura" : ""}" style="width:${Math.round((impegnate / s.oreCapacita) * 100)}%"></span>
       </div>
-      <p class="misuratore-legenda"><strong>${Math.max(0, libere)} ore libere</strong> su ${s.oreCapacita}
-        ${satura ? `· <span class="stato attenzione">${icona("attenzione")} Satura</span>` : ""}</p>
     </article>`;
 }
 
-function schedaPartner(p) {
+// Se firmano le offerte aperte: dove mancano ore e cosa conviene fare prima di vendere ancora in quella zona
+function avvisoCapacita() {
+  const zone = previsioneCapacita(stato.opportunita).filter(zonaConSquadre).filter((z) => z.mancano > 0);
+  if (!zone.length) return '<p class="nota-piccola">Se firmano le offerte aperte, le squadre hanno ore sufficienti in tutte le loro zone.</p>';
+  return `<div class="avviso-zona">${icona("attenzione")}<div>
+      <p><strong>Se firmano le offerte aperte, ${zone.map((z) => `in ${esc(z.zona)} mancano circa ${z.mancano} ore al mese`).join("; ")}.</strong></p>
+      <p>${CONFIG.funzioni.partner ? "Conviene preparare ora un'impresa partner, prima di vendere altro in quella zona." : "Conviene liberare ore o rinviare gli avvii prima di vendere altro in quella zona."}</p>
+    </div></div>`;
+}
+
+// Zona coperta da almeno una squadra interna
+function zonaConSquadre(z) {
+  return CONFIG.squadre.some((sq) => sq.zone.includes(z.zona));
+}
+
+// Un'impresa partner in una riga: nome, zone e servizi, DURC valido o motivo per cui non si può proporre
+function rigaPartner(p) {
   const req = requisitiPartner(p);
-  return `
-    <article class="riquadro ${req.idoneo ? "" : "partner-escluso"}">
-      <h3>${p.nome}</h3>
-      <p class="partner-dati">${p.tipo === "impresa" ? "Impresa" : "Lavoratore autonomo"} · ${p.zone.join(", ")}</p>
-      <p class="partner-dati">${p.servizi.join(", ")}</p>
-      <p class="stato ${req.idoneo ? "ok" : "critico"}" style="margin-top:8px">${icona(req.idoneo ? "spunta" : "x")} ${req.testo}</p>
-    </article>`;
+  return `<li class="riga-partner ${req.idoneo ? "" : "partner-escluso"}">
+      <p><strong>${esc(p.nome)}</strong> <span class="nota-piccola">· ${esc(p.zone.join(", "))} · ${esc(p.servizi.join(", "))}</span></p>
+      <span class="chip ${req.idoneo ? "chip-ok" : "chip-critico"}">${req.idoneo ? "DURC valido" : esc(req.testo.replace(/: non ammesso$/, "")) + ": non proponibile"}</span>
+    </li>`;
 }
 
 // ===================================================== FINESTRE DI DIALOGO
@@ -662,7 +644,7 @@ function prossimoPasso(o) {
       : squadra ? "C'è una squadra interna con ore libere nella zona." : "Nessuna squadra interna ha ore libere: scegli un partner.";
     pulsante = o.allocazione ? "" : squadra
       ? `<button class="pulsante primario" type="button" data-azione="assegna-squadra" data-id="${id}">Assegna a ${esc(squadra.nome)}</button>`
-      : `<a class="pulsante primario" href="#allocazione">Vai all'allocazione ${icona("freccia")}</a>`;
+      : `<a class="pulsante primario" href="#allocazione">Vai a Squadre ${icona("freccia")}</a>`;
   }
   const stati = fase === "contratto" ? "" : rigaRicontatto(o) + rigaStatoTrattativa(o, fissato);
   return `<section class="riquadro prossimo-passo" aria-label="Prossimo passo">
@@ -691,7 +673,7 @@ function disegnaTrattativa(id) {
   // Ritorno alla schermata di provenienza (come la scheda cliente); senza provenienza a «Oggi», o a Clienti per chi non ha Oggi
   const casa = schermataDelRuolo("oggi") ? "oggi" : "clienti";
   const da = ["oggi", "clienti", "allocazione", "cliente"].includes(interfaccia.provenienza) ? interfaccia.provenienza : casa;
-  const ritorno = { oggi: "Oggi", clienti: "Clienti", allocazione: "Allocazione", cliente: "Scheda cliente" }[da];
+  const ritorno = { oggi: "Oggi", clienti: "Clienti", allocazione: "Squadre", cliente: "Scheda cliente" }[da];
   const indietro = da === "cliente" ? "#cliente-" + esc(o.aziendaId) : "#" + da;
   // Chi la eseguirebbe: squadra con ore libere contro le ore della trattativa, oppure un partner
   const squadra = CONFIG.squadre.filter((sq) => squadraCopre(sq, o)).map((sq) => ({ sq, ore: oreLibereSquadra(sq, stato.opportunita, o.id) })).sort((x, y) => y.ore - x.ore)[0];
@@ -1421,7 +1403,7 @@ function apriFase(o, fase, { data = null, attivitaId = null } = {}) {
     ${campi}`;
   const pulsanti = `
     <button class="pulsante secondario" type="button" data-azione="chiudi">Annulla</button>
-    <button class="pulsante primario" type="submit">${fase.id === "contratto" ? "Conferma e vai all'allocazione" : "Conferma"}</button>`;
+    <button class="pulsante primario" type="submit">${fase.id === "contratto" ? "Conferma e assegna la commessa" : "Conferma"}</button>`;
   apriFinestra(`
     <form class="modulo" id="modulo-fase" data-id="${esc(o.id)}" data-fase="${esc(fase.id)}" data-attivita="${esc(attivitaId || "")}" novalidate>
       <div class="finestra-testa"><h2>${esc(azione)} · ${esc(nomeCliente(o))}</h2>${badgePunteggio(p)}</div>
@@ -1862,9 +1844,10 @@ const AZIONI = {
   "vai-allocazione": () => {
     location.hash = "#allocazione";
   },
+  // Avviso sul DURC: apre Squadre e porta alle imprese partner
   "vai-partner": () => {
-    interfaccia.allocazione.aperti["squadre-partner"] = true;
     location.hash = "#allocazione";
+    setTimeout(() => { const el = document.getElementById("imprese-partner"); if (el) el.scrollIntoView({ behavior: comeScorrere(), block: "start" }); }, 0);
   },
   // «Mostra altre N» in fondo a una colonna delle trattative per fase
   "mostra-tutte": (el) => {
@@ -2176,10 +2159,10 @@ const SCHERMATE = {
 };
 
 // Nome della schermata nel titolo della scheda del browser, es. "Clienti · Gate"
-const TITOLI = { oggi: "Oggi", clienti: "Clienti", allocazione: "Allocazione", cruscotto: "Cruscotto", indicatori: "Indicatori", documenti: "Documenti", accesso: "Accesso" };
+const TITOLI = { oggi: "Oggi", clienti: "Clienti", allocazione: "Squadre", cruscotto: "Cruscotto", indicatori: "Indicatori", documenti: "Documenti", accesso: "Accesso" };
 
 // Indirizzi vecchi che restano validi: #pipeline è la schermata «Oggi»
-const ALIAS_SCHERMATE = { pipeline: "oggi", direzione: "cruscotto" };
+const ALIAS_SCHERMATE = { pipeline: "oggi", direzione: "cruscotto", squadre: "allocazione" };
 
 // Nome della schermata da un hash: alias risolti, vuoto o sconosciuto = «Oggi» (la schermata di apertura)
 function normalizzaSchermata(hash) {
@@ -2336,34 +2319,8 @@ disegna();
 
 // ============================================ DOMANDE PREDITTIVA E PRESCRITTIVA
 
-// Allocazione: ore che serviranno se si firmano le offerte aperte
-function sezioneCapacitaFutura() {
-  const zone = previsioneCapacita(stato.opportunita);
-  if (!zone.length) return "";
-  const scoperte = zone.filter((z) => zonaConSquadre(z) && z.mancano);
-  return richiudibile("capacita", `Capacità se si firmano le offerte aperte`,
-    scoperte.length ? `<span class="chip chip-critico">mancano ore in ${quanti(scoperte.length, "zona", "zone")}</span>` : '<span class="chip chip-ok">capacità sufficiente</span>', `
-      <ul class="elenco-capacita">
-        ${zone.filter(zonaConSquadre).map((z) => `<li class="${z.mancano ? "manca" : ""}">
-          <strong>${esc(z.zona)}</strong>: servono ${z.ore} ore/mese, le squadre ne hanno ${z.libere} libere
-          ${z.mancano ? `<span class="chip chip-critico">mancano ${z.mancano} ore: servirà un partner</span>` : '<span class="chip chip-ok">capacità sufficiente</span>'}
-        </li>`).join("")}
-      </ul>
-      ${rigaZoneSenzaSquadre(zone)}`);
-}
 
-// Zona coperta da almeno una squadra interna
-function zonaConSquadre(z) {
-  return CONFIG.squadre.some((s) => s.zone.includes(z.zona));
-}
 
-// Le zone senza squadre in una sola riga: lì serve comunque un partner
-function rigaZoneSenzaSquadre(zone) {
-  const fuori = zone.filter((z) => !zonaConSquadre(z));
-  if (!fuori.length) return "";
-  return `<p class="nota-piccola">Fuori dalle zone delle squadre: ${fuori.reduce((s, z) => s + z.ore, 0)} ore/mese in ${quanti(fuori.length, "zona", "zone")}
-    (${esc(fuori.map((z) => z.zona).join(", "))}): servono partner.</p>`;
-}
 
 // App installabile (GitHub Pages): il service worker conserva una copia dei file per aprire il CRM anche senza rete.
 // Aperto con un doppio clic (file://) non serve e non si registra

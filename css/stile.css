@@ -4914,3 +4914,136 @@ button.link {
 .pulsante-icona {
   min-width: 44px;
 }
+
+/* Squadre (25/10, riferimento 12 di Claude Design): commesse in righe con un solo pulsante, ore libere per squadra, partner */
+.righe-commesse,
+.righe-partner {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.riga-commessa {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
+  gap: 8px 20px;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.riga-commessa:first-child {
+  border-top: 0;
+}
+
+.riga-commessa p {
+  margin: 0;
+}
+
+.commessa-proposta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.commessa-proposta.ok { color: var(--ok); }
+.commessa-proposta.info { color: var(--secondary); }
+.commessa-proposta.attenzione { color: var(--attenzione); }
+.commessa-proposta.critico { color: var(--critico); }
+
+.commessa-azione {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.commessa-sotto {
+  grid-column: 1 / -1;
+}
+
+.messaggio-partner summary {
+  cursor: pointer;
+  color: var(--primary-scuro);
+  font-size: 14px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.griglia-squadre {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 10px 0 14px;
+}
+
+.scheda-squadra-testa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.scheda-squadra h3 {
+  margin: 0;
+}
+
+.squadra-libere {
+  margin: 10px 0 8px;
+}
+
+.squadra-libere strong {
+  font-family: Sora, Manrope, sans-serif;
+  font-size: 28px;
+  color: var(--foreground);
+}
+
+.avviso-zona {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--attenzione-sfondo);
+  color: var(--attenzione);
+}
+
+.avviso-zona p {
+  margin: 0 0 2px;
+}
+
+.riga-partner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.riga-partner:first-child {
+  border-top: 0;
+}
+
+.riga-partner p {
+  margin: 0;
+}
+
+.pagina-squadre > .sezione {
+  margin-bottom: 20px;
+}
+
+@media (max-width: 760px) {
+  .riga-commessa {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .commessa-azione {
+    justify-content: stretch;
+  }
+
+  .commessa-azione > .pulsante,
+  .commessa-azione .pulsanti-risposta {
+    width: 100%;
+  }
+}
