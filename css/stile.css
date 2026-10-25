@@ -4925,11 +4925,23 @@ button.link {
 
 .riga-commessa {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 250px;
   gap: 8px 20px;
   align-items: center;
-  padding: 14px 0;
+  padding: 12px 0;
   border-top: 1px solid var(--border);
+}
+
+.riga-commessa.senza-azione {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 250px;
+}
+
+.gruppo-commesse + .gruppo-commesse {
+  margin-top: 18px;
+}
+
+.gruppo-commesse .titolo-gruppo {
+  margin: 8px 0 2px;
 }
 
 .riga-commessa:first-child {
@@ -4954,7 +4966,31 @@ button.link {
 
 .commessa-azione {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.commessa-azione > .pulsante,
+.commessa-azione .pulsanti-risposta {
+  width: 100%;
+}
+
+.commessa-azione .pulsanti-risposta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.commessa-azione .link {
+  align-self: flex-start;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.commessa-proposta .icona {
+  flex-shrink: 0;
 }
 
 .commessa-sotto {

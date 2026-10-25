@@ -270,6 +270,11 @@ const PROVE = {
     verifica('riquadro «Commesse assegnate» resta aperto dopo il ridisegno', await page.$eval('#riquadro-assegnate', (d) => d.open));
     const righe = await page.$$eval('.riga-commessa', (el) => el.map((r) => r.querySelectorAll('.commessa-azione .pulsante').length));
     verifica('ogni commessa ha la sua proposta e al più un pulsante (o SÌ/NO se si attende il partner)', righe.every((n) => n <= 2) && righe.some((n) => n === 1), righe.join(','));
+    const gruppi = await page.$$eval('.gruppo-commesse', (el) => el.map((g) => g.id));
+    const ordine = ['gruppo-ora', 'gruppo-attesa', 'gruppo-bloccata'].filter((g) => gruppi.includes(g));
+    verifica('da assegnare: righe raggruppate (ora, in attesa, senza squadra né partner), nell\'ordine', gruppi.length > 0 && gruppi.join() === ordine.join(), gruppi.join(', '));
+    const colonne = await page.$$eval('#gruppo-ora .commessa-azione', (el) => [...new Set(el.map((a) => Math.round(a.getBoundingClientRect().left)))].length);
+    verifica('i pulsanti stanno tutti nella stessa colonna', colonne === 1, colonne);
     const squadre = await page.$$eval('.scheda-squadra', (el) => el.map((q) => q.querySelector('.chip').textContent));
     verifica('ore libere: una scheda per squadra con lo stato (ha posto, quasi piena, piena)', squadre.length === 4 && squadre.every((t) => /Ha posto|Quasi piena|Piena/.test(t)), squadre.join(', '));
     verifica('nessun riferimento al prototipo', !/prototip/i.test(await page.textContent('body')));

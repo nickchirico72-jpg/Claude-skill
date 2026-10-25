@@ -335,8 +335,7 @@ function disegnaAllocazione() {
             ${zone.map((z) => `<option value="${esc(z)}" ${z === scelta.zona ? "selected" : ""}>${esc(z)} (${quante(z)})</option>`).join("")}
           </select></label>` : ""}
       </div>
-      ${visibili.length ? `<ul class="righe-commesse">${visibili.map(rigaCommessa).join("")}</ul>`
-        : '<p class="vuoto">Nessuna commessa da assegnare: i contratti firmati compaiono qui.</p>'}
+      ${visibili.length ? gruppiCommesse(visibili) : '<p class="vuoto">Nessuna commessa da assegnare: i contratti firmati compaiono qui.</p>'}
     </section>
 
     <section class="sezione" aria-label="Ore libere al mese">
@@ -403,52 +402,65 @@ function richiudibile(id, titolo, riassunto, corpo) {
     </details>`;
 }
 
-// Una commessa da assegnare in una riga: chi è, la proposta (squadra o partner) e un solo pulsante
-function rigaCommessa(o) {
-  const zona = infoComune(o.comune).zona;
+// Cosa si può fare per una commessa: gruppo (ora, attesa, bloccata), proposta in breve, azione e note sotto il pulsante
+function propostaCommessa(o) {
   const squadra = squadraDisponibile(o, stato.opportunita);
   const rifiuti = (o.proposte || []).filter((p) => p.esito === "no");
-  let proposta, tono, azione = "", sotto = "";
+  const noRicevuti = rifiuti.length ? `<span class="nota-piccola">${rifiuti.map((r) => esc(nomePartner(r.partnerId)) + " ha detto NO").join(", ")}</span>` : "";
   if (squadra) {
-    tono = "ok";
-    proposta = `${esc(squadra.nome)} ha posto: ${oreLibereSquadra(squadra, stato.opportunita, o.id)} ore libere al mese`;
-    azione = `<button class="pulsante primario" type="button" data-azione="assegna-squadra" data-id="${esc(o.id)}">Assegna alla ${esc(squadra.nome)}</button>`;
-  } else if (!CONFIG.funzioni.partner) {
-    tono = "critico";
-    proposta = `Nessuna squadra in ${esc(zona)} ha ${Number(o.ore)} ore libere: rinvia l'avvio o libera ore`;
-  } else {
-    const attesa = propostaInAttesa(o);
-    const partner = attesa ? trovaPartner(attesa.partnerId) : prossimoPartner(o);
-    if (attesa) {
-      tono = "attenzione";
-      proposta = `In attesa di ${esc(nomePartner(attesa.partnerId))}: proposta inviata il ${formattaData(attesa.data)}`;
-      azione = `<div class="pulsanti-risposta">
-          ${partner ? `<button class="pulsante si" type="button" data-azione="risposta-si" data-id="${esc(o.id)}">${icona("spunta")} Ha risposto SÌ</button>` : ""}
-          <button class="pulsante no" type="button" data-azione="risposta-no" data-id="${esc(o.id)}">${icona("x")} Ha risposto NO</button></div>`;
-      if (partner) sotto = `<a class="link" href="${esc(linkWhatsApp(o, partner))}" target="_blank" rel="noopener">Riapri il messaggio su WhatsApp</a>`;
-    } else if (partner) {
-      tono = "info";
-      proposta = `Nessuna squadra in zona: partner ${esc(partner.nome)}`;
-      azione = `<a class="pulsante primario whatsapp" href="${esc(linkWhatsApp(o, partner))}" target="_blank" rel="noopener"
-        data-azione="proponi" data-id="${esc(o.id)}" data-partner="${esc(partner.id)}">${icona("messaggio")} Proponi su WhatsApp</a>`;
-      sotto = `<details class="messaggio-partner"><summary>Il messaggio, senza il nome del cliente</summary>
-        <blockquote class="messaggio">${esc(testoWhatsApp(o, partner)).replace(/\n/g, "<br>")}</blockquote></details>`;
-    } else {
-      tono = "critico";
-      proposta = (rifiuti.length ? "Tutti i partner hanno risposto NO" : `Né squadre libere né partner proponibili in ${esc(zona)} per ${esc(o.servizio)}`)
-        + ": rinvia l'avvio o cerca un partner";
-    }
+    return { gruppo: "ora", tono: "ok", icona: "spunta", testo: `${esc(squadra.nome)} · ${oreLibereSquadra(squadra, stato.opportunita, o.id)} ore libere`,
+      azione: `<button class="pulsante primario" type="button" data-azione="assegna-squadra" data-id="${esc(o.id)}" title="Assegna a ${esc(squadra.nome)}">${icona("spunta")} Assegna</button>` };
   }
+  if (!CONFIG.funzioni.partner) return { gruppo: "bloccata", tono: "critico", icona: "attenzione", testo: `Nessuna squadra con ${Number(o.ore)} ore libere` };
+  const attesa = propostaInAttesa(o);
+  const partner = attesa ? trovaPartner(attesa.partnerId) : prossimoPartner(o);
+  if (attesa) {
+    return { gruppo: "attesa", tono: "attenzione", icona: "orologio", testo: `${esc(nomePartner(attesa.partnerId))} · proposta del ${formattaData(attesa.data).slice(0, 5)}`, extra: noRicevuti,
+      azione: `<div class="pulsanti-risposta">
+          ${partner ? `<button class="pulsante si" type="button" data-azione="risposta-si" data-id="${esc(o.id)}">${icona("spunta")} SÌ</button>` : ""}
+          <button class="pulsante no" type="button" data-azione="risposta-no" data-id="${esc(o.id)}">${icona("x")} NO</button></div>`,
+      sotto: partner ? `<a class="link" href="${esc(linkWhatsApp(o, partner))}" target="_blank" rel="noopener">Riapri il messaggio</a>` : "" };
+  }
+  if (partner) {
+    return { gruppo: "ora", tono: "info", icona: "messaggio", testo: `Partner ${esc(partner.nome)}`, extra: noRicevuti,
+      azione: `<a class="pulsante primario whatsapp" href="${esc(linkWhatsApp(o, partner))}" target="_blank" rel="noopener"
+        data-azione="proponi" data-id="${esc(o.id)}" data-partner="${esc(partner.id)}">${icona("messaggio")} Proponi su WhatsApp</a>`,
+      sotto: `<details class="messaggio-partner"><summary>Vedi il messaggio</summary>
+        <blockquote class="messaggio">${esc(testoWhatsApp(o, partner)).replace(/\n/g, "<br>")}</blockquote></details>` };
+  }
+  return { gruppo: "bloccata", tono: "critico", icona: "attenzione", testo: rifiuti.length ? "Tutti i partner hanno detto NO" : "Nessuna squadra libera né partner", extra: noRicevuti };
+}
+
+// Una commessa in una riga a colonne fisse: chi è, la proposta, l'azione (sempre allo stesso posto)
+function rigaCommessa(o, p = propostaCommessa(o)) {
   return `
-    <li class="riga-commessa ${o.id === ultimaModificata ? "evidenziata" : ""}" id="commessa-${esc(o.id)}">
+    <li class="riga-commessa ${p.azione ? "" : "senza-azione"} ${o.id === ultimaModificata ? "evidenziata" : ""}" id="commessa-${esc(o.id)}">
       <div class="commessa-chi">
         <p><span class="commessa-codice">${esc(o.codice)}</span> <a class="link-titolo" href="#trattativa-${esc(o.id)}">${esc(nomeCliente(o))}</a></p>
-        <p class="nota-piccola">${esc(o.comune)} · ${Number(o.ore)} ore al mese · ${esc(o.servizio)} · firmato il ${formattaData(o.storico.contratto)}</p>
+        <p class="nota-piccola">${esc(o.comune)} · ${Number(o.ore)} h/mese · ${esc(o.servizio)} · firmato il ${formattaData(o.storico.contratto).slice(0, 5)}</p>
       </div>
-      <p class="commessa-proposta ${tono}">${icona(tono === "ok" ? "spunta" : tono === "info" ? "messaggio" : "attenzione")} ${proposta}</p>
-      <div class="commessa-azione">${azione}</div>
-      ${rifiuti.length || sotto ? `<div class="commessa-sotto">${rifiuti.map((r) => `<p class="nota-piccola">${icona("x")} ${esc(nomePartner(r.partnerId))} ha risposto NO il ${formattaData(r.data)}</p>`).join("")}${sotto}</div>` : ""}
+      <p class="commessa-proposta ${p.tono}">${icona(p.icona)}<span>${p.testo}${p.extra ? "<br>" + p.extra : ""}</span></p>
+      ${p.azione ? `<div class="commessa-azione">${p.azione}${p.sotto || ""}</div>` : ""}
     </li>`;
+}
+
+// Le commesse in tre gruppi: da assegnare ora, in attesa del partner, senza squadra né partner (consiglio una volta sola)
+function gruppiCommesse(commesse) {
+  const conProposta = commesse.map((o) => ({ o, p: propostaCommessa(o) }));
+  const gruppi = [
+    ["ora", "Da assegnare ora", ""],
+    ["attesa", "In attesa del partner", "Registra la risposta arrivata su WhatsApp."],
+    ["bloccata", "Senza squadra né partner", CONFIG.funzioni.partner ? "Rinvia l'avvio con il cliente o cerca un partner con DURC valido nella zona."
+      : "Rinvia l'avvio con il cliente o libera ore in una squadra della zona."],
+  ];
+  return gruppi.map(([id, titolo, nota]) => {
+    const righe = conProposta.filter((x) => x.p.gruppo === id);
+    return righe.length ? `<div class="gruppo-commesse" id="gruppo-${id}">
+        <h3 class="titolo-gruppo">${titolo} <span class="conteggio">${righe.length}</span></h3>
+        ${nota ? `<p class="nota-piccola">${nota}</p>` : ""}
+        <ul class="righe-commesse">${righe.map((x) => rigaCommessa(x.o, x.p)).join("")}</ul>
+      </div>` : "";
+  }).join("");
 }
 
 // Una squadra: ore libere grandi, stato (ha posto, quasi piena, piena), barra delle ore impegnate
